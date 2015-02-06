@@ -20,7 +20,7 @@ int main (int argc, char ** argv)
 		std::cout << "Name:" << name << " Age:" << age << std::endl;
 	});
 
-	LambdaOpts<char>::ParseEnv parseEnv(parser, std::vector<std::string>(argv + 1, argv + argc));
+	auto parseEnv = parser.NewParseEnv(std::vector<std::string>(argv + 1, argv + argc));
 
 	int parseFailureIndex;
 	if (!parseEnv.Parse(parseFailureIndex)) {

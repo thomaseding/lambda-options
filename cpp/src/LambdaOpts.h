@@ -42,19 +42,30 @@ template <typename Char>
 class LambdaOpts {
 	typedef Char const * CString;
 	typedef std::basic_string<Char> String;
+	class ParseEnv;
 	class ParseEnvImpl;
 
 public:
 	template <typename Func>
 	void Add (String option, Func f);
 
+	ParseEnv NewParseEnv (std::vector<String> args);
+
 	class ParseEnv {
+		friend class LambdaOpts;
+
 	public:
-		ParseEnv (LambdaOpts const & parser, std::vector<String> args);
+		ParseEnv (ParseEnv && other);
+		ParseEnv & operator= (ParseEnv && other);
 
 		bool Parse (int & outParseFailureIndex);
 		bool Peek (String & outArg) const;
 		bool Next ();
+
+	private:
+		ParseEnv (LambdaOpts const & parser, std::vector<String> && args);
+		ParseEnv (ParseEnv const & other);			// disable
+		void operator= (ParseEnv const & other);	// disable
 
 	private:
 		std::unique_ptr<ParseEnvImpl> impl;
@@ -849,9 +860,22 @@ void LambdaOpts<Char>::ParseEnvImpl::FreeParseAllocations ()
 
 
 template <typename Char>
-LambdaOpts<Char>::ParseEnv::ParseEnv (LambdaOpts const & parser, std::vector<String> args)
+LambdaOpts<Char>::ParseEnv::ParseEnv (LambdaOpts const & parser, std::vector<String> && args)
 	: impl(new ParseEnvImpl(parser, std::move(args)))
 {}
+
+
+template <typename Char>
+LambdaOpts<Char>::ParseEnv::ParseEnv (ParseEnv && other)
+	: impl(std::move(other.impl))
+{}
+
+
+template <typename Char>
+typename LambdaOpts<Char>::ParseEnv & LambdaOpts<Char>::ParseEnv::operator= (ParseEnv && other)
+{
+	impl = std::move(other.impl);
+}
 
 
 template <typename Char>
@@ -886,6 +910,11 @@ void LambdaOpts<Char>::Add (String option, Func f)
 }
 
 
+template <typename Char>
+typename LambdaOpts<Char>::ParseEnv LambdaOpts<Char>::NewParseEnv (std::vector<String> args)
+{
+	return ParseEnv(*this, std::move(args));
+}
 
 
 
