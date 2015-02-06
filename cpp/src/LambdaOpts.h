@@ -59,7 +59,10 @@ public:
 		ParseEnv & operator= (ParseEnv && other);
 
 		bool Parse (int & outParseFailureIndex);
-		bool Peek (String & outArg) const;
+
+		template <typename T>
+		bool Peek (T & outArg);
+
 		bool Next ();
 
 	private:
@@ -264,7 +267,10 @@ private:
 		ParseEnvImpl (LambdaOpts const & opts, std::vector<String> && args);
 
 		bool Parse (int & outParseFailureIndex);
-		bool Peek (String & outArg) const;
+
+		template <typename T>
+		bool Peek (T & outArg);
+
 		bool Next ();
 
 		size_t RemainingArgs () const;
@@ -782,11 +788,18 @@ size_t LambdaOpts<Char>::ParseEnvImpl::RemainingArgs () const
 
 
 template <typename Char>
-bool LambdaOpts<Char>::ParseEnvImpl::Peek (String & outArg) const
+template <typename T>
+bool LambdaOpts<Char>::ParseEnvImpl::Peek (T & outArg)
 {
 	if (argIndex < args.size()) {
-		outArg = args[argIndex];
-		return true;
+		FreeParseAllocations();
+		TypeKind const kind = GetTypeKind(outArg);
+		String const & arg = args[argIndex];
+		void const * p = Parse(kind, arg);
+		if (p != nullptr) {
+			Reify(p, outArg);
+			return true;
+		}
 	}
 	return false;
 }
@@ -862,7 +875,8 @@ bool LambdaOpts<Char>::ParseEnv::Parse (int & outParseFailureIndex)
 
 
 template <typename Char>
-bool LambdaOpts<Char>::ParseEnv::Peek (String & outArg) const
+template <typename T>
+bool LambdaOpts<Char>::ParseEnv::Peek (T & outArg)
 {
 	return impl->Peek(outArg);
 }
