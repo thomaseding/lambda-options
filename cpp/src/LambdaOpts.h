@@ -63,7 +63,7 @@ public:
 		bool Next ();
 
 	private:
-		ParseEnv (LambdaOpts const & parser, std::vector<String> && args);
+		ParseEnv (LambdaOpts const & opts, std::vector<String> && args);
 		ParseEnv (ParseEnv const & other);			// disable
 		void operator= (ParseEnv const & other);	// disable
 
@@ -155,32 +155,32 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 0> {
-		static void Add (LambdaOpts & parser, String option, Func f);
+		static void Add (LambdaOpts & opts, String option, Func f);
 	};
 
 	template <typename Func>
 	struct Adder<Func, 1> {
-		static void Add (LambdaOpts & parser, String option, Func f);
+		static void Add (LambdaOpts & opts, String option, Func f);
 	};
 
 	template <typename Func>
 	struct Adder<Func, 2> {
-		static void Add (LambdaOpts & parser, String option, Func f);
+		static void Add (LambdaOpts & opts, String option, Func f);
 	};
 
 	template <typename Func>
 	struct Adder<Func, 3> {
-		static void Add (LambdaOpts & parser, String option, Func f);
+		static void Add (LambdaOpts & opts, String option, Func f);
 	};
 
 	template <typename Func>
 	struct Adder<Func, 4> {
-		static void Add (LambdaOpts & parser, String option, Func f);
+		static void Add (LambdaOpts & opts, String option, Func f);
 	};
 
 	template <typename Func>
 	struct Adder<Func, 5> {
-		static void Add (LambdaOpts & parser, String option, Func f);
+		static void Add (LambdaOpts & opts, String option, Func f);
 	};
 
 //////////////////////////////////////////////////////////////////////////
@@ -213,16 +213,6 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-	template <typename Char>
-	static size_t StrLen (Char const * str)
-	{
-		size_t size = 0;
-		while (*str++) {
-			++size;
-		}
-		return size;
-	}
-
 	static bool Scan (std::string const & str, char const * format, void * dest)
 	{
 		char dummy;
@@ -244,15 +234,14 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 	// TODO: TypeTag base class
-	enum TypeKind { T_Int, T_Uint, T_Float, T_Double, T_Char, T_CString };
+	enum TypeKind { T_Int, T_Uint, T_Float, T_Double, T_Char, T_String };
 
 	static TypeKind GetTypeKind (int *) { return T_Int; }
 	static TypeKind GetTypeKind (unsigned int *) { return T_Uint; }
 	static TypeKind GetTypeKind (float *) { return T_Float; }
 	static TypeKind GetTypeKind (double *) { return T_Double; }
 	static TypeKind GetTypeKind (Char *) { return T_Char; }
-	static TypeKind GetTypeKind (CString *) { return T_CString; }
-	static TypeKind GetTypeKind (String *) { return T_CString; }
+	static TypeKind GetTypeKind (String *) { return T_String; }
 
 	// TODO: Can I now use template specialization instead of this?
 	template <typename T>
@@ -272,7 +261,7 @@ private:
 
 	class ParseEnvImpl {
 	public:
-		ParseEnvImpl (LambdaOpts const & parser, std::vector<String> && args);
+		ParseEnvImpl (LambdaOpts const & opts, std::vector<String> && args);
 
 		bool Parse (int & outParseFailureIndex);
 		bool Peek (String & outArg) const;
@@ -285,7 +274,7 @@ private:
 		void * Parse_float (String const & arg);
 		void * Parse_double (String const & arg);
 		void * Parse_Char (String const & arg);
-		void * Parse_CString (String const & arg);
+		void * Parse_String (String const & arg);
 		void * Parse (TypeKind type, String const & arg);
 
 		template <typename GenericOptInfo>
@@ -296,11 +285,11 @@ private:
 		template <typename T>
 		void * Allocate (T value);
 
-		void * Allocate_CString (CString str);
+		void * Allocate_String (String const & str);
 		void FreeParseAllocations ();
 
 	public:
-		LambdaOpts const & parser;
+		LambdaOpts const & opts;
 		std::vector<std::unique_ptr<char const>> parseAllocations;
 		std::vector<String> args;
 		size_t argIndex;
@@ -313,7 +302,6 @@ private:
 	static void Reify (void const * opaque, float & out);
 	static void Reify (void const * opaque, double & out);
 	static void Reify (void const * opaque, Char & out);
-	static void Reify (void const * opaque, CString & out);
 	static void Reify (void const * opaque, String & out);
 
 	// TODO: Can I now use template specialization instead of this?
@@ -340,64 +328,64 @@ private:
 
 template <typename Char>
 template <typename Func>
-void LambdaOpts<Char>::Adder<Func, 0>::Add (LambdaOpts & parser, String option, Func f)
+void LambdaOpts<Char>::Adder<Func, 0>::Add (LambdaOpts & opts, String option, Func f)
 {
-	parser.AddImpl(option, f);
+	opts.AddImpl(option, f);
 }
 
 
 template <typename Char>
 template <typename Func>
-void LambdaOpts<Char>::Adder<Func, 1>::Add (LambdaOpts & parser, String option, Func f)
+void LambdaOpts<Char>::Adder<Func, 1>::Add (LambdaOpts & opts, String option, Func f)
 {
 	typedef typename FuncTraits<Func>::Arg0::type A;
-	parser.AddImpl<A>(option, f);
+	opts.AddImpl<A>(option, f);
 }
 
 
 template <typename Char>
 template <typename Func>
-void LambdaOpts<Char>::Adder<Func, 2>::Add (LambdaOpts & parser, String option, Func f)
+void LambdaOpts<Char>::Adder<Func, 2>::Add (LambdaOpts & opts, String option, Func f)
 {
 	typedef typename FuncTraits<Func>::Arg0::type A;
 	typedef typename FuncTraits<Func>::Arg1::type B;
-	parser.AddImpl<A, B>(option, f);
+	opts.AddImpl<A,B>(option, f);
 }
 
 
 template <typename Char>
 template <typename Func>
-void LambdaOpts<Char>::Adder<Func, 3>::Add (LambdaOpts & parser, String option, Func f)
+void LambdaOpts<Char>::Adder<Func, 3>::Add (LambdaOpts & opts, String option, Func f)
 {
 	typedef typename FuncTraits<Func>::Arg0::type A;
 	typedef typename FuncTraits<Func>::Arg1::type B;
 	typedef typename FuncTraits<Func>::Arg2::type C;
-	parser.AddImpl<A, B, C>(option, f);
+	opts.AddImpl<A,B,C>(option, f);
 }
 
 
 template <typename Char>
 template <typename Func>
-void LambdaOpts<Char>::Adder<Func, 4>::Add (LambdaOpts & parser, String option, Func f)
+void LambdaOpts<Char>::Adder<Func, 4>::Add (LambdaOpts & opts, String option, Func f)
 {
 	typedef typename FuncTraits<Func>::Arg0::type A;
 	typedef typename FuncTraits<Func>::Arg1::type B;
 	typedef typename FuncTraits<Func>::Arg2::type C;
 	typedef typename FuncTraits<Func>::Arg3::type D;
-	parser.AddImpl<A, B, C, D>(option, f);
+	opts.AddImpl<A,B,C,D>(option, f);
 }
 
 
 template <typename Char>
 template <typename Func>
-void LambdaOpts<Char>::Adder<Func, 5>::Add (LambdaOpts & parser, String option, Func f)
+void LambdaOpts<Char>::Adder<Func, 5>::Add (LambdaOpts & opts, String option, Func f)
 {
 	typedef typename FuncTraits<Func>::Arg0::type A;
 	typedef typename FuncTraits<Func>::Arg1::type B;
 	typedef typename FuncTraits<Func>::Arg2::type C;
 	typedef typename FuncTraits<Func>::Arg3::type D;
 	typedef typename FuncTraits<Func>::Arg4::type E;
-	parser.AddImpl<A, B, C, D, E>(option, f);
+	opts.AddImpl<A,B,C,D,E>(option, f);
 }
 
 
@@ -405,79 +393,79 @@ void LambdaOpts<Char>::Adder<Func, 5>::Add (LambdaOpts & parser, String option, 
 
 
 template <typename Char>
-void LambdaOpts<Char>::AddImpl (String option, std::function<void()> f)
+void LambdaOpts<Char>::AddImpl (String option, std::function<void()> func)
 {
 	OptInfo<void()> info;
 	info.option = option;
-	info.callback = f;
+	info.callback = func;
 	infos0.push_back(info);
 }
 
 
 template <typename Char>
 template <typename A>
-void LambdaOpts<Char>::AddImpl (String option, std::function<void(A)> f)
+void LambdaOpts<Char>::AddImpl (String option, std::function<void(A)> func)
 {
-	auto g = [f] (V va) {
+	auto wrapper = [=] (V va) {
 		auto a = Reify<A>(va);
-		f(a);
+		func(a);
 	};
 	OptInfo<void(V)> info;
 	info.option = option;
 	info.types.push_back(GetTypeKind<A>());
-	info.callback = g;
+	info.callback = wrapper;
 	infos1.push_back(info);
 }
 
 
 template <typename Char>
 template <typename A, typename B>
-void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B)> f)
+void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B)> func)
 {
-	auto g = [f] (V va, V vb) {
+	auto wrapper = [=] (V va, V vb) {
 		auto a = Reify<A>(va);
 		auto b = Reify<B>(vb);
-		f(a, b);
+		func(a, b);
 	};
 	OptInfo<void(V,V)> info;
 	info.option = option;
 	info.types.push_back(GetTypeKind<A>());
 	info.types.push_back(GetTypeKind<B>());
-	info.callback = g;
+	info.callback = wrapper;
 	infos2.push_back(info);
 }
 
 
 template <typename Char>
 template <typename A, typename B, typename C>
-void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C)> f)
+void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C)> func)
 {
-	auto g = [f] (V va, V vb, V vc) {
+	auto wrapper = [=] (V va, V vb, V vc) {
 		auto a = Reify<A>(va);
 		auto b = Reify<B>(vb);
 		auto c = Reify<C>(vc);
-		f(a, b, c);
+		func(a, b, c);
 	};
 	OptInfo<void(V,V,V)> info;
 	info.option = option;
 	info.types.push_back(GetTypeKind<A>());
 	info.types.push_back(GetTypeKind<B>());
 	info.types.push_back(GetTypeKind<C>());
-	info.callback = g;
+	info.callback = wrapper;
 	infos3.push_back(info);
 }
 
 
 template <typename Char>
 template <typename A, typename B, typename C, typename D>
-void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C,D)> f)
+void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C,D)> func)
 {
-	auto g = [f] (V va, V vb, V vc, V vd) {
+	auto wrapper = [=] (V va, V vb, V vc, V vd) {
 		auto a = Reify<A>(va);
 		auto b = Reify<B>(vb);
 		auto c = Reify<C>(vc);
 		auto d = Reify<D>(vd);
-		f(a, b, c, d);
+		func(a, b, c, d);
 	};
 	OptInfo<void(V,V,V,V)> info;
 	info.option = option;
@@ -485,22 +473,22 @@ void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C,D)> f)
 	info.types.push_back(GetTypeKind<B>());
 	info.types.push_back(GetTypeKind<C>());
 	info.types.push_back(GetTypeKind<D>());
-	info.callback = g;
+	info.callback = wrapper;
 	infos4.push_back(info);
 }
 
 
 template <typename Char>
 template <typename A, typename B, typename C, typename D, typename E>
-void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C,D,E)> f)
+void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C,D,E)> func)
 {
-	auto g = [f](V va, V vb, V vc, V vd, V ve) {
+	auto wrapper = [=] (V va, V vb, V vc, V vd, V ve) {
 		auto a = Reify<A>(va);
 		auto b = Reify<B>(vb);
 		auto c = Reify<C>(vc);
 		auto d = Reify<D>(vd);
 		auto e = Reify<E>(ve);
-		f(a, b, c, d, e);
+		func(a, b, c, d, e);
 	};
 	OptInfo<void(V,V,V,V,V)> info;
 	info.option = option;
@@ -509,7 +497,7 @@ void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C,D,E)> f)
 	info.types.push_back(GetTypeKind<C>());
 	info.types.push_back(GetTypeKind<D>());
 	info.types.push_back(GetTypeKind<E>());
-	info.callback = g;
+	info.callback = wrapper;
 	infos5.push_back(info);
 }
 
@@ -599,18 +587,9 @@ void LambdaOpts<Char>::Reify (void const * opaque, Char & out)
 
 
 template <typename Char>
-void LambdaOpts<Char>::Reify (void const * opaque, CString & out)
-{
-	out = static_cast<CString>(opaque);
-}
-
-
-template <typename Char>
 void LambdaOpts<Char>::Reify (void const * opaque, String & out)
 {
-	char const * cstr;
-	Reify(opaque, cstr);
-	out = cstr;
+	out = static_cast<CString>(opaque);
 }
 
 
@@ -628,8 +607,8 @@ static T LambdaOpts<Char>::Reify (void const * opaque)
 
 
 template <typename Char>
-LambdaOpts<Char>::ParseEnvImpl::ParseEnvImpl (LambdaOpts const & parser, std::vector<String> && args)
-	: parser(parser)
+LambdaOpts<Char>::ParseEnvImpl::ParseEnvImpl (LambdaOpts const & opts, std::vector<String> && args)
+	: opts(opts)
 	, parseAllocations()
 	, args(std::move(args))
 	, argIndex(0)
@@ -692,9 +671,9 @@ void * LambdaOpts<Char>::ParseEnvImpl::Parse_Char (String const & arg)
 
 
 template <typename Char>
-void * LambdaOpts<Char>::ParseEnvImpl::Parse_CString (String const & arg)
+void * LambdaOpts<Char>::ParseEnvImpl::Parse_String (String const & arg)
 {
-	return Allocate_CString(arg.c_str());
+	return Allocate_String(arg);
 }
 
 
@@ -707,7 +686,7 @@ void * LambdaOpts<Char>::ParseEnvImpl::Parse (TypeKind type, String const & arg)
 		case T_Float: return Parse_float(arg);
 		case T_Double: return Parse_double(arg);
 		case T_Char: return Parse_Char(arg);
-		case T_CString: return Parse_CString(arg);
+		case T_String: return Parse_String(arg);
 	}
 	ASSERT(false);
 	return nullptr;
@@ -755,25 +734,22 @@ bool LambdaOpts<Char>::ParseEnvImpl::TryParse ()
 {
 	size_t parseCount = 0;
 	if (parseCount == 0) {
-		parseCount = TryParse(parser.infos5);
+		parseCount = TryParse(opts.infos5);
 	}
 	if (parseCount == 0) {
-		parseCount = TryParse(parser.infos4);
+		parseCount = TryParse(opts.infos4);
 	}
 	if (parseCount == 0) {
-		parseCount = TryParse(parser.infos3);
+		parseCount = TryParse(opts.infos3);
 	}
 	if (parseCount == 0) {
-		parseCount = TryParse(parser.infos2);
+		parseCount = TryParse(opts.infos2);
 	}
 	if (parseCount == 0) {
-		parseCount = TryParse(parser.infos1);
+		parseCount = TryParse(opts.infos1);
 	}
 	if (parseCount == 0) {
-		parseCount = TryParse(parser.infos0);
-	}
-	if (parseCount == 0) {
-		return false;
+		parseCount = TryParse(opts.infos0);
 	}
 	argIndex += parseCount;
 	return parseCount > 0;
@@ -839,11 +815,11 @@ void * LambdaOpts<Char>::ParseEnvImpl::Allocate (T value)
 
 
 template <typename Char>
-void * LambdaOpts<Char>::ParseEnvImpl::Allocate_CString (CString str)
+void * LambdaOpts<Char>::ParseEnvImpl::Allocate_String (String const & str)
 {
-	size_t size = sizeof(Char) * (StrLen(str) + 1);
+	size_t size = sizeof(Char) * (str.size() + 1);
 	char * p = new char[size];
-	memcpy(p, str, size);
+	memcpy(p, str.c_str(), size);
 	parseAllocations.emplace_back(p);
 	return p;
 }
@@ -860,8 +836,8 @@ void LambdaOpts<Char>::ParseEnvImpl::FreeParseAllocations ()
 
 
 template <typename Char>
-LambdaOpts<Char>::ParseEnv::ParseEnv (LambdaOpts const & parser, std::vector<String> && args)
-	: impl(new ParseEnvImpl(parser, std::move(args)))
+LambdaOpts<Char>::ParseEnv::ParseEnv (LambdaOpts const & opts, std::vector<String> && args)
+	: impl(new ParseEnvImpl(opts, std::move(args)))
 {}
 
 
