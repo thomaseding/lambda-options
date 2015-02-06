@@ -12,19 +12,19 @@ Example:
 
 int main (int argc, char ** argv)
 {
-	LambdaOpts<char> parser;
+	LambdaOpts<char> opts;
 
-	parser.Add("--help", [] () {
+	opts.Add("--help", [] () {
 		std::cout << "--user NAME AGE" << std::endl;
 	});
-	parser.Add("--num", [] (int num) {
+	opts.Add("--num", [] (int num) {
 		std::cout << "Num:" << num << std::endl;
 	});
-	parser.Add("--user", [] (std::string name, unsigned int age) {
+	opts.Add("--user", [] (std::string name, unsigned int age) {
 		std::cout << "Name:" << name << " Age:" << age << std::endl;
 	});
 
-	auto parseEnv = parser.NewParseEnv(std::vector<std::string>(argv + 1, argv + argc));
+	auto parseEnv = opts.NewParseEnv(std::vector<std::string>(argv + 1, argv + argc));
 
 	int parseFailureIndex;
 	if (!parseEnv.Parse(parseFailureIndex)) {
