@@ -6,3 +6,6 @@
 *.opensdf
 *.suo
 *.sdf
+*.exe
+*.lastbuildstate
+*.ilk
