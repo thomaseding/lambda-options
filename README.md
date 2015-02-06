@@ -23,7 +23,7 @@ int main (int argc, char ** argv)
 	LambdaOpts<char> opts;
 
 	opts.Add("--help", [] () {
-		std::cout << "--user NAME AGE" << std::endl;
+		std::cout << "--user NAME [AGE]" << std::endl;
 	});
 	opts.Add("--user", [] (std::string name) {
 		std::cout << "Name:" << name << std::endl;
