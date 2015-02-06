@@ -11,10 +11,10 @@ int main (int argc, char ** argv)
 	LambdaOpts<char> opts;
 
 	opts.Add("--help", [] () {
-		std::cout << "--user NAME AGE" << std::endl;
+		std::cout << "--user NAME [AGE]" << std::endl;
 	});
-	opts.Add("--num", [] (int num) {
-		std::cout << "Num:" << num << std::endl;
+	opts.Add("--user", [] (std::string name) {
+		std::cout << "Name:" << name << std::endl;
 	});
 	opts.Add("--user", [] (std::string name, unsigned int age) {
 		std::cout << "Name:" << name << " Age:" << age << std::endl;
