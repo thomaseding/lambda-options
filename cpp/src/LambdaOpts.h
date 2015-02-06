@@ -46,6 +46,12 @@ class LambdaOpts {
 	class ParseEnvImpl;
 
 public:
+	enum class ParseResult {
+		Accept,
+		Reject,
+		Fatal,
+	};
+
 	template <typename Func>
 	void Add (String option, Func f);
 
@@ -67,8 +73,8 @@ public:
 
 	private:
 		ParseEnv (LambdaOpts const & opts, std::vector<String> && args);
-		ParseEnv (ParseEnv const & other);			// disable
-		void operator= (ParseEnv const & other);	// disable
+		ParseEnv (ParseEnv const & other);       // disable
+		void operator= (ParseEnv const & other); // disable
 
 	private:
 		std::unique_ptr<ParseEnvImpl> impl;
@@ -188,31 +194,31 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-	void AddImpl (String option, std::function<void()> f);
+	void AddImpl (String option, std::function<ParseResult()> f);
 
 	template <typename A>
-	void AddImpl (String option, std::function<void(A)> f);
+	void AddImpl (String option, std::function<ParseResult(A)> f);
 
 	template <typename A, typename B>
-	void AddImpl (String option, std::function<void(A,B)> f);
+	void AddImpl (String option, std::function<ParseResult(A,B)> f);
 
 	template <typename A, typename B, typename C>
-	void AddImpl (String option, std::function<void(A,B,C)> f);
+	void AddImpl (String option, std::function<ParseResult(A,B,C)> f);
 
 	template <typename A, typename B, typename C, typename D>
-	void AddImpl (String option, std::function<void(A,B,C,D)> f);
+	void AddImpl (String option, std::function<ParseResult(A,B,C,D)> f);
 
 	template <typename A, typename B, typename C, typename D, typename E>
-	void AddImpl (String option, std::function<void(A,B,C,D,E)> f);
+	void AddImpl (String option, std::function<ParseResult(A,B,C,D,E)> f);
 
 //////////////////////////////////////////////////////////////////////////
 
-	static void Apply (std::function<void()> const & func, OpaqueArgs const & args);
-	static void Apply (std::function<void(V)> const & func, OpaqueArgs const & args);
-	static void Apply (std::function<void(V,V)> const & func, OpaqueArgs const & args);
-	static void Apply (std::function<void(V,V,V)> const & func, OpaqueArgs const & args);
-	static void Apply (std::function<void(V,V,V,V)> const & func, OpaqueArgs const & args);
-	static void Apply (std::function<void(V,V,V,V,V)> const & func, OpaqueArgs const & args);
+	static ParseResult Apply (std::function<ParseResult()> const & func, OpaqueArgs const & args);
+	static ParseResult Apply (std::function<ParseResult(V)> const & func, OpaqueArgs const & args);
+	static ParseResult Apply (std::function<ParseResult(V,V)> const & func, OpaqueArgs const & args);
+	static ParseResult Apply (std::function<ParseResult(V,V,V)> const & func, OpaqueArgs const & args);
+	static ParseResult Apply (std::function<ParseResult(V,V,V,V)> const & func, OpaqueArgs const & args);
+	static ParseResult Apply (std::function<ParseResult(V,V,V,V,V)> const & func, OpaqueArgs const & args);
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -284,7 +290,7 @@ private:
 		void * Parse (TypeKind type, String const & arg);
 
 		template <typename GenericOptInfo>
-		size_t TryParse (std::vector<GenericOptInfo> const & infos);
+		int TryParse (std::vector<GenericOptInfo> const & infos);
 
 		bool TryParse ();
 
@@ -317,12 +323,12 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 private:
-	std::vector<OptInfo<void()>> infos0;
-	std::vector<OptInfo<void(V)>> infos1;
-	std::vector<OptInfo<void(V,V)>> infos2;
-	std::vector<OptInfo<void(V,V,V)>> infos3;
-	std::vector<OptInfo<void(V,V,V,V)>> infos4;
-	std::vector<OptInfo<void(V,V,V,V,V)>> infos5;
+	std::vector<OptInfo<ParseResult()>> infos0;
+	std::vector<OptInfo<ParseResult(V)>> infos1;
+	std::vector<OptInfo<ParseResult(V,V)>> infos2;
+	std::vector<OptInfo<ParseResult(V,V,V)>> infos3;
+	std::vector<OptInfo<ParseResult(V,V,V,V)>> infos4;
+	std::vector<OptInfo<ParseResult(V,V,V,V,V)>> infos5;
 };
 
 
@@ -399,9 +405,9 @@ void LambdaOpts<Char>::Adder<Func, 5>::Add (LambdaOpts & opts, String option, Fu
 
 
 template <typename Char>
-void LambdaOpts<Char>::AddImpl (String option, std::function<void()> func)
+void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult()> func)
 {
-	OptInfo<void()> info;
+	OptInfo<ParseResult()> info;
 	info.option = option;
 	info.callback = func;
 	infos0.push_back(info);
@@ -410,13 +416,13 @@ void LambdaOpts<Char>::AddImpl (String option, std::function<void()> func)
 
 template <typename Char>
 template <typename A>
-void LambdaOpts<Char>::AddImpl (String option, std::function<void(A)> func)
+void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A)> func)
 {
 	auto wrapper = [=] (V va) {
 		auto a = Reify<A>(va);
-		func(a);
+		return func(a);
 	};
-	OptInfo<void(V)> info;
+	OptInfo<ParseResult(V)> info;
 	info.option = option;
 	info.types.push_back(GetTypeKind<A>());
 	info.callback = wrapper;
@@ -426,14 +432,14 @@ void LambdaOpts<Char>::AddImpl (String option, std::function<void(A)> func)
 
 template <typename Char>
 template <typename A, typename B>
-void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B)> func)
+void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A,B)> func)
 {
 	auto wrapper = [=] (V va, V vb) {
 		auto a = Reify<A>(va);
 		auto b = Reify<B>(vb);
-		func(a, b);
+		return func(a, b);
 	};
-	OptInfo<void(V,V)> info;
+	OptInfo<ParseResult(V,V)> info;
 	info.option = option;
 	info.types.push_back(GetTypeKind<A>());
 	info.types.push_back(GetTypeKind<B>());
@@ -444,15 +450,15 @@ void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B)> func)
 
 template <typename Char>
 template <typename A, typename B, typename C>
-void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C)> func)
+void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A,B,C)> func)
 {
 	auto wrapper = [=] (V va, V vb, V vc) {
 		auto a = Reify<A>(va);
 		auto b = Reify<B>(vb);
 		auto c = Reify<C>(vc);
-		func(a, b, c);
+		return func(a, b, c);
 	};
-	OptInfo<void(V,V,V)> info;
+	OptInfo<ParseResult(V,V,V)> info;
 	info.option = option;
 	info.types.push_back(GetTypeKind<A>());
 	info.types.push_back(GetTypeKind<B>());
@@ -464,16 +470,16 @@ void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C)> func)
 
 template <typename Char>
 template <typename A, typename B, typename C, typename D>
-void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C,D)> func)
+void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A,B,C,D)> func)
 {
 	auto wrapper = [=] (V va, V vb, V vc, V vd) {
 		auto a = Reify<A>(va);
 		auto b = Reify<B>(vb);
 		auto c = Reify<C>(vc);
 		auto d = Reify<D>(vd);
-		func(a, b, c, d);
+		return func(a, b, c, d);
 	};
-	OptInfo<void(V,V,V,V)> info;
+	OptInfo<ParseResult(V,V,V,V)> info;
 	info.option = option;
 	info.types.push_back(GetTypeKind<A>());
 	info.types.push_back(GetTypeKind<B>());
@@ -486,7 +492,7 @@ void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C,D)> func
 
 template <typename Char>
 template <typename A, typename B, typename C, typename D, typename E>
-void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C,D,E)> func)
+void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A,B,C,D,E)> func)
 {
 	auto wrapper = [=] (V va, V vb, V vc, V vd, V ve) {
 		auto a = Reify<A>(va);
@@ -494,9 +500,9 @@ void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C,D,E)> fu
 		auto c = Reify<C>(vc);
 		auto d = Reify<D>(vd);
 		auto e = Reify<E>(ve);
-		func(a, b, c, d, e);
+		return func(a, b, c, d, e);
 	};
-	OptInfo<void(V,V,V,V,V)> info;
+	OptInfo<ParseResult(V,V,V,V,V)> info;
 	info.option = option;
 	info.types.push_back(GetTypeKind<A>());
 	info.types.push_back(GetTypeKind<B>());
@@ -512,45 +518,45 @@ void LambdaOpts<Char>::AddImpl (String option, std::function<void(A,B,C,D,E)> fu
 
 
 template <typename Char>
-void LambdaOpts<Char>::Apply (std::function<void()> const & func, OpaqueArgs const & args)
+typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult()> const & func, OpaqueArgs const & args)
 {
 	(void) args;
-	func();
+	return func();
 }
 
 
 template <typename Char>
-void LambdaOpts<Char>::Apply (std::function<void(V)> const & func, OpaqueArgs const & args)
+typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V)> const & func, OpaqueArgs const & args)
 {
-	func(args[0]);
+	return func(args[0]);
 }
 
 
 template <typename Char>
-void LambdaOpts<Char>::Apply (std::function<void(V,V)> const & func, OpaqueArgs const & args)
+typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V,V)> const & func, OpaqueArgs const & args)
 {
-	func(args[0], args[1]);
+	return func(args[0], args[1]);
 }
 
 
 template <typename Char>
-void LambdaOpts<Char>::Apply (std::function<void(V,V,V)> const & func, OpaqueArgs const & args)
+typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V,V,V)> const & func, OpaqueArgs const & args)
 {
-	func(args[0], args[1], args[2]);
+	return func(args[0], args[1], args[2]);
 }
 
 
 template <typename Char>
-void LambdaOpts<Char>::Apply (std::function<void(V,V,V,V)> const & func, OpaqueArgs const & args)
+typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V,V,V,V)> const & func, OpaqueArgs const & args)
 {
-	func(args[0], args[1], args[2], args[3]);
+	return func(args[0], args[1], args[2], args[3]);
 }
 
 
 template <typename Char>
-void LambdaOpts<Char>::Apply (std::function<void(V,V,V,V,V)> const & func, OpaqueArgs const & args)
+typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V,V,V,V,V)> const & func, OpaqueArgs const & args)
 {
-	func(args[0], args[1], args[2], args[3], args[4]);
+	return func(args[0], args[1], args[2], args[3], args[4]);
 }
 
 
@@ -701,7 +707,7 @@ void * LambdaOpts<Char>::ParseEnvImpl::Parse (TypeKind type, String const & arg)
 
 template <typename Char>
 template <typename GenericOptInfo>
-size_t LambdaOpts<Char>::ParseEnvImpl::TryParse (std::vector<GenericOptInfo> const & infos)
+int LambdaOpts<Char>::ParseEnvImpl::TryParse (std::vector<GenericOptInfo> const & infos)
 {
 	if (infos.empty()) {
 		return 0;
@@ -726,8 +732,21 @@ size_t LambdaOpts<Char>::ParseEnvImpl::TryParse (std::vector<GenericOptInfo> con
 				parsedArgs.push_back(parsedArg);
 			}
 			if (success) {
-				Apply(info.callback, parsedArgs);
-				return arity + 1;
+				ParseResult res = Apply(info.callback, parsedArgs);
+				switch (res) {
+					case ParseResult::Accept: {
+						return static_cast<int>(arity + 1);
+					} break;
+					case ParseResult::Reject: {
+						continue;
+					} break;
+					case ParseResult::Fatal: {
+						return -1;
+					} break;
+					default: {
+						ASSERT(false);
+					}
+				}
 			}
 		}
 	}
@@ -739,26 +758,32 @@ template <typename Char>
 bool LambdaOpts<Char>::ParseEnvImpl::TryParse ()
 {
 	size_t parseCount = 0;
-	if (parseCount == 0) {
+
+	if (parseCount >= 0) {
 		parseCount = TryParse(opts.infos5);
 	}
-	if (parseCount == 0) {
+	if (parseCount >= 0) {
 		parseCount = TryParse(opts.infos4);
 	}
-	if (parseCount == 0) {
+	if (parseCount >= 0) {
 		parseCount = TryParse(opts.infos3);
 	}
-	if (parseCount == 0) {
+	if (parseCount >= 0) {
 		parseCount = TryParse(opts.infos2);
 	}
-	if (parseCount == 0) {
+	if (parseCount >= 0) {
 		parseCount = TryParse(opts.infos1);
 	}
-	if (parseCount == 0) {
+	if (parseCount >= 0) {
 		parseCount = TryParse(opts.infos0);
 	}
+
+	if (parseCount <= 0) {
+		return false;
+	}
+
 	argIndex += parseCount;
-	return parseCount > 0;
+	return true;
 }
 
 
@@ -770,12 +795,12 @@ bool LambdaOpts<Char>::ParseEnvImpl::Parse (int & outParseFailureIndex)
 	while (TryParse()) {
 		continue;
 	}
-	if (RemainingArgs() == 0) {
-		outParseFailureIndex = -1;
-		return true;
+	if (RemainingArgs() > 0) {
+		outParseFailureIndex = static_cast<int>(argIndex);
+		return false;
 	}
-	outParseFailureIndex = static_cast<int>(argIndex);
-	return false;
+	outParseFailureIndex = -1;
+	return true;
 }
 
 
