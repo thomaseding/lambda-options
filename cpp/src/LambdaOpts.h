@@ -29,6 +29,8 @@
 #pragma once
 
 #include <functional>
+#include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -38,12 +40,77 @@
 
 template <typename Char>
 class LambdaOpts {
-	enum TypeKind { T_Int, T_Uint, T_Float, T_Double, T_Char, T_CString, T_String };
-
-	typedef void const * V;
-
 	typedef Char const * CString;
 	typedef std::basic_string<Char> String;
+
+public:
+	~LambdaOpts ();
+	LambdaOpts (int argc, Char const * const argv[]);
+
+	template <typename Func>
+	void Add (String option, Func f);
+
+	bool Parse (int & parseFailureIndex);
+	String const & Program () const;
+	bool Peek (String & outArg) const ;
+	bool Next ();
+
+//////////////////////////////////////////////////////////////////////////
+
+private:
+	static void ASSERT (bool truth)
+	{
+#ifndef NDEBUG
+		if (!truth) {
+			throw std::logic_error("LambdaOpts<Char>::ASSERT failed.");
+		}
+#endif
+	}
+
+//////////////////////////////////////////////////////////////////////////
+
+	template <typename Char>
+	static size_t StrLen (Char const * str)
+	{
+		size_t size = 0;
+		while (*str++) {
+			++size;
+		}
+		return size;
+	}
+
+	static bool Scan (std::string const & str, char const * format, void * dest)
+	{
+		char dummy;
+		return sscanf(str.c_str(), format, dest, &dummy) == 1;
+	}
+
+	static bool Scan (std::wstring const & str, char const * format, void * dest)
+	{
+		wchar_t wformat[8];
+		size_t len = strlen(format) + 1;
+		ASSERT(len <= (sizeof(wformat) / sizeof(wchar_t)));
+		for (size_t i = 0; i < len; ++i) {
+			wformat[i] = format[i];
+		}
+		wchar_t dummy;
+		return swscanf(str.c_str(), wformat, dest, &dummy) == 1;
+	}
+
+//////////////////////////////////////////////////////////////////////////
+
+	typedef void const * V;
+	typedef std::vector<V> OpaqueArgs;
+
+	enum TypeKind { T_Int, T_Uint, T_Float, T_Double, T_Char, T_CString };
+
+	static TypeKind GetTypeKind (int *) { return T_Int; }
+	static TypeKind GetTypeKind (unsigned int *) { return T_Uint; }
+	static TypeKind GetTypeKind (float *) { return T_Float; }
+	static TypeKind GetTypeKind (double *) { return T_Double; }
+	static TypeKind GetTypeKind (Char *) { return T_Char; }
+	static TypeKind GetTypeKind (CString *) { return T_CString; }
+	static TypeKind GetTypeKind (String *) { return T_CString; }
 
 	template <typename FuncSig>
 	struct OptInfo {
@@ -52,14 +119,6 @@ class LambdaOpts {
 		std::function<FuncSig> callback;
 	};
 
-private:
-	static TypeKind GetTypeKind (int *) { return T_Int; }
-	static TypeKind GetTypeKind (unsigned int *) { return T_Uint; }
-	static TypeKind GetTypeKind (float *) { return T_Float; }
-	static TypeKind GetTypeKind (double *) { return T_Double; }
-	static TypeKind GetTypeKind (Char *) { return T_Char; }
-	static TypeKind GetTypeKind (CString *) { return T_CString; }
-	static TypeKind GetTypeKind (String *) { return T_String; }
 
 	// This code is suboptimal compared to struct template specialization, but VC11 is buggy.
 	template <typename T>
@@ -68,7 +127,8 @@ private:
 		return GetTypeKind(static_cast<T *>(nullptr));
 	}
 
-private:
+//////////////////////////////////////////////////////////////////////////
+
 	static void Reify (void const * p, int & out) { out = *static_cast<int const *>(p); }
 	static void Reify (void const * p, unsigned int & out) { out = *static_cast<unsigned int const *>(p); }
 	static void Reify (void const * p, float & out) { out = *static_cast<float const *>(p); }
@@ -86,7 +146,8 @@ private:
 		return actual;
 	}
 
-private:
+//////////////////////////////////////////////////////////////////////////
+
 	template <typename Func>
 	struct FuncTraits : public FuncTraits<decltype(&Func::operator())> {};
 
@@ -141,7 +202,8 @@ private:
 		struct Arg4 { typedef E type; };
 	};
 
-private:
+//////////////////////////////////////////////////////////////////////////
+
 	template <typename Func, size_t>
 	friend struct Adder;
 
@@ -205,7 +267,8 @@ private:
 		}
 	};
 
-private:
+//////////////////////////////////////////////////////////////////////////
+
 	void AddImpl (String option, std::function<void()> f) {
 		OptInfo<void()> info;
 		info.option = option;
@@ -298,52 +361,208 @@ private:
 		infos5.push_back(info);
 	}
 
-public:
-	~LambdaOpts ();
-	LambdaOpts (int argc, Char const * const argv[]);
+//////////////////////////////////////////////////////////////////////////
 
-	template <typename Func>
-	void Add (String option, Func f)
+	static void Apply (std::function<void()> const & func, OpaqueArgs const & args)
 	{
-		Adder<Func, FuncTraits<Func>::arity>::Add(*this, option, f);
+		(void) args;
+		func();
 	}
 
-	bool Parse (int & parseFailureIndex);
-	String const & Program () const;
-	bool Peek (String & outArg) const ;
-	bool Next ();
 
-private:
-	size_t RemainingArgs () const;
+	static void Apply (std::function<void(V)> const & func, OpaqueArgs const & args)
+	{
+		func(args[0]);
+	}
 
-	void * Parse_int (String const & arg);
-	void * Parse_unsigned_int (String const & arg);
-	void * Parse_float (String const & arg);
-	void * Parse_double (String const & arg);
-	void * Parse_Char (String const & arg);
-	void * Parse_CString (String const & arg);
-	void * Parse_String (String const & arg);
-	void * Parse (TypeKind type, String const & arg);
+
+	static void Apply (std::function<void(V,V)> const & func, OpaqueArgs const & args)
+	{
+		func(args[0], args[1]);
+	}
+
+
+	static void Apply (std::function<void(V,V,V)> const & func, OpaqueArgs const & args)
+	{
+		func(args[0], args[1], args[2]);
+	}
+
+
+	static void Apply (std::function<void(V,V,V,V)> const & func, OpaqueArgs const & args)
+	{
+		func(args[0], args[1], args[2], args[3]);
+	}
+
+
+	static void Apply (std::function<void(V,V,V,V,V)> const & func, OpaqueArgs const & args)
+	{
+		func(args[0], args[1], args[2], args[3], args[4]);
+	}
+
+//////////////////////////////////////////////////////////////////////////
+
+	size_t RemainingArgs () const
+	{
+		ASSERT(argPos <= args.size());
+		return args.size() - argPos;
+	}
+
+	void * Parse_int (String const & arg)
+	{
+		int x;
+		if (Scan(arg, "%d%c", &x)) {
+			return Allocate<int>(x);
+		}
+		return nullptr;
+	}
+
+	void * Parse_unsigned_int (String const & arg)
+	{
+		unsigned int x;
+		if (Scan(arg, "%u%c", &x)) {
+			return Allocate<unsigned int>(x);
+		}
+		return nullptr;
+	}
+
+	void * Parse_float (String const & arg)
+	{
+		float x;
+		if (Scan(arg, "%f%c", &x)) {
+			return Allocate<float>(x);
+		}
+		return nullptr;
+	}
+
+	void * Parse_double (String const & arg)
+	{
+		double x;
+		if (Scan(arg, "%lf%c", &x)) {
+			return Allocate<double>(x);
+		}
+		return nullptr;
+	}
+
+	void * Parse_Char (String const & arg)
+	{
+		Char x;
+		if (Scan(arg, "%c%c", &x)) {
+			return Allocate<Char>(x);
+		}
+		return nullptr;
+	}
+
+	void * Parse_CString (String const & arg)
+	{
+		return Allocate_CString(arg.c_str());
+	}
+
+	void * Parse (TypeKind type, String const & arg)
+	{
+		switch (type) {
+			case T_Int: return Parse_int(arg);
+			case T_Uint: return Parse_unsigned_int(arg);
+			case T_Float: return Parse_float(arg);
+			case T_Double: return Parse_double(arg);
+			case T_Char: return Parse_Char(arg);
+			case T_CString: return Parse_CString(arg);
+		}
+		ASSERT(false);
+		return nullptr;
+	}
 
 	template <typename GenericOptInfo>
-	size_t TryParse (std::vector<GenericOptInfo> const & infos);
+	size_t TryParse (std::vector<GenericOptInfo> const & infos)
+	{
+		if (infos.empty()) {
+			return 0;
+		}
+		size_t const arity = infos.front().types.size();
+		if (RemainingArgs() < arity + 1) {
+			return 0;
+		}
+		for (auto const & info : infos) {
+			FreeParseAllocations();
+			if (args[argPos] == info.option) {
+				OpaqueArgs parsedArgs;
+				bool success = true;
+				for (size_t i = 0; i < arity; ++i) {
+					TypeKind type = info.types[i];
+					String const & rawArg = args[argPos + i + 1];
+					void * parsedArg = Parse(type, rawArg);
+					if (parsedArg == nullptr) {
+						success = false;
+						break;
+					}
+					parsedArgs.push_back(parsedArg);
+				}
+				if (success) {
+					Apply(info.callback, parsedArgs);
+					return arity + 1;
+				}
+			}
+		}
+		return 0;
+	}
 
-	bool TryParse ();
+	bool TryParse ()
+	{
+		size_t parseCount = 0;
+		if (parseCount == 0) {
+			parseCount = TryParse(infos5);
+		}
+		if (parseCount == 0) {
+			parseCount = TryParse(infos4);
+		}
+		if (parseCount == 0) {
+			parseCount = TryParse(infos3);
+		}
+		if (parseCount == 0) {
+			parseCount = TryParse(infos2);
+		}
+		if (parseCount == 0) {
+			parseCount = TryParse(infos1);
+		}
+		if (parseCount == 0) {
+			parseCount = TryParse(infos0);
+		}
+		argPos += parseCount;
+		return parseCount > 0;
+	}
 
-private:
+//////////////////////////////////////////////////////////////////////////
+
 	template <typename T>
-	void * Allocate (T value);
+	void * Allocate (T value)
+	{
+		char * p = new char[sizeof(T)];
+		memcpy(p, &value, sizeof(T));
+		parseAllocations.emplace_back(p);
+		return p;
+	}
 
-	void * Allocate_CString (CString str);
+	void * Allocate_CString (CString str)
+	{
+		size_t size = sizeof(Char) * (StrLen(str) + 1);
+		char * p = new char[size];
+		memcpy(p, str, size);
+		parseAllocations.emplace_back(p);
+		return p;
+	}
 
-	void FreeParseAllocations ();
+	void FreeParseAllocations ()
+	{
+		parseAllocations.clear();
+	}
+
+//////////////////////////////////////////////////////////////////////////
 
 private:
 	String program;
 	std::vector<String> args;
 	size_t argPos;
 
-	std::vector<char const *> parseAllocations;
+	std::vector<std::unique_ptr<char const>> parseAllocations;
 
 	std::vector<OptInfo<void()>> infos0;
 	std::vector<OptInfo<void(V)>> infos1;
@@ -354,12 +573,79 @@ private:
 };
 
 
+//////////////////////////////////////////////////////////////////////////
 
 
+template <typename Char>
+LambdaOpts<Char>::~LambdaOpts ()
+{
+	FreeParseAllocations();
+}
 
 
+template <typename Char>
+LambdaOpts<Char>::LambdaOpts (int argc, Char const * const argv[])
+	: program(argv[0])
+	, argPos(0)
+{
+	for (int i = 1; i < argc; ++i) {
+		args.push_back(argv[i]);
+	}
+}
 
 
+template <typename Char>
+template <typename Func>
+void LambdaOpts<Char>::Add (String option, Func f)
+{
+	Adder<Func, FuncTraits<Func>::arity>::Add(*this, option, f);
+}
+
+
+template <typename Char>
+bool LambdaOpts<Char>::Parse (int & parseFailureIndex)
+{
+	FreeParseAllocations();
+	argPos = 0;
+	while (TryParse()) {
+		continue;
+	}
+	if (RemainingArgs() == 0) {
+		parseFailureIndex = -1;
+		return true;
+	}
+	parseFailureIndex = static_cast<int>(argPos);
+	return false;
+}
+
+
+template <typename Char>
+typename LambdaOpts<Char>::String const & LambdaOpts<Char>::Program () const
+{
+	return program;
+}
+
+
+template <typename Char>
+bool LambdaOpts<Char>::Peek (String & outArg) const
+{
+	if (argPos < args.size()) {
+		outArg = args[argPos];
+		return true;
+	}
+	return false;
+}
+
+
+template <typename Char>
+bool LambdaOpts<Char>::Next ()
+{
+	if (argPos < args.size()) {
+		++argPos;
+		return true;
+	}
+	return false;
+}
 
 
 
