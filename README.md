@@ -4,6 +4,14 @@ lambda-opts
 
 A declarative command line parser for C++.
 
+* Easy to use. The API is expressive.
+* Easy to learn. The API is tiny and simple.
+* Easy to integrate. Contained in a single header file.
+* Robust.
+
+
+Quick installation: Download the required header file located at "/cpp/src/LambdaOpts.h"
+
 
 Example:
 ```
