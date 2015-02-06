@@ -10,11 +10,11 @@ A declarative command line parser for C++.
 * Robust.
 
 
-Quick installation: Download the required header file located at "/cpp/src/LambdaOpts.h"
+Quick installation: Download the required header here: [cpp/src/LambdaOpts.h]()
 
 
 Example:
-```
+```cpp
 #include "LambdaOpts.h"
 #include <iostream>
 
