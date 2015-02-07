@@ -94,9 +94,10 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
+	typedef void (*OpaqueDeleter)(void const *);
+	typedef std::unique_ptr<void const, OpaqueDeleter> UniqueOpaque;
+	typedef std::vector<UniqueOpaque> OpaqueArgs;
 	typedef void const * V;
-
-	typedef std::vector<V> OpaqueArgs;
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -242,16 +243,83 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-	// TODO: TypeTag base class
-	enum TypeKind { T_Int, T_Uint, T_Float, T_Double, T_Char, T_String };
+	template <typename T>
+	static std::unique_ptr<T> AllocateCopy (T const & source)
+	{
+		return std::unique_ptr<T>(new T(source));
+	}
 
-	template <typename T> TypeKind GetTypeKind () { static_assert(false, "Failed to specialize"); }
-	template <> static TypeKind GetTypeKind<int> () { return T_Int; }
-	template <> static TypeKind GetTypeKind<unsigned int> () { return T_Uint; }
-	template <> static TypeKind GetTypeKind<float> () { return T_Float; }
-	template <> static TypeKind GetTypeKind<double> () { return T_Double; }
-	template <> static TypeKind GetTypeKind<Char> () { return T_Char; }
-	template <> static TypeKind GetTypeKind<String> () { return T_String; }
+	typedef size_t TypeKind;
+
+	template <typename T>
+	struct TypeTagBase {
+		typedef T Type;
+
+		static char const * const ScanDescription ();
+
+		static Type const & ReifyOpaque (void const * p) {
+			return *static_cast<Type const *>(p);
+		}
+
+		static void Delete (void const * p) {
+			delete static_cast<T const *>(p);
+		}
+
+		static std::unique_ptr<T const> Parse (std::string const & str) {
+			T item;
+			if (Scan(str, TypeTag<T>::ScanDescription(), &item)) {
+				return AllocateCopy(item);
+			}
+			return nullptr;
+		}
+	};
+
+	template <typename T>
+	struct TypeTag {};
+
+	template <>
+	struct TypeTag<int> : public TypeTagBase<int> {
+	public:
+		static TypeKind const Kind = __LINE__;
+		static char const * const ScanDescription () { return "%d%c"; }
+	};
+
+	template <>
+	struct TypeTag<unsigned int> : public TypeTagBase<unsigned int> {
+	public:
+		static TypeKind const Kind = __LINE__;
+		static char const * const ScanDescription () { return "%u%c"; }
+	};
+
+	template <>
+	struct TypeTag<float> : public TypeTagBase<float> {
+	public:
+		static TypeKind const Kind = __LINE__;
+		static char const * const ScanDescription () { return "%f%c"; }
+	};
+
+	template <>
+	struct TypeTag<double> : public TypeTagBase<double> {
+	public:
+		static TypeKind const Kind = __LINE__;
+		static char const * const ScanDescription () { return "%lf%c"; }
+	};
+
+	template <>
+	struct TypeTag<Char> : public TypeTagBase<Char> {
+	public:
+		static TypeKind const Kind = __LINE__;
+		static char const * const ScanDescription () { return "%cf%c"; }
+	};
+
+	template <>
+	struct TypeTag<String> : public TypeTagBase<String> {
+	public:
+		static TypeKind const Kind = __LINE__;
+		static std::unique_ptr<std::string const> Parse (std::string const & str) {
+			return AllocateCopy(str);
+		}
+	};
 
 	template <typename FuncSig>
 	struct OptInfo {
@@ -275,13 +343,7 @@ private:
 
 		size_t RemainingArgs () const;
 
-		void * Parse_int (String const & arg);
-		void * Parse_unsigned_int (String const & arg);
-		void * Parse_float (String const & arg);
-		void * Parse_double (String const & arg);
-		void * Parse_Char (String const & arg);
-		void * Parse_String (String const & arg);
-		void * Parse (TypeKind type, String const & arg);
+		UniqueOpaque OpaqueParse (TypeKind type, String const & arg);
 
 		template <typename GenericOptInfo>
 		int TryParse (std::vector<GenericOptInfo> const & infos);
@@ -296,20 +358,10 @@ private:
 
 	public:
 		LambdaOpts const & opts;
-		std::vector<std::unique_ptr<char const>> parseAllocations;
+		std::vector<UniqueOpaque> parseAllocations;
 		std::vector<String> args;
 		size_t argIndex;
 	};
-
-//////////////////////////////////////////////////////////////////////////
-
-	template <typename T> static T Reify (void const * p) { static_assert(false, "Failed to specialize"); }
-	template <> static int Reify<int> (void const * p) { return *static_cast<int const *>(p); }
-	template <> static unsigned int Reify<unsigned int> (void const * p) { return *static_cast<unsigned int const *>(p); }
-	template <> static float Reify<float> (void const * p) { return *static_cast<float const *>(p); }
-	template <> static double Reify<double> (void const * p) { return *static_cast<double const *>(p); }
-	template <> static Char Reify<Char> (void const * p) { return *static_cast<Char const *>(p); }
-	template <> static String Reify<String> (void const * p) { return static_cast<CString>(p); }
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -410,12 +462,12 @@ template <typename A>
 void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A)> func)
 {
 	auto wrapper = [=] (V va) {
-		auto a = Reify<A>(va);
+		auto const & a = TypeTag<A>::ReifyOpaque(va);
 		return func(a);
 	};
 	OptInfo<ParseResult(V)> info;
 	info.option = option;
-	info.types.push_back(GetTypeKind<A>());
+	info.types.push_back(TypeTag<A>::Kind);
 	info.callback = wrapper;
 	infos1.push_back(info);
 }
@@ -426,14 +478,14 @@ template <typename A, typename B>
 void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A,B)> func)
 {
 	auto wrapper = [=] (V va, V vb) {
-		auto a = Reify<A>(va);
-		auto b = Reify<B>(vb);
+		auto const & a = TypeTag<A>::ReifyOpaque(va);
+		auto const & b = TypeTag<B>::ReifyOpaque(vb);
 		return func(a, b);
 	};
 	OptInfo<ParseResult(V,V)> info;
 	info.option = option;
-	info.types.push_back(GetTypeKind<A>());
-	info.types.push_back(GetTypeKind<B>());
+	info.types.push_back(TypeTag<A>::Kind);
+	info.types.push_back(TypeTag<B>::Kind);
 	info.callback = wrapper;
 	infos2.push_back(info);
 }
@@ -444,16 +496,16 @@ template <typename A, typename B, typename C>
 void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A,B,C)> func)
 {
 	auto wrapper = [=] (V va, V vb, V vc) {
-		auto a = Reify<A>(va);
-		auto b = Reify<B>(vb);
-		auto c = Reify<C>(vc);
+		auto const & a = TypeTag<A>::ReifyOpaque(va);
+		auto const & b = TypeTag<B>::ReifyOpaque(vb);
+		auto const & c = TypeTag<C>::ReifyOpaque(vc);
 		return func(a, b, c);
 	};
 	OptInfo<ParseResult(V,V,V)> info;
 	info.option = option;
-	info.types.push_back(GetTypeKind<A>());
-	info.types.push_back(GetTypeKind<B>());
-	info.types.push_back(GetTypeKind<C>());
+	info.types.push_back(TypeTag<A>::Kind);
+	info.types.push_back(TypeTag<B>::Kind);
+	info.types.push_back(TypeTag<C>::Kind);
 	info.callback = wrapper;
 	infos3.push_back(info);
 }
@@ -464,18 +516,18 @@ template <typename A, typename B, typename C, typename D>
 void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A,B,C,D)> func)
 {
 	auto wrapper = [=] (V va, V vb, V vc, V vd) {
-		auto a = Reify<A>(va);
-		auto b = Reify<B>(vb);
-		auto c = Reify<C>(vc);
-		auto d = Reify<D>(vd);
+		auto const & a = TypeTag<A>::ReifyOpaque(va);
+		auto const & b = TypeTag<B>::ReifyOpaque(vb);
+		auto const & c = TypeTag<C>::ReifyOpaque(vc);
+		auto const & d = TypeTag<D>::ReifyOpaque(vd);
 		return func(a, b, c, d);
 	};
 	OptInfo<ParseResult(V,V,V,V)> info;
 	info.option = option;
-	info.types.push_back(GetTypeKind<A>());
-	info.types.push_back(GetTypeKind<B>());
-	info.types.push_back(GetTypeKind<C>());
-	info.types.push_back(GetTypeKind<D>());
+	info.types.push_back(TypeTag<A>::Kind);
+	info.types.push_back(TypeTag<B>::Kind);
+	info.types.push_back(TypeTag<C>::Kind);
+	info.types.push_back(TypeTag<D>::Kind);
 	info.callback = wrapper;
 	infos4.push_back(info);
 }
@@ -486,20 +538,20 @@ template <typename A, typename B, typename C, typename D, typename E>
 void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A,B,C,D,E)> func)
 {
 	auto wrapper = [=] (V va, V vb, V vc, V vd, V ve) {
-		auto a = Reify<A>(va);
-		auto b = Reify<B>(vb);
-		auto c = Reify<C>(vc);
-		auto d = Reify<D>(vd);
-		auto e = Reify<E>(ve);
+		auto a = TypeTag<A>::ReifyOpaque(va);
+		auto b = TypeTag<B>::ReifyOpaque(vb);
+		auto c = TypeTag<C>::ReifyOpaque(vc);
+		auto d = TypeTag<D>::ReifyOpaque(vd);
+		auto e = TypeTag<E>::ReifyOpaque(ve);
 		return func(a, b, c, d, e);
 	};
 	OptInfo<ParseResult(V,V,V,V,V)> info;
 	info.option = option;
-	info.types.push_back(GetTypeKind<A>());
-	info.types.push_back(GetTypeKind<B>());
-	info.types.push_back(GetTypeKind<C>());
-	info.types.push_back(GetTypeKind<D>());
-	info.types.push_back(GetTypeKind<E>());
+	info.types.push_back(TypeTag<A>::Kind);
+	info.types.push_back(TypeTag<B>::Kind);
+	info.types.push_back(TypeTag<C>::Kind);
+	info.types.push_back(TypeTag<D>::Kind);
+	info.types.push_back(TypeTag<E>::Kind);
 	info.callback = wrapper;
 	infos5.push_back(info);
 }
@@ -519,35 +571,35 @@ typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<Pa
 template <typename Char>
 typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V)> const & func, OpaqueArgs const & args)
 {
-	return func(args[0]);
+	return func(args[0].get());
 }
 
 
 template <typename Char>
 typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V,V)> const & func, OpaqueArgs const & args)
 {
-	return func(args[0], args[1]);
+	return func(args[0].get(), args[1].get());
 }
 
 
 template <typename Char>
 typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V,V,V)> const & func, OpaqueArgs const & args)
 {
-	return func(args[0], args[1], args[2]);
+	return func(args[0].get(), args[1].get(), args[2].get());
 }
 
 
 template <typename Char>
 typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V,V,V,V)> const & func, OpaqueArgs const & args)
 {
-	return func(args[0], args[1], args[2], args[3]);
+	return func(args[0].get(), args[1].get(), args[2].get(), args[3].get());
 }
 
 
 template <typename Char>
 typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V,V,V,V,V)> const & func, OpaqueArgs const & args)
 {
-	return func(args[0], args[1], args[2], args[3], args[4]);
+	return func(args[0].get(), args[1].get(), args[2].get(), args[3].get(), args[4].get());
 }
 
 
@@ -564,80 +616,18 @@ LambdaOpts<Char>::ParseEnvImpl::ParseEnvImpl (LambdaOpts const & opts, std::vect
 
 
 template <typename Char>
-void * LambdaOpts<Char>::ParseEnvImpl::Parse_int (String const & arg)
-{
-	int x;
-	if (Scan(arg, "%d%c", &x)) {
-		return Allocate<int>(x);
-	}
-	return nullptr;
-}
-
-
-template <typename Char>
-void * LambdaOpts<Char>::ParseEnvImpl::Parse_unsigned_int (String const & arg)
-{
-	unsigned int x;
-	if (Scan(arg, "%u%c", &x)) {
-		return Allocate<unsigned int>(x);
-	}
-	return nullptr;
-}
-
-
-template <typename Char>
-void * LambdaOpts<Char>::ParseEnvImpl::Parse_float (String const & arg)
-{
-	float x;
-	if (Scan(arg, "%f%c", &x)) {
-		return Allocate<float>(x);
-	}
-	return nullptr;
-}
-
-
-template <typename Char>
-void * LambdaOpts<Char>::ParseEnvImpl::Parse_double (String const & arg)
-{
-	double x;
-	if (Scan(arg, "%lf%c", &x)) {
-		return Allocate<double>(x);
-	}
-	return nullptr;
-}
-
-
-template <typename Char>
-void * LambdaOpts<Char>::ParseEnvImpl::Parse_Char (String const & arg)
-{
-	Char x;
-	if (Scan(arg, "%c%c", &x)) {
-		return Allocate<Char>(x);
-	}
-	return nullptr;
-}
-
-
-template <typename Char>
-void * LambdaOpts<Char>::ParseEnvImpl::Parse_String (String const & arg)
-{
-	return Allocate_String(arg);
-}
-
-
-template <typename Char>
-void * LambdaOpts<Char>::ParseEnvImpl::Parse (TypeKind type, String const & arg)
+typename LambdaOpts<Char>::UniqueOpaque LambdaOpts<Char>::ParseEnvImpl::OpaqueParse (TypeKind type, String const & arg)
 {
 	switch (type) {
-		case T_Int: return Parse_int(arg);
-		case T_Uint: return Parse_unsigned_int(arg);
-		case T_Float: return Parse_float(arg);
-		case T_Double: return Parse_double(arg);
-		case T_Char: return Parse_Char(arg);
-		case T_String: return Parse_String(arg);
+		case TypeTag<int>::Kind:			return UniqueOpaque(TypeTag<int>::Parse(arg).release(),				TypeTag<int>::Delete);
+		case TypeTag<unsigned int>::Kind:	return UniqueOpaque(TypeTag<unsigned int>::Parse(arg).release(),	TypeTag<unsigned int>::Delete);
+		case TypeTag<float>::Kind:			return UniqueOpaque(TypeTag<float>::Parse(arg).release(),			TypeTag<float>::Delete);
+		case TypeTag<double>::Kind:			return UniqueOpaque(TypeTag<double>::Parse(arg).release(),			TypeTag<double>::Delete);
+		case TypeTag<Char>::Kind:			return UniqueOpaque(TypeTag<Char>::Parse(arg).release(),			TypeTag<Char>::Delete);
+		case TypeTag<String>::Kind:			return UniqueOpaque(TypeTag<String>::Parse(arg).release(),			TypeTag<String>::Delete);
 	}
 	ASSERT(false);
-	return nullptr;
+	return UniqueOpaque(static_cast<char *>(nullptr), [](void const *){});
 }
 
 
@@ -660,12 +650,12 @@ int LambdaOpts<Char>::ParseEnvImpl::TryParse (std::vector<GenericOptInfo> const 
 			for (size_t i = 0; i < arity; ++i) {
 				TypeKind type = info.types[i];
 				String const & rawArg = args[argIndex + i + 1];
-				void * parsedArg = Parse(type, rawArg);
+				UniqueOpaque parsedArg = OpaqueParse(type, rawArg);
 				if (parsedArg == nullptr) {
 					success = false;
 					break;
 				}
-				parsedArgs.push_back(parsedArg);
+				parsedArgs.emplace_back(std::move(parsedArg));
 			}
 			if (success) {
 				ParseResult res = Apply(info.callback, parsedArgs);
