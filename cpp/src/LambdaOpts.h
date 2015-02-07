@@ -245,19 +245,13 @@ private:
 	// TODO: TypeTag base class
 	enum TypeKind { T_Int, T_Uint, T_Float, T_Double, T_Char, T_String };
 
-	static TypeKind GetTypeKind (int *) { return T_Int; }
-	static TypeKind GetTypeKind (unsigned int *) { return T_Uint; }
-	static TypeKind GetTypeKind (float *) { return T_Float; }
-	static TypeKind GetTypeKind (double *) { return T_Double; }
-	static TypeKind GetTypeKind (Char *) { return T_Char; }
-	static TypeKind GetTypeKind (String *) { return T_String; }
-
-	// TODO: Can I now use template specialization instead of this?
-	template <typename T>
-	static TypeKind GetTypeKind ()
-	{
-		return GetTypeKind(static_cast<T *>(nullptr));
-	}
+	template <typename T> TypeKind GetTypeKind () { static_assert(false, "Failed to specialize"); }
+	template <> static TypeKind GetTypeKind<int> () { return T_Int; }
+	template <> static TypeKind GetTypeKind<unsigned int> () { return T_Uint; }
+	template <> static TypeKind GetTypeKind<float> () { return T_Float; }
+	template <> static TypeKind GetTypeKind<double> () { return T_Double; }
+	template <> static TypeKind GetTypeKind<Char> () { return T_Char; }
+	template <> static TypeKind GetTypeKind<String> () { return T_String; }
 
 	template <typename FuncSig>
 	struct OptInfo {
@@ -309,16 +303,13 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-	static void Reify (void const * opaque, int & out);
-	static void Reify (void const * opaque, unsigned int & out);
-	static void Reify (void const * opaque, float & out);
-	static void Reify (void const * opaque, double & out);
-	static void Reify (void const * opaque, Char & out);
-	static void Reify (void const * opaque, String & out);
-
-	// TODO: Can I now use template specialization instead of this?
-	template <typename T>
-	static T Reify (void const * opaque);
+	template <typename T> static T Reify (void const * p) { static_assert(false, "Failed to specialize"); }
+	template <> static int Reify<int> (void const * p) { return *static_cast<int const *>(p); }
+	template <> static unsigned int Reify<unsigned int> (void const * p) { return *static_cast<unsigned int const *>(p); }
+	template <> static float Reify<float> (void const * p) { return *static_cast<float const *>(p); }
+	template <> static double Reify<double> (void const * p) { return *static_cast<double const *>(p); }
+	template <> static Char Reify<Char> (void const * p) { return *static_cast<Char const *>(p); }
+	template <> static String Reify<String> (void const * p) { return static_cast<CString>(p); }
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -557,61 +548,6 @@ template <typename Char>
 typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V,V,V,V,V)> const & func, OpaqueArgs const & args)
 {
 	return func(args[0], args[1], args[2], args[3], args[4]);
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-
-
-template <typename Char>
-void LambdaOpts<Char>::Reify (void const * opaque, int & out)
-{
-	out = *static_cast<int const *>(opaque);
-}
-
-
-template <typename Char>
-void LambdaOpts<Char>::Reify (void const * opaque, unsigned int & out)
-{
-	out = *static_cast<unsigned int const *>(opaque);
-}
-
-
-template <typename Char>
-void LambdaOpts<Char>::Reify (void const * opaque, float & out)
-{
-	out = *static_cast<float const *>(opaque);
-}
-
-
-template <typename Char>
-void LambdaOpts<Char>::Reify (void const * opaque, double & out)
-{
-	out = *static_cast<double const *>(opaque);
-}
-
-
-template <typename Char>
-void LambdaOpts<Char>::Reify (void const * opaque, Char & out)
-{
-	out = *static_cast<Char const *>(opaque);
-}
-
-
-template <typename Char>
-void LambdaOpts<Char>::Reify (void const * opaque, String & out)
-{
-	out = static_cast<CString>(opaque);
-}
-
-
-template <typename Char>
-template <typename T>
-static T LambdaOpts<Char>::Reify (void const * opaque)
-{
-	T actual;
-	Reify(opaque, actual);
-	return actual;
 }
 
 
