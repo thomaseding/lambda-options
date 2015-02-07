@@ -172,52 +172,162 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 0> {
-		static void Add (LambdaOpts & opts, String option, Func f);
+		static void Add (LambdaOpts & opts, String option, Func f) {
+			opts.AddImpl(option, f);
+		}
 	};
 
 	template <typename Func>
 	struct Adder<Func, 1> {
-		static void Add (LambdaOpts & opts, String option, Func f);
+		static void Add (LambdaOpts & opts, String option, Func f) {
+			typedef typename FuncTraits<Func>::Arg0::type A;
+			opts.AddImpl<A>(option, f);
+		}
 	};
 
 	template <typename Func>
 	struct Adder<Func, 2> {
-		static void Add (LambdaOpts & opts, String option, Func f);
+		static void Add (LambdaOpts & opts, String option, Func f) {
+			typedef typename FuncTraits<Func>::Arg0::type A;
+			typedef typename FuncTraits<Func>::Arg1::type B;
+			opts.AddImpl<A,B>(option, f);
+		}
 	};
 
 	template <typename Func>
 	struct Adder<Func, 3> {
-		static void Add (LambdaOpts & opts, String option, Func f);
+		static void Add (LambdaOpts & opts, String option, Func f) {
+			typedef typename FuncTraits<Func>::Arg0::type A;
+			typedef typename FuncTraits<Func>::Arg1::type B;
+			typedef typename FuncTraits<Func>::Arg2::type C;
+			opts.AddImpl<A,B,C>(option, f);
+		}
 	};
 
 	template <typename Func>
 	struct Adder<Func, 4> {
-		static void Add (LambdaOpts & opts, String option, Func f);
+		static void Add (LambdaOpts & opts, String option, Func f) {
+			typedef typename FuncTraits<Func>::Arg0::type A;
+			typedef typename FuncTraits<Func>::Arg1::type B;
+			typedef typename FuncTraits<Func>::Arg2::type C;
+			typedef typename FuncTraits<Func>::Arg3::type D;
+			opts.AddImpl<A,B,C,D>(option, f);
+		}
 	};
 
 	template <typename Func>
 	struct Adder<Func, 5> {
-		static void Add (LambdaOpts & opts, String option, Func f);
+		static void Add (LambdaOpts & opts, String option, Func f) {
+			typedef typename FuncTraits<Func>::Arg0::type A;
+			typedef typename FuncTraits<Func>::Arg1::type B;
+			typedef typename FuncTraits<Func>::Arg2::type C;
+			typedef typename FuncTraits<Func>::Arg3::type D;
+			typedef typename FuncTraits<Func>::Arg4::type E;
+			opts.AddImpl<A,B,C,D,E>(option, f);
+		}
 	};
+
 
 //////////////////////////////////////////////////////////////////////////
 
-	void AddImpl (String option, std::function<ParseResult()> f);
+
+	void AddImpl (String option, std::function<ParseResult()> func)
+	{
+		OptInfo<ParseResult()> info;
+		info.option = option;
+		info.callback = func;
+		infos0.push_back(info);
+	}
 
 	template <typename A>
-	void AddImpl (String option, std::function<ParseResult(A)> f);
+	void AddImpl (String option, std::function<ParseResult(A)> func)
+	{
+		auto wrapper = [=] (V va) {
+			auto const & a = TypeTag<A>::ReifyOpaque(va);
+			return func(a);
+		};
+		OptInfo<ParseResult(V)> info;
+		info.option = option;
+		info.types.push_back(TypeTag<A>::Kind);
+		info.callback = wrapper;
+		infos1.push_back(info);
+	}
 
 	template <typename A, typename B>
-	void AddImpl (String option, std::function<ParseResult(A,B)> f);
+	void AddImpl (String option, std::function<ParseResult(A,B)> func)
+	{
+		auto wrapper = [=] (V va, V vb) {
+			auto const & a = TypeTag<A>::ReifyOpaque(va);
+			auto const & b = TypeTag<B>::ReifyOpaque(vb);
+			return func(a, b);
+		};
+		OptInfo<ParseResult(V,V)> info;
+		info.option = option;
+		info.types.push_back(TypeTag<A>::Kind);
+		info.types.push_back(TypeTag<B>::Kind);
+		info.callback = wrapper;
+		infos2.push_back(info);
+	}
 
 	template <typename A, typename B, typename C>
-	void AddImpl (String option, std::function<ParseResult(A,B,C)> f);
+	void AddImpl (String option, std::function<ParseResult(A,B,C)> func)
+	{
+		auto wrapper = [=] (V va, V vb, V vc) {
+			auto const & a = TypeTag<A>::ReifyOpaque(va);
+			auto const & b = TypeTag<B>::ReifyOpaque(vb);
+			auto const & c = TypeTag<C>::ReifyOpaque(vc);
+			return func(a, b, c);
+		};
+		OptInfo<ParseResult(V,V,V)> info;
+		info.option = option;
+		info.types.push_back(TypeTag<A>::Kind);
+		info.types.push_back(TypeTag<B>::Kind);
+		info.types.push_back(TypeTag<C>::Kind);
+		info.callback = wrapper;
+		infos3.push_back(info);
+	}
 
 	template <typename A, typename B, typename C, typename D>
-	void AddImpl (String option, std::function<ParseResult(A,B,C,D)> f);
+	void AddImpl (String option, std::function<ParseResult(A,B,C,D)> func)
+	{
+		auto wrapper = [=] (V va, V vb, V vc, V vd) {
+			auto const & a = TypeTag<A>::ReifyOpaque(va);
+			auto const & b = TypeTag<B>::ReifyOpaque(vb);
+			auto const & c = TypeTag<C>::ReifyOpaque(vc);
+			auto const & d = TypeTag<D>::ReifyOpaque(vd);
+			return func(a, b, c, d);
+		};
+		OptInfo<ParseResult(V,V,V,V)> info;
+		info.option = option;
+		info.types.push_back(TypeTag<A>::Kind);
+		info.types.push_back(TypeTag<B>::Kind);
+		info.types.push_back(TypeTag<C>::Kind);
+		info.types.push_back(TypeTag<D>::Kind);
+		info.callback = wrapper;
+		infos4.push_back(info);
+	}
 
 	template <typename A, typename B, typename C, typename D, typename E>
-	void AddImpl (String option, std::function<ParseResult(A,B,C,D,E)> f);
+	void AddImpl (String option, std::function<ParseResult(A,B,C,D,E)> func)
+	{
+		auto wrapper = [=] (V va, V vb, V vc, V vd, V ve) {
+			auto a = TypeTag<A>::ReifyOpaque(va);
+			auto b = TypeTag<B>::ReifyOpaque(vb);
+			auto c = TypeTag<C>::ReifyOpaque(vc);
+			auto d = TypeTag<D>::ReifyOpaque(vd);
+			auto e = TypeTag<E>::ReifyOpaque(ve);
+			return func(a, b, c, d, e);
+		};
+		OptInfo<ParseResult(V,V,V,V,V)> info;
+		info.option = option;
+		info.types.push_back(TypeTag<A>::Kind);
+		info.types.push_back(TypeTag<B>::Kind);
+		info.types.push_back(TypeTag<C>::Kind);
+		info.types.push_back(TypeTag<D>::Kind);
+		info.types.push_back(TypeTag<E>::Kind);
+		info.callback = wrapper;
+		infos5.push_back(info);
+	}
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -287,42 +397,42 @@ private:
 	template <typename Z>
 	struct TypeTag<int, Z> : public TypeTagBase<int> {
 	public:
-		static TypeKind const Kind = __LINE__;
+		enum : TypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%d%c"; }
 	};
 
 	template <typename Z>
 	struct TypeTag<unsigned int, Z> : public TypeTagBase<unsigned int> {
 	public:
-		static TypeKind const Kind = __LINE__;
+		enum : TypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%u%c"; }
 	};
 
 	template <typename Z>
 	struct TypeTag<float, Z> : public TypeTagBase<float> {
 	public:
-		static TypeKind const Kind = __LINE__;
+		enum : TypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%f%c"; }
 	};
 
 	template <typename Z>
 	struct TypeTag<double, Z> : public TypeTagBase<double> {
 	public:
-		static TypeKind const Kind = __LINE__;
+		enum : TypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%lf%c"; }
 	};
 
 	template <typename Z>
 	struct TypeTag<Char, Z> : public TypeTagBase<Char> {
 	public:
-		static TypeKind const Kind = __LINE__;
+		enum : TypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%cf%c"; }
 	};
 
 	template <typename Z>
 	struct TypeTag<String, Z> : public TypeTagBase<String> {
 	public:
-		static TypeKind const Kind = __LINE__;
+		enum : TypeKind { Kind = __LINE__ };
 		static std::unique_ptr<std::string const> Parse (std::string const & str) {
 			return AllocateCopy(str);
 		}
@@ -388,180 +498,6 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 
-template <typename Char>
-template <typename Func>
-void LambdaOpts<Char>::Adder<Func, 0>::Add (LambdaOpts & opts, String option, Func f)
-{
-	opts.AddImpl(option, f);
-}
-
-
-template <typename Char>
-template <typename Func>
-void LambdaOpts<Char>::Adder<Func, 1>::Add (LambdaOpts & opts, String option, Func f)
-{
-	typedef typename FuncTraits<Func>::Arg0::type A;
-	opts.AddImpl<A>(option, f);
-}
-
-
-template <typename Char>
-template <typename Func>
-void LambdaOpts<Char>::Adder<Func, 2>::Add (LambdaOpts & opts, String option, Func f)
-{
-	typedef typename FuncTraits<Func>::Arg0::type A;
-	typedef typename FuncTraits<Func>::Arg1::type B;
-	opts.AddImpl<A,B>(option, f);
-}
-
-
-template <typename Char>
-template <typename Func>
-void LambdaOpts<Char>::Adder<Func, 3>::Add (LambdaOpts & opts, String option, Func f)
-{
-	typedef typename FuncTraits<Func>::Arg0::type A;
-	typedef typename FuncTraits<Func>::Arg1::type B;
-	typedef typename FuncTraits<Func>::Arg2::type C;
-	opts.AddImpl<A,B,C>(option, f);
-}
-
-
-template <typename Char>
-template <typename Func>
-void LambdaOpts<Char>::Adder<Func, 4>::Add (LambdaOpts & opts, String option, Func f)
-{
-	typedef typename FuncTraits<Func>::Arg0::type A;
-	typedef typename FuncTraits<Func>::Arg1::type B;
-	typedef typename FuncTraits<Func>::Arg2::type C;
-	typedef typename FuncTraits<Func>::Arg3::type D;
-	opts.AddImpl<A,B,C,D>(option, f);
-}
-
-
-template <typename Char>
-template <typename Func>
-void LambdaOpts<Char>::Adder<Func, 5>::Add (LambdaOpts & opts, String option, Func f)
-{
-	typedef typename FuncTraits<Func>::Arg0::type A;
-	typedef typename FuncTraits<Func>::Arg1::type B;
-	typedef typename FuncTraits<Func>::Arg2::type C;
-	typedef typename FuncTraits<Func>::Arg3::type D;
-	typedef typename FuncTraits<Func>::Arg4::type E;
-	opts.AddImpl<A,B,C,D,E>(option, f);
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-
-
-template <typename Char>
-void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult()> func)
-{
-	OptInfo<ParseResult()> info;
-	info.option = option;
-	info.callback = func;
-	infos0.push_back(info);
-}
-
-
-template <typename Char>
-template <typename A>
-void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A)> func)
-{
-	auto wrapper = [=] (V va) {
-		auto const & a = TypeTag<A>::ReifyOpaque(va);
-		return func(a);
-	};
-	OptInfo<ParseResult(V)> info;
-	info.option = option;
-	info.types.push_back(TypeTag<A>::Kind);
-	info.callback = wrapper;
-	infos1.push_back(info);
-}
-
-
-template <typename Char>
-template <typename A, typename B>
-void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A,B)> func)
-{
-	auto wrapper = [=] (V va, V vb) {
-		auto const & a = TypeTag<A>::ReifyOpaque(va);
-		auto const & b = TypeTag<B>::ReifyOpaque(vb);
-		return func(a, b);
-	};
-	OptInfo<ParseResult(V,V)> info;
-	info.option = option;
-	info.types.push_back(TypeTag<A>::Kind);
-	info.types.push_back(TypeTag<B>::Kind);
-	info.callback = wrapper;
-	infos2.push_back(info);
-}
-
-
-template <typename Char>
-template <typename A, typename B, typename C>
-void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A,B,C)> func)
-{
-	auto wrapper = [=] (V va, V vb, V vc) {
-		auto const & a = TypeTag<A>::ReifyOpaque(va);
-		auto const & b = TypeTag<B>::ReifyOpaque(vb);
-		auto const & c = TypeTag<C>::ReifyOpaque(vc);
-		return func(a, b, c);
-	};
-	OptInfo<ParseResult(V,V,V)> info;
-	info.option = option;
-	info.types.push_back(TypeTag<A>::Kind);
-	info.types.push_back(TypeTag<B>::Kind);
-	info.types.push_back(TypeTag<C>::Kind);
-	info.callback = wrapper;
-	infos3.push_back(info);
-}
-
-
-template <typename Char>
-template <typename A, typename B, typename C, typename D>
-void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A,B,C,D)> func)
-{
-	auto wrapper = [=] (V va, V vb, V vc, V vd) {
-		auto const & a = TypeTag<A>::ReifyOpaque(va);
-		auto const & b = TypeTag<B>::ReifyOpaque(vb);
-		auto const & c = TypeTag<C>::ReifyOpaque(vc);
-		auto const & d = TypeTag<D>::ReifyOpaque(vd);
-		return func(a, b, c, d);
-	};
-	OptInfo<ParseResult(V,V,V,V)> info;
-	info.option = option;
-	info.types.push_back(TypeTag<A>::Kind);
-	info.types.push_back(TypeTag<B>::Kind);
-	info.types.push_back(TypeTag<C>::Kind);
-	info.types.push_back(TypeTag<D>::Kind);
-	info.callback = wrapper;
-	infos4.push_back(info);
-}
-
-
-template <typename Char>
-template <typename A, typename B, typename C, typename D, typename E>
-void LambdaOpts<Char>::AddImpl (String option, std::function<ParseResult(A,B,C,D,E)> func)
-{
-	auto wrapper = [=] (V va, V vb, V vc, V vd, V ve) {
-		auto a = TypeTag<A>::ReifyOpaque(va);
-		auto b = TypeTag<B>::ReifyOpaque(vb);
-		auto c = TypeTag<C>::ReifyOpaque(vc);
-		auto d = TypeTag<D>::ReifyOpaque(vd);
-		auto e = TypeTag<E>::ReifyOpaque(ve);
-		return func(a, b, c, d, e);
-	};
-	OptInfo<ParseResult(V,V,V,V,V)> info;
-	info.option = option;
-	info.types.push_back(TypeTag<A>::Kind);
-	info.types.push_back(TypeTag<B>::Kind);
-	info.types.push_back(TypeTag<C>::Kind);
-	info.types.push_back(TypeTag<D>::Kind);
-	info.types.push_back(TypeTag<E>::Kind);
-	info.callback = wrapper;
-	infos5.push_back(info);
-}
 
 
 //////////////////////////////////////////////////////////////////////////
