@@ -727,11 +727,10 @@ bool LambdaOpts<Char>::ParseEnvImpl::Peek (T & outArg)
 {
 	if (currArg != args.end()) {
 		ArgsIter startArg = currArg;
-		TypeKind const kind = GetTypeKind(outArg);
-		void const * p = Parse(kind, currArg, args.end());
+		typename std::unique_ptr<T const> p = TypeTag<T>::Parse(currArg, args.end());
 		currArg = startArg;
-		if (p != nullptr) {
-			Reify(p, outArg);
+		if (p) {
+			outArg = *p;
 			return true;
 		}
 	}
