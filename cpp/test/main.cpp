@@ -24,7 +24,7 @@ int main (int argc, char ** argv)
 		return Opts::ParseResult::Accept;
 	});
 
-	auto parseEnv = opts.NewParseEnv(std::vector<std::string>(argv + 1, argv + argc));
+	auto parseEnv = opts.NewParseEnv(argv + 1, argv + argc);
 
 	int parseFailureIndex;
 	if (!parseEnv.Parse(parseFailureIndex)) {

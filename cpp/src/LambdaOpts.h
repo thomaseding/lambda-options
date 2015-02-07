@@ -45,6 +45,7 @@
 template <typename Char>
 class LambdaOpts {
 	typedef std::basic_string<Char> String;
+	typedef std::vector<String> Args;
 	class ParseEnvImpl;
 
 public:
@@ -59,7 +60,8 @@ public:
 	template <typename Func>
 	void Add (String option, Func f);
 
-	ParseEnv NewParseEnv (std::vector<String> args);
+	template <typename StringIter>
+	ParseEnv NewParseEnv (StringIter begin, StringIter end);
 
 	class ParseEnv {
 		friend class LambdaOpts;
@@ -76,7 +78,7 @@ public:
 		bool Next ();
 
 	private:
-		ParseEnv (LambdaOpts const & opts, std::vector<String> && args);
+		ParseEnv (LambdaOpts const & opts, Args && args);
 		ParseEnv (ParseEnv const & other);       // disable
 		void operator= (ParseEnv const & other); // disable
 
@@ -102,7 +104,6 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-	typedef std::vector<String> Args;
 	typedef typename Args::const_iterator ArgsIter;
 
 	typedef void (*OpaqueDeleter)(void const *);
@@ -466,7 +467,7 @@ private:
 
 	class ParseEnvImpl {
 	public:
-		ParseEnvImpl (LambdaOpts const & opts, std::vector<String> && args);
+		ParseEnvImpl (LambdaOpts const & opts, Args && args);
 
 		bool Parse (int & outParseFailureIndex);
 
@@ -805,9 +806,10 @@ void LambdaOpts<Char>::Add (String option, Func f)
 
 
 template <typename Char>
-typename LambdaOpts<Char>::ParseEnv LambdaOpts<Char>::NewParseEnv (std::vector<String> args)
+template <typename StringIter>
+typename LambdaOpts<Char>::ParseEnv LambdaOpts<Char>::NewParseEnv (StringIter begin, StringIter end)
 {
-	return ParseEnv(*this, std::move(args));
+	return ParseEnv(*this, Args(begin, end));
 }
 
 
