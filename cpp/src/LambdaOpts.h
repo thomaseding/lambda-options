@@ -44,7 +44,6 @@
 
 template <typename Char>
 class LambdaOpts {
-	typedef Char const * CString;
 	typedef std::basic_string<Char> String;
 	class ParseEnvImpl;
 
@@ -485,15 +484,8 @@ private:
 
 		bool TryParse ();
 
-		template <typename T>
-		void * Allocate (T value);
-
-		void * Allocate_String (String const & str);
-		void FreeParseAllocations ();
-
 	public:
 		LambdaOpts const & opts;
-		std::vector<UniqueOpaque> parseAllocations;
 		Args args;
 		ArgsIter currArg;
 	};
@@ -570,7 +562,6 @@ typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<Pa
 template <typename Char>
 LambdaOpts<Char>::ParseEnvImpl::ParseEnvImpl (LambdaOpts const & opts, std::vector<String> && args)
 	: opts(opts)
-	, parseAllocations()
 	, args(std::move(args))
 	, currArg(args.begin())
 {}
@@ -617,7 +608,6 @@ typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::ParseEnvImpl::TryParse 
 	ASSERT(__LINE__, startArg != args.end());
 
 	for (auto const & info : infos) {
-		FreeParseAllocations();
 		currArg = startArg;
 
 		bool matchedOption = false;
@@ -710,7 +700,6 @@ bool LambdaOpts<Char>::ParseEnvImpl::TryParse ()
 template <typename Char>
 bool LambdaOpts<Char>::ParseEnvImpl::Parse (int & outParseFailureIndex)
 {
-	FreeParseAllocations();
 	currArg = args.begin();
 	while (TryParse()) {
 		continue;
@@ -737,7 +726,6 @@ template <typename T>
 bool LambdaOpts<Char>::ParseEnvImpl::Peek (T & outArg)
 {
 	if (currArg != args.end()) {
-		FreeParseAllocations();
 		ArgsIter startArg = currArg;
 		TypeKind const kind = GetTypeKind(outArg);
 		void const * p = Parse(kind, currArg, args.end());
@@ -759,35 +747,6 @@ bool LambdaOpts<Char>::ParseEnvImpl::Next ()
 		return true;
 	}
 	return false;
-}
-
-
-template <typename Char>
-template <typename T>
-void * LambdaOpts<Char>::ParseEnvImpl::Allocate (T value)
-{
-	char * p = new char[sizeof(T)];
-	memcpy(p, &value, sizeof(T));
-	parseAllocations.emplace_back(p);
-	return p;
-}
-
-
-template <typename Char>
-void * LambdaOpts<Char>::ParseEnvImpl::Allocate_String (String const & str)
-{
-	size_t size = sizeof(Char) * (str.size() + 1);
-	char * p = new char[size];
-	memcpy(p, str.c_str(), size);
-	parseAllocations.emplace_back(p);
-	return p;
-}
-
-
-template <typename Char>
-void LambdaOpts<Char>::ParseEnvImpl::FreeParseAllocations ()
-{
-	parseAllocations.clear();
 }
 
 
