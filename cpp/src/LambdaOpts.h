@@ -430,7 +430,7 @@ private:
 	struct TypeTagImpl<String, Dummy> : public TypeTagBase<String> {
 	public:
 		enum : TypeKind { Kind = __LINE__ };
-		static std::unique_ptr<std::string const> Parse (ArgsIter & iter, ArgsIter end) {
+		static std::unique_ptr<String const> Parse (ArgsIter & iter, ArgsIter end) {
 			ASSERT(__LINE__, iter != end);
 			return AllocateCopy(*iter++);
 		}
