@@ -88,18 +88,23 @@ public:
 //////////////////////////////////////////////////////////////////////////
 
 private:
-	static void ASSERT (bool truth)
+	static void ASSERT (unsigned int line, bool truth)
 	{
 #ifdef NDEBUG
 		(void) truth;
 #else
 		if (!truth) {
-			throw std::logic_error("LambdaOpts<Char>::ASSERT failed.");
+			char msg[1024];
+			sprintf(msg, "LambdaOpts::ASSERT failed in '%s' on line %u", __FILE__, line);
+			throw std::logic_error(msg);
 		}
 #endif
 	}
 
 //////////////////////////////////////////////////////////////////////////
+
+	typedef std::vector<String> Args;
+	typedef typename Args::const_iterator ArgsIter;
 
 	typedef void (*OpaqueDeleter)(void const *);
 	typedef std::unique_ptr<void const, OpaqueDeleter> UniqueOpaque;
@@ -350,7 +355,7 @@ private:
 	{
 		wchar_t wformat[8];
 		size_t len = std::strlen(format) + 1;
-		ASSERT(len <= (sizeof(wformat) / sizeof(wchar_t)));
+		ASSERT(__LINE__, len <= (sizeof(wformat) / sizeof(wchar_t)));
 		for (size_t i = 0; i < len; ++i) {
 			wformat[i] = format[i];
 		}
@@ -370,9 +375,71 @@ private:
 
 	template <typename T>
 	struct TypeTagBase {
-		typedef T Type;
-
 		static char const * const ScanDescription ();
+
+		static std::unique_ptr<T const> Parse (ArgsIter & iter, ArgsIter end) {
+			ASSERT(__LINE__, iter != end);
+			T item;
+			if (Scan(*iter, TypeTag<T>::ScanDescription(), &item)) {
+				++iter;
+				return AllocateCopy(item);
+			}
+			return nullptr;
+		}
+	};
+
+	template <typename T, typename Dummy>
+	struct TypeTagImpl {};
+
+	template <typename Dummy>
+	struct TypeTagImpl<int, Dummy> : public TypeTagBase<int> {
+	public:
+		enum : TypeKind { Kind = __LINE__ };
+		static char const * const ScanDescription () { return "%d%c"; }
+	};
+
+	template <typename Dummy>
+	struct TypeTagImpl<unsigned int, Dummy> : public TypeTagBase<unsigned int> {
+	public:
+		enum : TypeKind { Kind = __LINE__ };
+		static char const * const ScanDescription () { return "%u%c"; }
+	};
+
+	template <typename Dummy>
+	struct TypeTagImpl<float, Dummy> : public TypeTagBase<float> {
+	public:
+		enum : TypeKind { Kind = __LINE__ };
+		static char const * const ScanDescription () { return "%f%c"; }
+	};
+
+	template <typename Dummy>
+	struct TypeTagImpl<double, Dummy> : public TypeTagBase<double> {
+	public:
+		enum : TypeKind { Kind = __LINE__ };
+		static char const * const ScanDescription () { return "%lf%c"; }
+	};
+
+	template <typename Dummy>
+	struct TypeTagImpl<Char, Dummy> : public TypeTagBase<Char> {
+	public:
+		enum : TypeKind { Kind = __LINE__ };
+		static char const * const ScanDescription () { return "%cf%c"; }
+	};
+
+	template <typename Dummy>
+	struct TypeTagImpl<String, Dummy> : public TypeTagBase<String> {
+	public:
+		enum : TypeKind { Kind = __LINE__ };
+		static std::unique_ptr<std::string const> Parse (ArgsIter & iter, ArgsIter end) {
+			ASSERT(__LINE__, iter != end);
+			return AllocateCopy(*iter++);
+		}
+	};
+
+	template <typename T>
+	struct TypeTag : public TypeTagImpl<T, void> {
+		typedef TypeTagImpl<T, void> Base;
+		typedef T Type;
 
 		static Type const & ReifyOpaque (void const * p) {
 			return *static_cast<Type const *>(p);
@@ -382,59 +449,10 @@ private:
 			delete static_cast<T const *>(p);
 		}
 
-		static std::unique_ptr<T const> Parse (std::string const & str) {
-			T item;
-			if (Scan(str, TypeTag<T>::ScanDescription(), &item)) {
-				return AllocateCopy(item);
-			}
-			return nullptr;
-		}
-	};
+		using Base::Parse;
 
-	template <typename T, typename Z=void>
-	struct TypeTag {};
-
-	template <typename Z>
-	struct TypeTag<int, Z> : public TypeTagBase<int> {
-	public:
-		enum : TypeKind { Kind = __LINE__ };
-		static char const * const ScanDescription () { return "%d%c"; }
-	};
-
-	template <typename Z>
-	struct TypeTag<unsigned int, Z> : public TypeTagBase<unsigned int> {
-	public:
-		enum : TypeKind { Kind = __LINE__ };
-		static char const * const ScanDescription () { return "%u%c"; }
-	};
-
-	template <typename Z>
-	struct TypeTag<float, Z> : public TypeTagBase<float> {
-	public:
-		enum : TypeKind { Kind = __LINE__ };
-		static char const * const ScanDescription () { return "%f%c"; }
-	};
-
-	template <typename Z>
-	struct TypeTag<double, Z> : public TypeTagBase<double> {
-	public:
-		enum : TypeKind { Kind = __LINE__ };
-		static char const * const ScanDescription () { return "%lf%c"; }
-	};
-
-	template <typename Z>
-	struct TypeTag<Char, Z> : public TypeTagBase<Char> {
-	public:
-		enum : TypeKind { Kind = __LINE__ };
-		static char const * const ScanDescription () { return "%cf%c"; }
-	};
-
-	template <typename Z>
-	struct TypeTag<String, Z> : public TypeTagBase<String> {
-	public:
-		enum : TypeKind { Kind = __LINE__ };
-		static std::unique_ptr<std::string const> Parse (std::string const & str) {
-			return AllocateCopy(str);
+		static UniqueOpaque OpaqueParse (ArgsIter & iter, ArgsIter end) {
+			return UniqueOpaque(Parse(iter, end).release(), Delete);
 		}
 	};
 
@@ -460,10 +478,10 @@ private:
 
 		size_t RemainingArgs () const;
 
-		UniqueOpaque OpaqueParse (TypeKind type, String const & arg);
+		UniqueOpaque OpaqueParse (TypeKind type, ArgsIter & iter, ArgsIter end);
 
 		template <typename GenericOptInfo>
-		int TryParse (std::vector<GenericOptInfo> const & infos);
+		ParseResult TryParse (std::vector<GenericOptInfo> const & infos);
 
 		bool TryParse ();
 
@@ -476,8 +494,8 @@ private:
 	public:
 		LambdaOpts const & opts;
 		std::vector<UniqueOpaque> parseAllocations;
-		std::vector<String> args;
-		size_t argIndex;
+		Args args;
+		ArgsIter currArg;
 	};
 
 //////////////////////////////////////////////////////////////////////////
@@ -554,105 +572,138 @@ LambdaOpts<Char>::ParseEnvImpl::ParseEnvImpl (LambdaOpts const & opts, std::vect
 	: opts(opts)
 	, parseAllocations()
 	, args(std::move(args))
-	, argIndex(0)
+	, currArg(args.begin())
 {}
 
 
 template <typename Char>
-typename LambdaOpts<Char>::UniqueOpaque LambdaOpts<Char>::ParseEnvImpl::OpaqueParse (TypeKind type, String const & arg)
+typename LambdaOpts<Char>::UniqueOpaque LambdaOpts<Char>::ParseEnvImpl::OpaqueParse (TypeKind type, ArgsIter & iter, ArgsIter end)
 {
+	ArgsIter const begin = iter;
+
+	UniqueOpaque p(static_cast<char *>(nullptr), [](void const *){});
+
 	switch (type) {
-		case TypeTag<int>::Kind:			return UniqueOpaque(TypeTag<int>::Parse(arg).release(),				TypeTag<int>::Delete);
-		case TypeTag<unsigned int>::Kind:	return UniqueOpaque(TypeTag<unsigned int>::Parse(arg).release(),	TypeTag<unsigned int>::Delete);
-		case TypeTag<float>::Kind:			return UniqueOpaque(TypeTag<float>::Parse(arg).release(),			TypeTag<float>::Delete);
-		case TypeTag<double>::Kind:			return UniqueOpaque(TypeTag<double>::Parse(arg).release(),			TypeTag<double>::Delete);
-		case TypeTag<Char>::Kind:			return UniqueOpaque(TypeTag<Char>::Parse(arg).release(),			TypeTag<Char>::Delete);
-		case TypeTag<String>::Kind:			return UniqueOpaque(TypeTag<String>::Parse(arg).release(),			TypeTag<String>::Delete);
+		case TypeTag<int>::Kind:			p = TypeTag<int>::OpaqueParse(iter, end); break;
+		case TypeTag<unsigned int>::Kind:	p = TypeTag<unsigned int>::OpaqueParse(iter, end); break;
+		case TypeTag<float>::Kind:			p = TypeTag<float>::OpaqueParse(iter, end); break;
+		case TypeTag<double>::Kind:			p = TypeTag<double>::OpaqueParse(iter, end); break;
+		case TypeTag<Char>::Kind:			p = TypeTag<Char>::OpaqueParse(iter, end); break;
+		case TypeTag<String>::Kind:			p = TypeTag<String>::OpaqueParse(iter, end); break;
+		default: ASSERT(__LINE__, false);
 	}
-	ASSERT(false);
-	return UniqueOpaque(static_cast<char *>(nullptr), [](void const *){});
+
+	if (p) {
+		ASSERT(__LINE__, iter > begin);
+	}
+	else {
+		iter = begin;
+	}
+
+	return p;
 }
 
 
 template <typename Char>
 template <typename GenericOptInfo>
-int LambdaOpts<Char>::ParseEnvImpl::TryParse (std::vector<GenericOptInfo> const & infos)
+typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::ParseEnvImpl::TryParse (std::vector<GenericOptInfo> const & infos)
 {
 	if (infos.empty()) {
-		return 0;
+		return ParseResult::Reject;
 	}
 	size_t const arity = infos.front().types.size();
-	if (RemainingArgs() < arity + 1) {
-		return 0;
-	}
+
+	ArgsIter const startArg = currArg;
+	ASSERT(__LINE__, startArg != args.end());
+
 	for (auto const & info : infos) {
 		FreeParseAllocations();
-		if (args[argIndex] == info.option) {
+		currArg = startArg;
+
+		bool matchedOption = false;
+		if (info.option.empty()) {
+			matchedOption = true;
+		}
+		else if (*currArg == info.option) {
+			matchedOption = true;
+			++currArg;
+		}
+
+		if (matchedOption) {
 			OpaqueArgs parsedArgs;
-			bool success = true;
+			bool parsedFullArity = true;
 			for (size_t i = 0; i < arity; ++i) {
+				if (currArg == args.end()) {
+					parsedFullArity = false;
+					break;
+				}
 				TypeKind type = info.types[i];
-				String const & rawArg = args[argIndex + i + 1];
-				UniqueOpaque parsedArg = OpaqueParse(type, rawArg);
+				UniqueOpaque parsedArg = OpaqueParse(type, currArg, args.end());
 				if (parsedArg == nullptr) {
-					success = false;
+					parsedFullArity = false;
 					break;
 				}
 				parsedArgs.emplace_back(std::move(parsedArg));
 			}
-			if (success) {
+			if (parsedFullArity) {
 				ParseResult res = Apply(info.callback, parsedArgs);
 				switch (res) {
 					case ParseResult::Accept: {
-						return static_cast<int>(arity + 1);
+						return ParseResult::Accept;
 					} break;
 					case ParseResult::Reject: {
 						continue;
 					} break;
 					case ParseResult::Fatal: {
-						return -1;
+						return ParseResult::Fatal;
 					} break;
 					default: {
-						ASSERT(false);
+						ASSERT(__LINE__, false);
 					}
 				}
 			}
 		}
 	}
-	return 0;
+
+	currArg = startArg;
+	return ParseResult::Reject;
 }
 
 
 template <typename Char>
 bool LambdaOpts<Char>::ParseEnvImpl::TryParse ()
 {
-	int parseCount = 0;
-
-	if (parseCount == 0) {
-		parseCount = TryParse(opts.infos5);
-	}
-	if (parseCount == 0) {
-		parseCount = TryParse(opts.infos4);
-	}
-	if (parseCount == 0) {
-		parseCount = TryParse(opts.infos3);
-	}
-	if (parseCount == 0) {
-		parseCount = TryParse(opts.infos2);
-	}
-	if (parseCount == 0) {
-		parseCount = TryParse(opts.infos1);
-	}
-	if (parseCount == 0) {
-		parseCount = TryParse(opts.infos0);
-	}
-
-	if (parseCount <= 0) {
+	if (currArg == args.end()) {
 		return false;
 	}
 
-	argIndex += parseCount;
-	return true;
+	ParseResult res = ParseResult::Reject;
+
+	if (res == ParseResult::Reject) {
+		res = TryParse(opts.infos5);
+	}
+	if (res == ParseResult::Reject) {
+		res = TryParse(opts.infos4);
+	}
+	if (res == ParseResult::Reject) {
+		res = TryParse(opts.infos3);
+	}
+	if (res == ParseResult::Reject) {
+		res = TryParse(opts.infos2);
+	}
+	if (res == ParseResult::Reject) {
+		res = TryParse(opts.infos1);
+	}
+	if (res == ParseResult::Reject) {
+		res = TryParse(opts.infos0);
+	}
+
+	switch (res) {
+		case ParseResult::Accept: return true;
+		case ParseResult::Reject: return false;
+		case ParseResult::Fatal: return false;
+		default: ASSERT(__LINE__, false); return false;
+	}
 }
 
 
@@ -660,24 +711,24 @@ template <typename Char>
 bool LambdaOpts<Char>::ParseEnvImpl::Parse (int & outParseFailureIndex)
 {
 	FreeParseAllocations();
-	argIndex = 0;
+	currArg = args.begin();
 	while (TryParse()) {
 		continue;
 	}
-	if (RemainingArgs() > 0) {
-		outParseFailureIndex = static_cast<int>(argIndex);
-		return false;
+	if (currArg == args.end()) {
+		outParseFailureIndex = -1;
+		return true;
 	}
-	outParseFailureIndex = -1;
-	return true;
+	size_t argIndex = currArg - args.begin();
+	outParseFailureIndex = static_cast<int>(argIndex);
+	return false;
 }
 
 
 template <typename Char>
 size_t LambdaOpts<Char>::ParseEnvImpl::RemainingArgs () const
 {
-	ASSERT(argIndex <= args.size());
-	return args.size() - argIndex;
+	return args.end() - currArg;
 }
 
 
@@ -685,11 +736,12 @@ template <typename Char>
 template <typename T>
 bool LambdaOpts<Char>::ParseEnvImpl::Peek (T & outArg)
 {
-	if (argIndex < args.size()) {
+	if (currArg != args.end()) {
 		FreeParseAllocations();
+		ArgsIter startArg = currArg;
 		TypeKind const kind = GetTypeKind(outArg);
-		String const & arg = args[argIndex];
-		void const * p = Parse(kind, arg);
+		void const * p = Parse(kind, currArg, args.end());
+		currArg = startArg;
 		if (p != nullptr) {
 			Reify(p, outArg);
 			return true;
@@ -702,8 +754,8 @@ bool LambdaOpts<Char>::ParseEnvImpl::Peek (T & outArg)
 template <typename Char>
 bool LambdaOpts<Char>::ParseEnvImpl::Next ()
 {
-	if (argIndex < args.size()) {
-		++argIndex;
+	if (currArg != args.end()) {
+		++currArg;
 		return true;
 	}
 	return false;
