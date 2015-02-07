@@ -626,24 +626,24 @@ int LambdaOpts<Char>::ParseEnvImpl::TryParse (std::vector<GenericOptInfo> const 
 template <typename Char>
 bool LambdaOpts<Char>::ParseEnvImpl::TryParse ()
 {
-	size_t parseCount = 0;
+	int parseCount = 0;
 
-	if (parseCount >= 0) {
+	if (parseCount == 0) {
 		parseCount = TryParse(opts.infos5);
 	}
-	if (parseCount >= 0) {
+	if (parseCount == 0) {
 		parseCount = TryParse(opts.infos4);
 	}
-	if (parseCount >= 0) {
+	if (parseCount == 0) {
 		parseCount = TryParse(opts.infos3);
 	}
-	if (parseCount >= 0) {
+	if (parseCount == 0) {
 		parseCount = TryParse(opts.infos2);
 	}
-	if (parseCount >= 0) {
+	if (parseCount == 0) {
 		parseCount = TryParse(opts.infos1);
 	}
-	if (parseCount >= 0) {
+	if (parseCount == 0) {
 		parseCount = TryParse(opts.infos0);
 	}
 
