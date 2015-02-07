@@ -27,12 +27,16 @@
 
 #pragma once
 
+#include <cstring>
 #include <functional>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
+
+#ifndef NDEBUG
+#	include <stdexcept>
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -42,10 +46,11 @@ template <typename Char>
 class LambdaOpts {
 	typedef Char const * CString;
 	typedef std::basic_string<Char> String;
-	class ParseEnv;
 	class ParseEnvImpl;
 
 public:
+	class ParseEnv;
+
 	enum class ParseResult {
 		Accept,
 		Reject,
@@ -85,7 +90,9 @@ public:
 private:
 	static void ASSERT (bool truth)
 	{
-#ifndef NDEBUG
+#ifdef NDEBUG
+		(void) truth;
+#else
 		if (!truth) {
 			throw std::logic_error("LambdaOpts<Char>::ASSERT failed.");
 		}
@@ -232,7 +239,7 @@ private:
 	static bool Scan (std::wstring const & str, char const * format, void * dest)
 	{
 		wchar_t wformat[8];
-		size_t len = strlen(format) + 1;
+		size_t len = std::strlen(format) + 1;
 		ASSERT(len <= (sizeof(wformat) / sizeof(wchar_t)));
 		for (size_t i = 0; i < len; ++i) {
 			wformat[i] = format[i];
@@ -274,46 +281,46 @@ private:
 		}
 	};
 
-	template <typename T>
+	template <typename T, typename Z=void>
 	struct TypeTag {};
 
-	template <>
-	struct TypeTag<int> : public TypeTagBase<int> {
+	template <typename Z>
+	struct TypeTag<int, Z> : public TypeTagBase<int> {
 	public:
 		static TypeKind const Kind = __LINE__;
 		static char const * const ScanDescription () { return "%d%c"; }
 	};
 
-	template <>
-	struct TypeTag<unsigned int> : public TypeTagBase<unsigned int> {
+	template <typename Z>
+	struct TypeTag<unsigned int, Z> : public TypeTagBase<unsigned int> {
 	public:
 		static TypeKind const Kind = __LINE__;
 		static char const * const ScanDescription () { return "%u%c"; }
 	};
 
-	template <>
-	struct TypeTag<float> : public TypeTagBase<float> {
+	template <typename Z>
+	struct TypeTag<float, Z> : public TypeTagBase<float> {
 	public:
 		static TypeKind const Kind = __LINE__;
 		static char const * const ScanDescription () { return "%f%c"; }
 	};
 
-	template <>
-	struct TypeTag<double> : public TypeTagBase<double> {
+	template <typename Z>
+	struct TypeTag<double, Z> : public TypeTagBase<double> {
 	public:
 		static TypeKind const Kind = __LINE__;
 		static char const * const ScanDescription () { return "%lf%c"; }
 	};
 
-	template <>
-	struct TypeTag<Char> : public TypeTagBase<Char> {
+	template <typename Z>
+	struct TypeTag<Char, Z> : public TypeTagBase<Char> {
 	public:
 		static TypeKind const Kind = __LINE__;
 		static char const * const ScanDescription () { return "%cf%c"; }
 	};
 
-	template <>
-	struct TypeTag<String> : public TypeTagBase<String> {
+	template <typename Z>
+	struct TypeTag<String, Z> : public TypeTagBase<String> {
 	public:
 		static TypeKind const Kind = __LINE__;
 		static std::unique_ptr<std::string const> Parse (std::string const & str) {
