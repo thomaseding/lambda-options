@@ -27,6 +27,7 @@
 
 #pragma once
 
+#include <array>
 #include <cctype>
 #include <cstdio>
 #include <exception>
@@ -120,10 +121,23 @@ private:
 
 	typedef typename Args::const_iterator ArgsIter;
 
+	typedef void const * V;
 	typedef void (*OpaqueDeleter)(void const *);
 	typedef std::unique_ptr<void const, OpaqueDeleter> UniqueOpaque;
 	typedef std::vector<UniqueOpaque> OpaqueArgs;
-	typedef void const * V;
+
+	typedef size_t SimpleTypeKind;
+	struct TypeKind {
+		bool operator== (TypeKind const & other) const {
+			return simple == other.simple && size == other.size && elem == other.elem;
+		}
+		SimpleTypeKind simple;
+		size_t size;
+		SimpleTypeKind elem;
+	};
+
+	typedef UniqueOpaque (*OpaqueParser)(ArgsIter &, ArgsIter);
+	typedef std::vector<std::pair<TypeKind, OpaqueParser>> DynamicParsers;
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -261,6 +275,77 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
+	template <typename T>
+	struct ArrayInfo {
+		static bool const valid = false;
+
+		// Dummies make code easier to write by supplying valid code to the compiler.
+		typedef int elem_type;
+		enum : size_t { size = 1 };
+	};
+
+	template <typename T, size_t N>
+	struct ArrayInfo<std::array<T, N>> {
+		static bool const valid = true;
+		typedef T elem_type;
+		enum : size_t { size = N };
+	};
+
+	template <typename T>
+	static TypeKind GetTypeKind ()
+	{
+		typedef TypeTag<T> Tag;
+		typedef ArrayInfo<T> ArrInfo;
+		typedef typename ArrInfo::elem_type Elem;
+		typedef TypeTag<Elem> ElemTag;
+
+		TypeKind k = { Tag::Kind, ArrInfo::size, ElemTag::Kind };
+		return k;
+	}
+
+	template <typename T>
+	void PushTypeKind (std::vector<TypeKind> & kinds)
+	{
+		typedef ArrayInfo<T> ArrInfo;
+		typedef typename ArrInfo::elem_type Elem;
+
+		kinds.push_back(GetTypeKind<T>());
+
+		if (ArrInfo::valid) {
+			static_assert(!ArrayInfo<Elem>::valid, "Nested array types not supported.");
+			AddArrayDynamicParser<Elem, ArrInfo::size>();
+		}
+	}
+
+	template <typename T, size_t N>
+	void AddArrayDynamicParser ()
+	{
+		typedef std::array<T, N> Arr;
+		TypeKind k = GetTypeKind<Arr>();
+		for (auto const & key_value : dynamicParsers) {
+			TypeKind const & key = key_value.first;
+			if (key == k) {
+				return;
+			}
+		}
+		typedef TypeTag<Arr> ArrTag;
+		OpaqueParser f = ArrTag::OpaqueParse;
+		dynamicParsers.emplace_back(k, f);
+	}
+
+	static OpaqueParser LookupDynamicParser (DynamicParsers const & dynamicParsers, TypeKind const & k)
+	{
+		for (auto const & key_value : dynamicParsers) {
+			TypeKind const & key = key_value.first;
+			OpaqueParser p = key_value.second;
+			if (key == k) {
+				return p;
+			}
+		}
+		return nullptr;
+	}
+
+//////////////////////////////////////////////////////////////////////////
 
 	void AddImpl (String const & keyword, std::function<ParseResult()> const & func)
 	{
@@ -282,7 +367,7 @@ private:
 		};
 		OptInfo<ParseResult(V)> info;
 		info.keyword = keyword;
-		info.types.push_back(TypeTag<A>::Kind);
+		PushTypeKind<A>(info.types);
 		info.callback = wrapper;
 		infos1.push_back(info);
 	}
@@ -297,8 +382,8 @@ private:
 		};
 		OptInfo<ParseResult(V,V)> info;
 		info.keyword = keyword;
-		info.types.push_back(TypeTag<A>::Kind);
-		info.types.push_back(TypeTag<B>::Kind);
+		PushTypeKind<A>(info.types);
+		PushTypeKind<B>(info.types);
 		info.callback = wrapper;
 		infos2.push_back(info);
 	}
@@ -314,9 +399,9 @@ private:
 		};
 		OptInfo<ParseResult(V,V,V)> info;
 		info.keyword = keyword;
-		info.types.push_back(TypeTag<A>::Kind);
-		info.types.push_back(TypeTag<B>::Kind);
-		info.types.push_back(TypeTag<C>::Kind);
+		PushTypeKind<A>(info.types);
+		PushTypeKind<B>(info.types);
+		PushTypeKind<C>(info.types);
 		info.callback = wrapper;
 		infos3.push_back(info);
 	}
@@ -333,10 +418,10 @@ private:
 		};
 		OptInfo<ParseResult(V,V,V,V)> info;
 		info.keyword = keyword;
-		info.types.push_back(TypeTag<A>::Kind);
-		info.types.push_back(TypeTag<B>::Kind);
-		info.types.push_back(TypeTag<C>::Kind);
-		info.types.push_back(TypeTag<D>::Kind);
+		PushTypeKind<A>(info.types);
+		PushTypeKind<B>(info.types);
+		PushTypeKind<C>(info.types);
+		PushTypeKind<D>(info.types);
 		info.callback = wrapper;
 		infos4.push_back(info);
 	}
@@ -354,11 +439,11 @@ private:
 		};
 		OptInfo<ParseResult(V,V,V,V,V)> info;
 		info.keyword = keyword;
-		info.types.push_back(TypeTag<A>::Kind);
-		info.types.push_back(TypeTag<B>::Kind);
-		info.types.push_back(TypeTag<C>::Kind);
-		info.types.push_back(TypeTag<D>::Kind);
-		info.types.push_back(TypeTag<E>::Kind);
+		PushTypeKind<A>(info.types);
+		PushTypeKind<B>(info.types);
+		PushTypeKind<C>(info.types);
+		PushTypeKind<D>(info.types);
+		PushTypeKind<E>(info.types);
 		info.callback = wrapper;
 		infos5.push_back(info);
 	}
@@ -425,8 +510,6 @@ private:
 		return std::unique_ptr<T2>(p);
 	}
 
-	typedef size_t TypeKind;
-
 	template <typename T>
 	struct TypeTagNumberBase {
 		static std::unique_ptr<T const> Parse (ArgsIter & iter, ArgsIter end) {
@@ -454,14 +537,14 @@ private:
 	template <typename Dummy>
 	struct TypeTagImpl<int, Dummy> : public TypeTagNumberBase<int> {
 	public:
-		enum : TypeKind { Kind = __LINE__ };
+		enum : SimpleTypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%d%c"; }
 	};
 
 	template <typename Dummy>
 	struct TypeTagImpl<unsigned int, Dummy> : public TypeTagNumberBase<unsigned int> {
 	public:
-		enum : TypeKind { Kind = __LINE__ };
+		enum : SimpleTypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%u%c"; }
 		static std::unique_ptr<unsigned int const> Parse (ArgsIter & iter, ArgsIter end) {
 			ASSERT(__LINE__, iter != end);
@@ -475,21 +558,21 @@ private:
 	template <typename Dummy>
 	struct TypeTagImpl<float, Dummy> : public TypeTagNumberBase<float> {
 	public:
-		enum : TypeKind { Kind = __LINE__ };
+		enum : SimpleTypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%f%c"; }
 	};
 
 	template <typename Dummy>
 	struct TypeTagImpl<double, Dummy> : public TypeTagNumberBase<double> {
 	public:
-		enum : TypeKind { Kind = __LINE__ };
+		enum : SimpleTypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%lf%c"; }
 	};
 
 	template <typename Dummy>
 	struct TypeTagImpl<Char, Dummy> {
 	public:
-		enum : TypeKind { Kind = __LINE__ };
+		enum : SimpleTypeKind { Kind = __LINE__ };
 		static std::unique_ptr<Char const> Parse (ArgsIter & iter, ArgsIter end) {
 			ASSERT(__LINE__, iter != end);
 			if (iter->size() == 1) {
@@ -502,10 +585,31 @@ private:
 	template <typename Dummy>
 	struct TypeTagImpl<String, Dummy> {
 	public:
-		enum : TypeKind { Kind = __LINE__ };
+		enum : SimpleTypeKind { Kind = __LINE__ };
 		static std::unique_ptr<String const> Parse (ArgsIter & iter, ArgsIter end) {
 			ASSERT(__LINE__, iter != end);
 			return AllocateCopy(*iter++);
+		}
+	};
+
+	template <typename T, size_t N, typename Dummy>
+	struct TypeTagImpl<std::array<T, N>, Dummy> {
+		enum : SimpleTypeKind { Kind = __LINE__ };
+		static std::unique_ptr<std::array<T, N> const> Parse (ArgsIter & iter, ArgsIter end) {
+			static_assert(N > 0, "Parsing a 0-sized array is not well-defined.");
+			std::array<T, N> arr;
+			ASSERT(__LINE__, iter != end);
+			for (size_t i = 0; i < N; ++i) {
+				if (iter == end) {
+					return nullptr;
+				}
+				std::unique_ptr<T const> p = TypeTagImpl<T>::Parse(iter, end);
+				if (!p) {
+					return nullptr;
+				}
+				arr[i] = std::move(*p);
+			}
+			return AllocateCopy(std::move(arr));
 		}
 	};
 
@@ -549,7 +653,7 @@ private:
 
 		bool Next ();
 
-		UniqueOpaque OpaqueParse (TypeKind type, ArgsIter & iter, ArgsIter end);
+		UniqueOpaque OpaqueParse (TypeKind typeKind, ArgsIter & iter, ArgsIter end);
 
 		template <typename GenericOptInfo>
 		ParseResult TryParse (bool useKeyword, std::vector<GenericOptInfo> const & infos);
@@ -565,6 +669,7 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 private:
+	DynamicParsers dynamicParsers;
 	std::vector<OptInfo<ParseResult()>> infos0;
 	std::vector<OptInfo<ParseResult(V)>> infos1;
 	std::vector<OptInfo<ParseResult(V,V)>> infos2;
@@ -635,20 +740,27 @@ LambdaOpts<Char>::ParseEnvImpl::ParseEnvImpl (LambdaOpts const & opts, std::vect
 
 
 template <typename Char>
-typename LambdaOpts<Char>::UniqueOpaque LambdaOpts<Char>::ParseEnvImpl::OpaqueParse (TypeKind type, ArgsIter & iter, ArgsIter end)
+typename LambdaOpts<Char>::UniqueOpaque LambdaOpts<Char>::ParseEnvImpl::OpaqueParse (TypeKind typeKind, ArgsIter & iter, ArgsIter end)
 {
 	ArgsIter const begin = iter;
 
 	UniqueOpaque p(static_cast<char *>(nullptr), [](void const *){});
 
-	switch (type) {
+	switch (typeKind.simple) {
 		case TypeTag<int>::Kind:			p = TypeTag<int>::OpaqueParse(iter, end); break;
 		case TypeTag<unsigned int>::Kind:	p = TypeTag<unsigned int>::OpaqueParse(iter, end); break;
 		case TypeTag<float>::Kind:			p = TypeTag<float>::OpaqueParse(iter, end); break;
 		case TypeTag<double>::Kind:			p = TypeTag<double>::OpaqueParse(iter, end); break;
 		case TypeTag<Char>::Kind:			p = TypeTag<Char>::OpaqueParse(iter, end); break;
 		case TypeTag<String>::Kind:			p = TypeTag<String>::OpaqueParse(iter, end); break;
-		default: ASSERT(__LINE__, false);
+		default: {
+			DynamicParsers const & parsers = opts.dynamicParsers;
+			OpaqueParser parser = LookupDynamicParser(parsers, typeKind);
+			if (parser == nullptr) {
+				ASSERT(__LINE__, false);
+			}
+			p = parser(iter, end);
+		}
 	}
 
 	if (p) {
@@ -687,8 +799,8 @@ typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::ParseEnvImpl::TryParse 
 					parsedFullArity = false;
 					break;
 				}
-				TypeKind type = info.types[i];
-				UniqueOpaque parsedArg = OpaqueParse(type, currArg, args.end());
+				TypeKind typeKind = info.types[i];
+				UniqueOpaque parsedArg = OpaqueParse(typeKind, currArg, args.end());
 				if (parsedArg == nullptr) {
 					parsedFullArity = false;
 					break;
