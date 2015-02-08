@@ -72,7 +72,7 @@ public:
 	};
 
 	template <typename Func>
-	void AddOption (String keyword, Func f);
+	void AddOption (String const & keyword, Func const & f);
 
 	template <typename StringIter>
 	ParseEnv CreateParseEnv (StringIter begin, StringIter end);
@@ -191,7 +191,7 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 0> {
-		static void Add (LambdaOpts & opts, String keyword, Func f) {
+		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
 			opts.AddImpl(keyword, f);
@@ -200,7 +200,7 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 1> {
-		static void Add (LambdaOpts & opts, String keyword, Func f) {
+		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
@@ -210,7 +210,7 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 2> {
-		static void Add (LambdaOpts & opts, String keyword, Func f) {
+		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Return::type R;
@@ -221,7 +221,7 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 3> {
-		static void Add (LambdaOpts & opts, String keyword, Func f) {
+		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Arg2::type C;
@@ -233,7 +233,7 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 4> {
-		static void Add (LambdaOpts & opts, String keyword, Func f) {
+		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Arg2::type C;
@@ -246,7 +246,7 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 5> {
-		static void Add (LambdaOpts & opts, String keyword, Func f) {
+		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Arg2::type C;
@@ -262,7 +262,7 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 
-	void AddImpl (String keyword, std::function<ParseResult()> func)
+	void AddImpl (String const & keyword, std::function<ParseResult()> const & func)
 	{
 		if (keyword.empty()) {
 			throw Exception("Cannot add an empty rule.");
@@ -274,7 +274,7 @@ private:
 	}
 
 	template <typename A>
-	void AddImpl (String keyword, std::function<ParseResult(A)> func)
+	void AddImpl (String const & keyword, std::function<ParseResult(A)> const & func)
 	{
 		auto wrapper = [=] (V va) {
 			auto const & a = TypeTag<A>::ReifyOpaque(va);
@@ -288,7 +288,7 @@ private:
 	}
 
 	template <typename A, typename B>
-	void AddImpl (String keyword, std::function<ParseResult(A,B)> func)
+	void AddImpl (String const & keyword, std::function<ParseResult(A,B)> const & func)
 	{
 		auto wrapper = [=] (V va, V vb) {
 			auto const & a = TypeTag<A>::ReifyOpaque(va);
@@ -304,7 +304,7 @@ private:
 	}
 
 	template <typename A, typename B, typename C>
-	void AddImpl (String keyword, std::function<ParseResult(A,B,C)> func)
+	void AddImpl (String const & keyword, std::function<ParseResult(A,B,C)> const & func)
 	{
 		auto wrapper = [=] (V va, V vb, V vc) {
 			auto const & a = TypeTag<A>::ReifyOpaque(va);
@@ -322,7 +322,7 @@ private:
 	}
 
 	template <typename A, typename B, typename C, typename D>
-	void AddImpl (String keyword, std::function<ParseResult(A,B,C,D)> func)
+	void AddImpl (String const & keyword, std::function<ParseResult(A,B,C,D)> const & func)
 	{
 		auto wrapper = [=] (V va, V vb, V vc, V vd) {
 			auto const & a = TypeTag<A>::ReifyOpaque(va);
@@ -342,7 +342,7 @@ private:
 	}
 
 	template <typename A, typename B, typename C, typename D, typename E>
-	void AddImpl (String keyword, std::function<ParseResult(A,B,C,D,E)> func)
+	void AddImpl (String const & keyword, std::function<ParseResult(A,B,C,D,E)> const & func)
 	{
 		auto wrapper = [=] (V va, V vb, V vc, V vd, V ve) {
 			auto a = TypeTag<A>::ReifyOpaque(va);
@@ -783,7 +783,7 @@ bool LambdaOpts<Char>::ParseEnvImpl::Peek (T & outArg)
 {
 	if (currArg != args.end()) {
 		ArgsIter startArg = currArg;
-		typename std::unique_ptr<T const> p = TypeTag<T>::Parse(currArg, args.end());
+		std::unique_ptr<T const> p = TypeTag<T>::Parse(currArg, args.end());
 		currArg = startArg;
 		if (p) {
 			outArg = *p;
@@ -854,7 +854,7 @@ bool LambdaOpts<Char>::ParseEnv::Next ()
 
 template <typename Char>
 template <typename Func>
-void LambdaOpts<Char>::AddOption (String keyword, Func f)
+void LambdaOpts<Char>::AddOption (String const & keyword, Func const & f)
 {
 	Adder<Func, FuncTraits<Func>::arity>::Add(*this, keyword, f);
 }
