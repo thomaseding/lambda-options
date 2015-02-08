@@ -71,10 +71,10 @@ public:
 	};
 
 	template <typename Func>
-	void Add (String option, Func f);
+	void AddOption (String keyword, Func f);
 
 	template <typename StringIter>
-	ParseEnv NewParseEnv (StringIter begin, StringIter end);
+	ParseEnv CreateParseEnv (StringIter begin, StringIter end);
 
 	class ParseEnv {
 		friend class LambdaOpts;
@@ -83,7 +83,7 @@ public:
 		ParseEnv (ParseEnv && other);
 		ParseEnv & operator= (ParseEnv && other);
 
-		bool Parse (int & outParseFailureIndex);
+		bool Run (int & outParseFailureIndex);
 
 		template <typename T>
 		bool Peek (T & outArg);
@@ -190,62 +190,62 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 0> {
-		static void Add (LambdaOpts & opts, String option, Func f) {
+		static void Add (LambdaOpts & opts, String keyword, Func f) {
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
-			opts.AddImpl(option, f);
+			opts.AddImpl(keyword, f);
 		}
 	};
 
 	template <typename Func>
 	struct Adder<Func, 1> {
-		static void Add (LambdaOpts & opts, String option, Func f) {
+		static void Add (LambdaOpts & opts, String keyword, Func f) {
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
-			opts.AddImpl<A>(option, f);
+			opts.AddImpl<A>(keyword, f);
 		}
 	};
 
 	template <typename Func>
 	struct Adder<Func, 2> {
-		static void Add (LambdaOpts & opts, String option, Func f) {
+		static void Add (LambdaOpts & opts, String keyword, Func f) {
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
-			opts.AddImpl<A,B>(option, f);
+			opts.AddImpl<A,B>(keyword, f);
 		}
 	};
 
 	template <typename Func>
 	struct Adder<Func, 3> {
-		static void Add (LambdaOpts & opts, String option, Func f) {
+		static void Add (LambdaOpts & opts, String keyword, Func f) {
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Arg2::type C;
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
-			opts.AddImpl<A,B,C>(option, f);
+			opts.AddImpl<A,B,C>(keyword, f);
 		}
 	};
 
 	template <typename Func>
 	struct Adder<Func, 4> {
-		static void Add (LambdaOpts & opts, String option, Func f) {
+		static void Add (LambdaOpts & opts, String keyword, Func f) {
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Arg2::type C;
 			typedef typename FuncTraits<Func>::Arg3::type D;
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
-			opts.AddImpl<A,B,C,D>(option, f);
+			opts.AddImpl<A,B,C,D>(keyword, f);
 		}
 	};
 
 	template <typename Func>
 	struct Adder<Func, 5> {
-		static void Add (LambdaOpts & opts, String option, Func f) {
+		static void Add (LambdaOpts & opts, String keyword, Func f) {
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Arg2::type C;
@@ -253,7 +253,7 @@ private:
 			typedef typename FuncTraits<Func>::Arg4::type E;
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
-			opts.AddImpl<A,B,C,D,E>(option, f);
+			opts.AddImpl<A,B,C,D,E>(keyword, f);
 		}
 	};
 
@@ -261,33 +261,33 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 
-	void AddImpl (String option, std::function<ParseResult()> func)
+	void AddImpl (String keyword, std::function<ParseResult()> func)
 	{
-		if (option.empty()) {
+		if (keyword.empty()) {
 			throw Exception("Cannot add an empty rule.");
 		}
 		OptInfo<ParseResult()> info;
-		info.option = option;
+		info.keyword = keyword;
 		info.callback = func;
 		infos0.push_back(info);
 	}
 
 	template <typename A>
-	void AddImpl (String option, std::function<ParseResult(A)> func)
+	void AddImpl (String keyword, std::function<ParseResult(A)> func)
 	{
 		auto wrapper = [=] (V va) {
 			auto const & a = TypeTag<A>::ReifyOpaque(va);
 			return func(a);
 		};
 		OptInfo<ParseResult(V)> info;
-		info.option = option;
+		info.keyword = keyword;
 		info.types.push_back(TypeTag<A>::Kind);
 		info.callback = wrapper;
 		infos1.push_back(info);
 	}
 
 	template <typename A, typename B>
-	void AddImpl (String option, std::function<ParseResult(A,B)> func)
+	void AddImpl (String keyword, std::function<ParseResult(A,B)> func)
 	{
 		auto wrapper = [=] (V va, V vb) {
 			auto const & a = TypeTag<A>::ReifyOpaque(va);
@@ -295,7 +295,7 @@ private:
 			return func(a, b);
 		};
 		OptInfo<ParseResult(V,V)> info;
-		info.option = option;
+		info.keyword = keyword;
 		info.types.push_back(TypeTag<A>::Kind);
 		info.types.push_back(TypeTag<B>::Kind);
 		info.callback = wrapper;
@@ -303,7 +303,7 @@ private:
 	}
 
 	template <typename A, typename B, typename C>
-	void AddImpl (String option, std::function<ParseResult(A,B,C)> func)
+	void AddImpl (String keyword, std::function<ParseResult(A,B,C)> func)
 	{
 		auto wrapper = [=] (V va, V vb, V vc) {
 			auto const & a = TypeTag<A>::ReifyOpaque(va);
@@ -312,7 +312,7 @@ private:
 			return func(a, b, c);
 		};
 		OptInfo<ParseResult(V,V,V)> info;
-		info.option = option;
+		info.keyword = keyword;
 		info.types.push_back(TypeTag<A>::Kind);
 		info.types.push_back(TypeTag<B>::Kind);
 		info.types.push_back(TypeTag<C>::Kind);
@@ -321,7 +321,7 @@ private:
 	}
 
 	template <typename A, typename B, typename C, typename D>
-	void AddImpl (String option, std::function<ParseResult(A,B,C,D)> func)
+	void AddImpl (String keyword, std::function<ParseResult(A,B,C,D)> func)
 	{
 		auto wrapper = [=] (V va, V vb, V vc, V vd) {
 			auto const & a = TypeTag<A>::ReifyOpaque(va);
@@ -331,7 +331,7 @@ private:
 			return func(a, b, c, d);
 		};
 		OptInfo<ParseResult(V,V,V,V)> info;
-		info.option = option;
+		info.keyword = keyword;
 		info.types.push_back(TypeTag<A>::Kind);
 		info.types.push_back(TypeTag<B>::Kind);
 		info.types.push_back(TypeTag<C>::Kind);
@@ -341,7 +341,7 @@ private:
 	}
 
 	template <typename A, typename B, typename C, typename D, typename E>
-	void AddImpl (String option, std::function<ParseResult(A,B,C,D,E)> func)
+	void AddImpl (String keyword, std::function<ParseResult(A,B,C,D,E)> func)
 	{
 		auto wrapper = [=] (V va, V vb, V vc, V vd, V ve) {
 			auto a = TypeTag<A>::ReifyOpaque(va);
@@ -352,7 +352,7 @@ private:
 			return func(a, b, c, d, e);
 		};
 		OptInfo<ParseResult(V,V,V,V,V)> info;
-		info.option = option;
+		info.keyword = keyword;
 		info.types.push_back(TypeTag<A>::Kind);
 		info.types.push_back(TypeTag<B>::Kind);
 		info.types.push_back(TypeTag<C>::Kind);
@@ -528,7 +528,7 @@ private:
 
 	template <typename FuncSig>
 	struct OptInfo {
-		String option;
+		String keyword;
 		std::vector<TypeKind> types;
 		std::function<FuncSig> callback;
 	};
@@ -539,7 +539,7 @@ private:
 	public:
 		ParseEnvImpl (LambdaOpts const & opts, Args && args);
 
-		bool Parse (int & outParseFailureIndex);
+		bool Run (int & outParseFailureIndex);
 
 		template <typename T>
 		bool Peek (T & outArg);
@@ -551,7 +551,7 @@ private:
 		UniqueOpaque OpaqueParse (TypeKind type, ArgsIter & iter, ArgsIter end);
 
 		template <typename GenericOptInfo>
-		ParseResult TryParse (std::vector<GenericOptInfo> const & infos);
+		ParseResult TryParse (bool useKeyword, std::vector<GenericOptInfo> const & infos);
 
 		bool TryParse ();
 
@@ -576,11 +576,6 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-
-
-
 //////////////////////////////////////////////////////////////////////////
 
 
@@ -668,7 +663,7 @@ typename LambdaOpts<Char>::UniqueOpaque LambdaOpts<Char>::ParseEnvImpl::OpaquePa
 
 template <typename Char>
 template <typename GenericOptInfo>
-typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::ParseEnvImpl::TryParse (std::vector<GenericOptInfo> const & infos)
+typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::ParseEnvImpl::TryParse (bool useKeyword, std::vector<GenericOptInfo> const & infos)
 {
 	if (infos.empty()) {
 		return ParseResult::Reject;
@@ -679,18 +674,11 @@ typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::ParseEnvImpl::TryParse 
 	ASSERT(__LINE__, startArg != args.end());
 
 	for (auto const & info : infos) {
+		if (info.keyword.empty() == useKeyword) {
+			continue;
+		}
 		currArg = startArg;
-
-		bool matchedOption = false;
-		if (info.option.empty()) {
-			matchedOption = true;
-		}
-		else if (*currArg == info.option) {
-			matchedOption = true;
-			++currArg;
-		}
-
-		if (matchedOption) {
+		if (!useKeyword || *currArg++ == info.keyword) {
 			OpaqueArgs parsedArgs;
 			bool parsedFullArity = true;
 			for (size_t i = 0; i < arity; ++i) {
@@ -741,23 +729,27 @@ bool LambdaOpts<Char>::ParseEnvImpl::TryParse ()
 
 	ParseResult res = ParseResult::Reject;
 
-	if (res == ParseResult::Reject) {
-		res = TryParse(opts.infos5);
-	}
-	if (res == ParseResult::Reject) {
-		res = TryParse(opts.infos4);
-	}
-	if (res == ParseResult::Reject) {
-		res = TryParse(opts.infos3);
-	}
-	if (res == ParseResult::Reject) {
-		res = TryParse(opts.infos2);
-	}
-	if (res == ParseResult::Reject) {
-		res = TryParse(opts.infos1);
-	}
-	if (res == ParseResult::Reject) {
-		res = TryParse(opts.infos0);
+	bool useKeywordState[] = { true, false };
+
+	for (bool useKeyword : useKeywordState) {
+		if (res == ParseResult::Reject) {
+			res = TryParse(useKeyword, opts.infos5);
+		}
+		if (res == ParseResult::Reject) {
+			res = TryParse(useKeyword, opts.infos4);
+		}
+		if (res == ParseResult::Reject) {
+			res = TryParse(useKeyword, opts.infos3);
+		}
+		if (res == ParseResult::Reject) {
+			res = TryParse(useKeyword, opts.infos2);
+		}
+		if (res == ParseResult::Reject) {
+			res = TryParse(useKeyword, opts.infos1);
+		}
+		if (res == ParseResult::Reject) {
+			res = TryParse(useKeyword, opts.infos0);
+		}
 	}
 
 	switch (res) {
@@ -770,7 +762,7 @@ bool LambdaOpts<Char>::ParseEnvImpl::TryParse ()
 
 
 template <typename Char>
-bool LambdaOpts<Char>::ParseEnvImpl::Parse (int & outParseFailureIndex)
+bool LambdaOpts<Char>::ParseEnvImpl::Run (int & outParseFailureIndex)
 {
 	currArg = args.begin();
 	while (TryParse()) {
@@ -844,9 +836,9 @@ typename LambdaOpts<Char>::ParseEnv & LambdaOpts<Char>::ParseEnv::operator= (Par
 
 
 template <typename Char>
-bool LambdaOpts<Char>::ParseEnv::Parse (int & outParseFailureIndex)
+bool LambdaOpts<Char>::ParseEnv::Run (int & outParseFailureIndex)
 {
-	return impl->Parse(outParseFailureIndex);
+	return impl->Run(outParseFailureIndex);
 }
 
 
@@ -870,15 +862,15 @@ bool LambdaOpts<Char>::ParseEnv::Next ()
 
 template <typename Char>
 template <typename Func>
-void LambdaOpts<Char>::Add (String option, Func f)
+void LambdaOpts<Char>::AddOption (String keyword, Func f)
 {
-	Adder<Func, FuncTraits<Func>::arity>::Add(*this, option, f);
+	Adder<Func, FuncTraits<Func>::arity>::Add(*this, keyword, f);
 }
 
 
 template <typename Char>
 template <typename StringIter>
-typename LambdaOpts<Char>::ParseEnv LambdaOpts<Char>::NewParseEnv (StringIter begin, StringIter end)
+typename LambdaOpts<Char>::ParseEnv LambdaOpts<Char>::CreateParseEnv (StringIter begin, StringIter end)
 {
 	return ParseEnv(*this, Args(begin, end));
 }

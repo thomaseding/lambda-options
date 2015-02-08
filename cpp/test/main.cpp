@@ -198,17 +198,29 @@ static void UNREFERENCED_FUNCS ()
 static void TestCompileTypes ()
 {
 	Opts opts;
-	opts.Add("x", [] (int) { return PR::Accept; });
-	opts.Add("x", [] (unsigned int) { return PR::Accept; });
-	opts.Add("x", [] (float) { return PR::Accept; });
-	opts.Add("x", [] (double) { return PR::Accept; });
-	opts.Add("x", [] (char) { return PR::Accept; });
-	opts.Add("x", [] (std::string) { return PR::Accept; });
+	opts.AddOption("x", [] (int) {
+		return PR::Accept;
+	});
+	opts.AddOption("x", [] (unsigned int) {
+		return PR::Accept;
+	});
+	opts.AddOption("x", [] (float) {
+		return PR::Accept;
+	});
+	opts.AddOption("x", [] (double) {
+		return PR::Accept;
+	});
+	opts.AddOption("x", [] (char) {
+		return PR::Accept;
+	});
+	opts.AddOption("x", [] (std::string) {
+		return PR::Accept;
+	});
 
 	std::vector<std::string> args;
-	auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
+	auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 	int failIdx;
-	parseEnv.Parse(failIdx);
+	parseEnv.Run(failIdx);
 	if (failIdx != -1) {
 		FAIL;
 	}
@@ -218,17 +230,29 @@ static void TestCompileTypes ()
 static void TestCompileWTypes ()
 {
 	WOpts opts;
-	opts.Add(L"x", [] (int) { return WPR::Accept; });
-	opts.Add(L"x", [] (unsigned int) { return WPR::Accept; });
-	opts.Add(L"x", [] (float) { return WPR::Accept; });
-	opts.Add(L"x", [] (double) { return WPR::Accept; });
-	opts.Add(L"x", [] (wchar_t) { return WPR::Accept; });
-	opts.Add(L"x", [] (std::wstring) { return WPR::Accept; });
+	opts.AddOption(L"x", [] (int) {
+		return WPR::Accept;
+	});
+	opts.AddOption(L"x", [] (unsigned int) {
+		return WPR::Accept;
+	});
+	opts.AddOption(L"x", [] (float) {
+		return WPR::Accept;
+	});
+	opts.AddOption(L"x", [] (double) {
+		return WPR::Accept;
+	});
+	opts.AddOption(L"x", [] (wchar_t) {
+		return WPR::Accept;
+	});
+	opts.AddOption(L"x", [] (std::wstring) {
+		return WPR::Accept;
+	});
 
 	std::vector<std::wstring> args;
-	auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
+	auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 	int failIdx;
-	parseEnv.Parse(failIdx);
+	parseEnv.Run(failIdx);
 	if (failIdx != -1) {
 		FAIL;
 	}
@@ -240,17 +264,29 @@ static void TestCompileArities ()
 	typedef int I;
 
 	Opts opts;
-	opts.Add("x", [] () { return PR::Accept; });
-	opts.Add("x", [] (I) { return PR::Accept; });
-	opts.Add("x", [] (I,I) { return PR::Accept; });
-	opts.Add("x", [] (I,I,I) { return PR::Accept; });
-	opts.Add("x", [] (I,I,I,I) { return PR::Accept; });
-	opts.Add("x", [] (I,I,I,I,I) { return PR::Accept; });
+	opts.AddOption("x", [] () {
+		return PR::Accept;
+	});
+	opts.AddOption("x", [] (I) {
+		return PR::Accept;
+	});
+	opts.AddOption("x", [] (I,I) {
+		return PR::Accept;
+	});
+	opts.AddOption("x", [] (I,I,I) {
+		return PR::Accept;
+	});
+	opts.AddOption("x", [] (I,I,I,I) {
+		return PR::Accept;
+	});
+	opts.AddOption("x", [] (I,I,I,I,I) {
+		return PR::Accept;
+	});
 
 	std::vector<std::string> args;
-	auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
+	auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 	int failIdx;
-	parseEnv.Parse(failIdx);
+	parseEnv.Run(failIdx);
 	if (failIdx != -1) {
 		FAIL;
 	}
@@ -261,7 +297,7 @@ static void TestRejectEmptyRule ()
 {
 	try {
 		Opts opts;
-		opts.Add("", [] () { return PR::Accept; });
+		opts.AddOption("", [] () { return PR::Accept; });
 	}
 	catch (Opts::Exception const & e) {
 		return;
@@ -276,17 +312,32 @@ static void TestArityPrecedence1 ()
 	std::vector<int> calls;
 
 	Opts opts;
-	opts.Add("", [&] (S) { calls.push_back(1); return PR::Accept; });
-	opts.Add("", [&] (S,S) { calls.push_back(2); return PR::Accept; });
-	opts.Add("", [&] (S,S,S) { calls.push_back(3); return PR::Accept; });
-	opts.Add("", [&] (S,S,S,S) { calls.push_back(4); return PR::Accept; });
-	opts.Add("", [&] (S,S,S,S,S) { calls.push_back(5); return PR::Accept; });
+	opts.AddOption("", [&] (S) {
+		calls.push_back(1);
+		return PR::Accept;
+	});
+	opts.AddOption("", [&] (S,S) {
+		calls.push_back(2);
+		return PR::Accept;
+	});
+	opts.AddOption("", [&] (S,S,S) {
+		calls.push_back(3);
+		return PR::Accept;
+	});
+	opts.AddOption("", [&] (S,S,S,S) {
+		calls.push_back(4);
+		return PR::Accept;
+	});
+	opts.AddOption("", [&] (S,S,S,S,S) {
+		calls.push_back(5);
+		return PR::Accept;
+	});
 
 	auto parseCount = [&] (size_t n) {
 		std::vector<std::string> args(n);
-		auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
+		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 		int failIdx;
-		if (!parseEnv.Parse(failIdx)) {
+		if (!parseEnv.Run(failIdx)) {
 			FAIL;
 		}
 		if (failIdx != -1) {
@@ -313,19 +364,37 @@ static void TestArityPrecedence2 ()
 	std::vector<int> calls;
 
 	Opts opts;
-	opts.Add("x", [&] () { calls.push_back(0); return PR::Accept; });
-	opts.Add("x", [&] (S) { calls.push_back(1); return PR::Accept; });
-	opts.Add("x", [&] (S,S) { calls.push_back(2); return PR::Accept; });
-	opts.Add("x", [&] (S,S,S) { calls.push_back(3); return PR::Accept; });
-	opts.Add("x", [&] (S,S,S,S) { calls.push_back(4); return PR::Accept; });
-	opts.Add("x", [&] (S,S,S,S,S) { calls.push_back(5); return PR::Accept; });
+	opts.AddOption("x", [&] () {
+		calls.push_back(0);
+		return PR::Accept;
+	});
+	opts.AddOption("x", [&] (S) {
+		calls.push_back(1);
+		return PR::Accept;
+	});
+	opts.AddOption("x", [&] (S,S) {
+		calls.push_back(2);
+		return PR::Accept;
+	});
+	opts.AddOption("x", [&] (S,S,S) {
+		calls.push_back(3);
+		return PR::Accept;
+	});
+	opts.AddOption("x", [&] (S,S,S,S) {
+		calls.push_back(4);
+		return PR::Accept;
+	});
+	opts.AddOption("x", [&] (S,S,S,S,S) {
+		calls.push_back(5);
+		return PR::Accept;
+	});
 
 	auto parseCount = [&] (size_t n) {
 		std::vector<std::string> args(n + 1);
 		args.front() = "x";
-		auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
+		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 		int failIdx;
-		if (!parseEnv.Parse(failIdx)) {
+		if (!parseEnv.Run(failIdx)) {
 			FAIL;
 		}
 		if (failIdx != -1) {
@@ -352,22 +421,36 @@ static void TestEmptyPrecedence1 ()
 	std::vector<int> calls;
 
 	Opts opts;
-	opts.Add("", [&] (S) { calls.push_back(0); return PR::Accept; });
-	opts.Add("x", [&] () { calls.push_back(1); return PR::Accept; });
-	opts.Add("x", [&] (S) { calls.push_back(2); return PR::Accept; });
+	opts.AddOption("", [&] (S) {
+		calls.push_back(0);
+		return PR::Accept;
+	});
+	opts.AddOption("x", [&] () {
+		calls.push_back(1);
+		return PR::Accept;
+	});
+	opts.AddOption("x", [&] (S) {
+		calls.push_back(2);
+		return PR::Accept;
+	});
 
-	std::vector<std::string> args(3);
-	args.front() = "x";
-	auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
+	std::vector<std::string> args;
+	args.push_back("");
+	args.push_back("x");
+	args.push_back("");
+	args.push_back("x");
+
+
+	auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 	int failIdx;
-	if (!parseEnv.Parse(failIdx)) {
+	if (!parseEnv.Run(failIdx)) {
 		FAIL;
 	}
 	if (failIdx != -1) {
 		FAIL;
 	}
 
-	int const expectedCalls[] = { 0,0,0 };
+	int const expectedCalls[] = { 0,2,1 };
 	if (!Equal(calls, expectedCalls)) {
 		FAIL;
 	}
@@ -380,22 +463,35 @@ static void TestEmptyPrecedence2 ()
 	std::vector<int> calls;
 
 	Opts opts;
-	opts.Add("x", [&] (S) { calls.push_back(0); return PR::Accept; });
-	opts.Add("x", [&] () { calls.push_back(1); return PR::Accept; });
-	opts.Add("", [&] (S) { calls.push_back(2); return PR::Accept; });
+	opts.AddOption("x", [&] (S) {
+		calls.push_back(0);
+		return PR::Accept;
+	});
+	opts.AddOption("x", [&] () {
+		calls.push_back(1);
+		return PR::Accept;
+	});
+	opts.AddOption("", [&] (S) {
+		calls.push_back(2); return
+		PR::Accept;
+	});
 
-	std::vector<std::string> args(3);
-	args.front() = "x";
-	auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
+	std::vector<std::string> args;
+	args.push_back("");
+	args.push_back("x");
+	args.push_back("");
+	args.push_back("x");
+
+	auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 	int failIdx;
-	if (!parseEnv.Parse(failIdx)) {
+	if (!parseEnv.Run(failIdx)) {
 		FAIL;
 	}
 	if (failIdx != -1) {
 		FAIL;
 	}
 
-	int const expectedCalls[] = { 0,2 };
+	int const expectedCalls[] = { 2,0,1 };
 	if (!Equal(calls, expectedCalls)) {
 		FAIL;
 	}
@@ -408,15 +504,15 @@ static void TestObtainedValues ()
 
 	Opts opts;
 
-	opts.Add("", [&] (unsigned int x) {
+	opts.AddOption("", [&] (unsigned int x) {
 		Dump(ss, x);
 		return PR::Accept;
 	});
-	opts.Add("", [&] (int x) {
+	opts.AddOption("", [&] (int x) {
 		Dump(ss, x);
 		return PR::Accept;
 	});
-	opts.Add("", [&] (float x) {
+	opts.AddOption("", [&] (float x) {
 		Dump(ss, x);
 		if (x == 0.0f) {
 			DumpMemo(ss, "REJECTED");
@@ -424,15 +520,15 @@ static void TestObtainedValues ()
 		}
 		return PR::Accept;
 	});
-	opts.Add("", [&] (double x) {
+	opts.AddOption("", [&] (double x) {
 		Dump(ss, x);
 		return PR::Accept;
 	});
-	opts.Add("", [&] (char x) {
+	opts.AddOption("", [&] (char x) {
 		Dump(ss, x);
 		return PR::Accept;
 	});
-	opts.Add("", [&] (std::string x) {
+	opts.AddOption("", [&] (std::string x) {
 		Dump(ss, x);
 		return PR::Accept;
 	});
@@ -528,9 +624,9 @@ static void TestObtainedValues ()
 	args.push_back(weird);
 	Dump(expected, weird);
 
-	auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
+	auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 	int failIdx;
-	if (!parseEnv.Parse(failIdx)) {
+	if (!parseEnv.Run(failIdx)) {
 		FAIL;
 	}
 	if (failIdx != -1) {
@@ -548,11 +644,11 @@ static void TestReject ()
 	std::stringstream ss;
 
 	Opts opts;
-	opts.Add("", [&] (int x) {
+	opts.AddOption("", [&] (int x) {
 		Dump(ss, x);
 		return PR::Reject;
 	});
-	opts.Add("", [&] (std::string x) {
+	opts.AddOption("", [&] (std::string x) {
 		Dump(ss, x);
 		return PR::Accept;
 	});
@@ -571,9 +667,9 @@ static void TestReject ()
 	Dump(expected, 2);
 	Dump(expected, "2");
 
-	auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
+	auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 	int failIdx;
-	if (!parseEnv.Parse(failIdx)) {
+	if (!parseEnv.Run(failIdx)) {
 		FAIL;
 	}
 	if (failIdx != -1) {
@@ -591,11 +687,11 @@ static void TestFatal ()
 	std::stringstream ss;
 
 	Opts opts;
-	opts.Add("", [&] (int x) {
+	opts.AddOption("", [&] (int x) {
 		Dump(ss, x);
 		return PR::Fatal;
 	});
-	opts.Add("", [&] (std::string x) {
+	opts.AddOption("", [&] (std::string x) {
 		Dump(ss, x);
 		return PR::Accept;
 	});
@@ -610,9 +706,9 @@ static void TestFatal ()
 	Dump(expected, "x");
 	Dump(expected, 1);
 
-	auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
+	auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 	int failIdx;
-	if (parseEnv.Parse(failIdx)) {
+	if (parseEnv.Run(failIdx)) {
 		FAIL;
 	}
 	if (failIdx != 1) {
@@ -628,10 +724,10 @@ static void TestFatal ()
 static void TestNoMatch ()
 {
 	Opts opts;
-	opts.Add("", [] (int x) {
+	opts.AddOption("", [] (int x) {
 		return PR::Accept;
 	});
-	opts.Add("", [] (char x) {
+	opts.AddOption("", [] (char x) {
 		return PR::Accept;
 	});
 
@@ -642,9 +738,9 @@ static void TestNoMatch ()
 	args.push_back("yy");
 	args.push_back("z");
 
-	auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
+	auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 	int failIdx;
-	if (parseEnv.Parse(failIdx)) {
+	if (parseEnv.Run(failIdx)) {
 		FAIL;
 	}
 	if (failIdx != 3) {
@@ -658,43 +754,43 @@ static void TestRuleKeyword1 ()
 	std::stringstream ss;
 
 	Opts opts;
-	opts.Add("", [&] (int x) {
+	opts.AddOption("", [&] (int x) {
 		DumpMemo(ss, "int");
 		Dump(ss, x);
 		return PR::Accept;
 	});
-	opts.Add("", [&] (char x) {
+	opts.AddOption("", [&] (char x) {
 		DumpMemo(ss, "char");
 		Dump(ss, x);
 		return PR::Accept;
 	});
-	opts.Add("", [&] (std::string x) {
+	opts.AddOption("", [&] (std::string x) {
 		DumpMemo(ss, "string");
 		Dump(ss, x);
 		return PR::Accept;
 	});
-	opts.Add("x", [&] () {
+	opts.AddOption("x", [&] () {
 		DumpMemo(ss, "x");
 		return PR::Accept;
 	});
-	opts.Add("xx", [&] () {
+	opts.AddOption("xx", [&] () {
 		DumpMemo(ss, "xx");
 		return PR::Accept;
 	});
-	opts.Add("yy", [&] () {
+	opts.AddOption("yy", [&] () {
 		DumpMemo(ss, "yy");
 		return PR::Accept;
 	});
-	opts.Add("y", [&] () {
+	opts.AddOption("y", [&] () {
 		DumpMemo(ss, "y");
 		return PR::Accept;
 	});
-	opts.Add("z", [&] (int x) {
+	opts.AddOption("z", [&] (int x) {
 		DumpMemo(ss, "z");
 		Dump(ss, x);
 		return PR::Accept;
 	});
-	opts.Add("zz", [&] (int x) {
+	opts.AddOption("zz", [&] (int x) {
 		DumpMemo(ss, "zz");
 		Dump(ss, x);
 		return PR::Accept;
@@ -716,9 +812,9 @@ static void TestRuleKeyword1 ()
 	args.push_back("w");
 	args.push_back("ww");
 
-	auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
+	auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 	int failIdx;
-	if (!parseEnv.Parse(failIdx)) {
+	if (!parseEnv.Run(failIdx)) {
 		FAIL;
 	}
 	if (failIdx != -1) {
