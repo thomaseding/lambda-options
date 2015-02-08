@@ -716,6 +716,7 @@ typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::ParseEnvImpl::TryParse 
 						continue;
 					} break;
 					case ParseResult::Fatal: {
+						currArg = startArg;
 						return ParseResult::Fatal;
 					} break;
 					default: {
