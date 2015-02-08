@@ -28,6 +28,7 @@
 #pragma once
 
 #include <cstring>
+#include <exception>
 #include <functional>
 #include <memory>
 #include <string>
@@ -49,6 +50,18 @@ class LambdaOpts {
 	class ParseEnvImpl;
 
 public:
+	class Exception : std::exception {
+	public:
+		Exception (std::string const & message)
+			: message(message)
+		{}
+		virtual char const * what () const throw() override {
+			return message.c_str();
+		}
+	private:
+		std::string message;
+	};
+
 	class ParseEnv;
 
 	enum class ParseResult {
@@ -238,6 +251,9 @@ private:
 
 	void AddImpl (String option, std::function<ParseResult()> func)
 	{
+		if (option.empty()) {
+			throw Exception("Cannot add an empty rule.");
+		}
 		OptInfo<ParseResult()> info;
 		info.option = option;
 		info.callback = func;
@@ -375,11 +391,13 @@ private:
 
 	template <typename T>
 	struct TypeTagBase {
-		static char const * const ScanDescription ();
-
 		static std::unique_ptr<T const> Parse (ArgsIter & iter, ArgsIter end) {
 			ASSERT(__LINE__, iter != end);
+			String const & str = *iter;
 			T item;
+			if (str.size() > 1 && str[0] == ' ') {
+				return nullptr;
+			}
 			if (Scan(*iter, TypeTag<T>::ScanDescription(), &item)) {
 				++iter;
 				return AllocateCopy(item);
@@ -388,7 +406,7 @@ private:
 		}
 	};
 
-	template <typename T, typename Dummy>
+	template <typename T, typename Dummy=void>
 	struct TypeTagImpl {};
 
 	template <typename Dummy>
@@ -403,6 +421,13 @@ private:
 	public:
 		enum : TypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%u%c"; }
+		static std::unique_ptr<unsigned int const> Parse (ArgsIter & iter, ArgsIter end) {
+			ASSERT(__LINE__, iter != end);
+			if (!iter->empty() && iter->front() == '-') {
+				return nullptr;
+			}
+			return TypeTagBase<unsigned int>::Parse(iter, end);
+		}
 	};
 
 	template <typename Dummy>
@@ -423,7 +448,7 @@ private:
 	struct TypeTagImpl<Char, Dummy> : public TypeTagBase<Char> {
 	public:
 		enum : TypeKind { Kind = __LINE__ };
-		static char const * const ScanDescription () { return "%cf%c"; }
+		static char const * const ScanDescription () { return "%c%c"; }
 	};
 
 	template <typename Dummy>
@@ -437,8 +462,8 @@ private:
 	};
 
 	template <typename T>
-	struct TypeTag : public TypeTagImpl<T, void> {
-		typedef TypeTagImpl<T, void> Base;
+	struct TypeTag : public TypeTagImpl<T> {
+		typedef TypeTagImpl<T> Base;
 		typedef T Type;
 
 		static Type const & ReifyOpaque (void const * p) {

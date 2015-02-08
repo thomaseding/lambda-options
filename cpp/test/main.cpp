@@ -1,7 +1,9 @@
 #include "../src/LambdaOpts.h"
 
 #include <algorithm>
+#include <clocale>
 #include <iostream>
+#include <sstream>
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -18,19 +20,26 @@ typedef WOpts::ParseResult WPR;
 //////////////////////////////////////////////////////////////////////////
 
 
-class FailException : public std::exception {
-public:
-	FailException (char const * file, unsigned int line) {
-		char buff[1024];
-		sprintf(buff, "FailException thrown in '%s' at %u.", file, line);
-		msg = buff;
-	}
-	virtual char const * what () const throw() override {
-		return msg.c_str();
-	}
-private:
-	std::string msg;
-};
+#define UNREFERENCED(x) \
+	((void) (x))
+
+
+namespace
+{
+	class FailException : public std::exception {
+	public:
+		FailException (char const * file, unsigned int line) {
+			std::stringstream ss;
+			ss << "FailException thrown in '" << file << "' at " << line << ".";
+			msg = ss.str();
+		}
+		virtual char const * what () const throw() override {
+			return msg.c_str();
+		}
+	private:
+		std::string msg;
+	};
+}
 
 
 #define FAIL \
@@ -39,10 +48,156 @@ private:
 	while (false)
 
 
+#define ENSURE(x) \
+	do \
+		if (!(x)) { \
+			FAIL; \
+		} \
+	while (false)
+
+
 //////////////////////////////////////////////////////////////////////////
 
 
-void TestCompileTypes ()
+template <typename T>
+static bool Equal (std::vector<T> const & xs, std::vector<T> const & ys)
+{
+	if (xs.size() != ys.size()) {
+		return false;
+	}
+	return std::equal(xs.begin(), xs.end(), ys.begin());
+}
+
+
+template <typename T, size_t N>
+static bool Equal (std::vector<T> const & xs, T const (&ys)[N])
+{
+	if (xs.size() != N) {
+		return false;
+	}
+	return std::equal(xs.begin(), xs.end(), ys);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
+static void Escape (std::ostream & os, unsigned char c, char quote)
+{
+	if (c == '\0') {
+		os << "\\0";
+	}
+	else if (c == '\r') {
+		os << "\\r";
+	}
+	else if (c == '\n') {
+		os << "\\n";
+	}
+	else if (c == '\t') {
+		os << "\\t";
+	}
+	else if (c == '\'' && c == quote) {
+		os << "\\'";
+	}
+	else if (c == '\"' && c == quote) {
+		os << "\\\"";
+	}
+	else if (c == '\\') {
+		os << "\\\\";
+	}
+	else if (32 <= c && c <= 126) {
+		os << c;
+	}
+	else {
+		char buff[8];
+		sprintf(buff, "\\x%x", c);
+		os << buff;
+	}
+}
+
+static void Pretty (std::ostream & os, char c)
+{
+	os << '\'';
+	Escape(os, static_cast<unsigned char>(c), '\'');
+	os << '\'';
+}
+
+
+static void Pretty (std::ostream & os, std::string const & str)
+{
+	os << '"';
+	for (char c : str) {
+		Escape(os, static_cast<unsigned char>(c), '"');
+	}
+	os << '"';
+}
+
+
+static void Dump (std::ostream & os, int x)
+{
+	os << "int(" << x << ");";
+}
+
+
+static void Dump (std::ostream & os, unsigned int x)
+{
+	os << "uint(" << x << ");";
+}
+
+
+static void Dump (std::ostream & os, float x)
+{
+	os << "float(" << x << ");";
+}
+
+
+static void Dump (std::ostream & os, double x)
+{
+	os << "double(" << x << ");";
+}
+
+
+static void Dump (std::ostream & os, char x)
+{
+	os << "char(";
+	Pretty(os, x);
+	os << ");";
+}
+
+
+static void Dump (std::ostream & os, std::string x)
+{
+	os << "string(";
+	Pretty(os, x);
+	os << ");";
+}
+
+
+template <typename T>
+static void Dump (T const & x)
+{
+	Dump(std::cout, x);
+	std::cout << std::endl;
+}
+
+
+static void UNREFERENCED_FUNCS ()
+{
+	std::stringstream ss;
+	Dump(ss, 0);
+	Dump(ss, 0u);
+	Dump(ss, 0.0f);
+	Dump(ss, 0.0);
+	Dump(ss, '0');
+	Dump(ss, "0");
+	UNREFERENCED_FUNCS();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
+static void TestCompileTypes ()
 {
 	Opts opts;
 	opts.Add("x", [] (int) { return PR::Accept; });
@@ -59,7 +214,7 @@ void TestCompileTypes ()
 }
 
 
-void TestCompileWTypes ()
+static void TestCompileWTypes ()
 {
 	WOpts opts;
 	opts.Add(L"x", [] (int) { return WPR::Accept; });
@@ -76,7 +231,7 @@ void TestCompileWTypes ()
 }
 
 
-void TestCompileArities ()
+static void TestCompileArities ()
 {
 	typedef int I;
 
@@ -95,20 +250,20 @@ void TestCompileArities ()
 }
 
 
-void TestRejectEmptyRule ()
+static void TestRejectEmptyRule ()
 {
 	try {
 		Opts opts;
 		opts.Add("", [] () { return PR::Accept; });
 	}
-	catch (...) {	// TODO: Use the actual exception type when it is implemented.
+	catch (Opts::Exception const & e) {
 		return;
 	}
 	FAIL;
 }
 
 
-void TestArityPrecedence1 ()
+static void TestArityPrecedence1 ()
 {
 	typedef std::string S;
 	std::vector<int> calls;
@@ -136,16 +291,17 @@ void TestArityPrecedence1 ()
 	parseCount(5);
 
 	int const expectedCalls[] = { 1,2,3,4,5 };
-	if (!std::equal(calls.begin(), calls.end(), expectedCalls)) {
+	if (!Equal(calls, expectedCalls)) {
 		FAIL;
 	}
 }
 
 
-void TestArityPrecedence2 ()
+static void TestArityPrecedence2 ()
 {
 	typedef std::string S;
 	std::vector<int> calls;
+
 	Opts opts;
 	opts.Add("x", [&] () { calls.push_back(0); return PR::Accept; });
 	opts.Add("x", [&] (S) { calls.push_back(1); return PR::Accept; });
@@ -171,19 +327,21 @@ void TestArityPrecedence2 ()
 	parseCount(5);
 
 	int const expectedCalls[] = { 0,1,2,3,4,5 };
-	if (!std::equal(calls.begin(), calls.end(), expectedCalls)) {
+	if (!Equal(calls, expectedCalls)) {
 		FAIL;
 	}
 }
 
 
-void TestEmptyPrecedence1 ()
+static void TestEmptyPrecedence1 ()
 {
 	typedef std::string S;
 	std::vector<int> calls;
+
 	Opts opts;
 	opts.Add("", [&] (S) { calls.push_back(0); return PR::Accept; });
-	opts.Add("x", [&] (S) { calls.push_back(1); return PR::Accept; });
+	opts.Add("x", [&] () { calls.push_back(1); return PR::Accept; });
+	opts.Add("x", [&] (S) { calls.push_back(2); return PR::Accept; });
 
 	std::vector<std::string> args(3);
 	args.front() = "x";
@@ -193,20 +351,22 @@ void TestEmptyPrecedence1 ()
 		FAIL;
 	}
 
-	int const expectedCalls[] = { 1,0 };
-	if (!std::equal(calls.begin(), calls.end(), expectedCalls)) {
+	int const expectedCalls[] = { 0,0,0 };
+	if (!Equal(calls, expectedCalls)) {
 		FAIL;
 	}
 }
 
 
-void TestEmptyPrecedence2 ()
+static void TestEmptyPrecedence2 ()
 {
 	typedef std::string S;
 	std::vector<int> calls;
+
 	Opts opts;
-	opts.Add("x", [&] (S) { calls.push_back(1); return PR::Accept; });
-	opts.Add("", [&] (S) { calls.push_back(0); return PR::Accept; });
+	opts.Add("x", [&] (S) { calls.push_back(0); return PR::Accept; });
+	opts.Add("x", [&] () { calls.push_back(1); return PR::Accept; });
+	opts.Add("", [&] (S) { calls.push_back(2); return PR::Accept; });
 
 	std::vector<std::string> args(3);
 	args.front() = "x";
@@ -216,24 +376,112 @@ void TestEmptyPrecedence2 ()
 		FAIL;
 	}
 
-	int const expectedCalls[] = { 1,0 };
-	if (!std::equal(calls.begin(), calls.end(), expectedCalls)) {
+	int const expectedCalls[] = { 0,2 };
+	if (!Equal(calls, expectedCalls)) {
 		FAIL;
 	}
 }
 
 
-bool RunTests ()
+static void TestObtainedValues ()
+{
+	std::vector<int> calls;
+
+	Opts opts;
+
+	opts.Add("", [&] (unsigned int x) {
+		Dump(x);
+		//ENSURE(x == 4);
+		calls.push_back(0);
+		return PR::Accept;
+	});
+	opts.Add("", [&] (int x) {
+		Dump(x);
+		//ENSURE(x == -4);
+		calls.push_back(1);
+		return PR::Accept;
+	});
+	opts.Add("", [&] (float x) {
+		Dump(x);
+		if (x == 0.0f) {
+			calls.push_back(-2);
+			return PR::Reject;
+		}
+		//ENSURE(x == 0.5e-4f);
+		calls.push_back(2);
+		return PR::Accept;
+	});
+	opts.Add("", [&] (double x) {
+		Dump(x);
+		//ENSURE(x == -0.5e-100);
+		calls.push_back(3);
+		return PR::Accept;
+	});
+	opts.Add("", [&] (char x) {
+		Dump(x);
+		//ENSURE(x == ' ');
+		calls.push_back(4);
+		return PR::Accept;
+	});
+	opts.Add("", [&] (std::string x) {
+		Dump(x);
+		//ENSURE(x == " 0");
+		calls.push_back(5);
+		return PR::Accept;
+	});
+
+	std::vector<std::string> args;
+	args.push_back("-4");
+	args.push_back("0");
+	args.push_back("+4");
+	args.push_back("0.5e-4");
+	args.push_back("-0.5e-100");
+	args.push_back(" ");
+	args.push_back("-");
+	args.push_back("+");
+	args.push_back(" 0");
+	args.push_back("08");
+	args.push_back("0111");
+	args.push_back("0x");
+	args.push_back("0x111");
+	args.push_back("0X111");
+	args.push_back("0xa");
+	args.push_back("0Xa");
+	args.push_back("0xg");
+	args.push_back("\n0");
+	args.push_back("\t0");
+
+	auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
+	int failIdx;
+	if (!parseEnv.Parse(failIdx)) {
+		FAIL;
+	}
+
+	for (auto call : calls) {
+		std::cout << call << std::endl;
+	}
+
+	int expectedCalls[] = { 1,0,2,3,4,5 };
+	if (!Equal(calls, expectedCalls)) {
+		FAIL;
+	}
+}
+
+
+static bool RunTests ()
 {
 	typedef void (*TestFunc)();
 
 	TestFunc tests[] = {
 		TestCompileTypes,
+		TestCompileWTypes,
 		TestCompileArities,
 		TestRejectEmptyRule,
 		TestArityPrecedence1,
+		TestArityPrecedence2,
 		TestEmptyPrecedence1,
 		TestEmptyPrecedence2,
+		TestObtainedValues,
 	};
 
 	try {
@@ -253,11 +501,21 @@ bool RunTests ()
 
 int main (int argc, char ** argv)
 {
+	std::setlocale(LC_ALL, "C");
 	if (!RunTests()) {
 		return 1;
 	}
 	return 0;
 }
+
+
+
+
+
+
+
+
+
 
 
 
