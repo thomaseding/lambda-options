@@ -28,6 +28,7 @@
 #pragma once
 
 #include <cctype>
+#include <cstdio>
 #include <exception>
 #include <functional>
 #include <memory>
@@ -384,7 +385,7 @@ private:
 	static bool Scan (std::string const & str, char const * format, void * dest)
 	{
 		char dummy;
-		return sscanf(str.c_str(), format, dest, &dummy) == 1;
+		return std::sscanf(str.c_str(), format, dest, &dummy) == 1;
 	}
 
 	static bool Scan (std::wstring const & str, char const * format, void * dest)
@@ -396,7 +397,7 @@ private:
 			wformat[i] = format[i];
 		}
 		wchar_t dummy;
-		return swscanf(str.c_str(), wformat, dest, &dummy) == 1;
+		return std::swscanf(str.c_str(), wformat, dest, &dummy) == 1;
 	}
 
 //////////////////////////////////////////////////////////////////////////
