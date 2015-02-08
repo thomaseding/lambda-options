@@ -797,20 +797,53 @@ static void TestKeyword1 ()
 	});
 
 	std::vector<std::string> args;
+	std::stringstream expected;
+
 	args.push_back("x");
+	DumpMemo(expected, "x");
+
 	args.push_back("xx");
+	DumpMemo(expected, "xx");
+
 	args.push_back("0");
+	DumpMemo(expected, "int");
+	Dump(expected, 0);
+
 	args.push_back("y");
+	DumpMemo(expected, "y");
+
 	args.push_back("yy");
+	DumpMemo(expected, "yy");
+
 	args.push_back("1");
+	DumpMemo(expected, "int");
+	Dump(expected, 1);
+
 	args.push_back("z");
+	DumpMemo(expected, "char");
+	Dump(expected, 'z');
+
 	args.push_back("zz");
+	DumpMemo(expected, "string");
+	Dump(expected, "zz");
+
 	args.push_back("z");
 	args.push_back("2");
+	DumpMemo(expected, "z");
+	Dump(expected, 2);
+
 	args.push_back("zz");
 	args.push_back("3");
+	DumpMemo(expected, "zz");
+	Dump(expected, 3);
+
 	args.push_back("w");
+	DumpMemo(expected, "char");
+	Dump(expected, 'w');
+
 	args.push_back("ww");
+	DumpMemo(expected, "string");
+	Dump(expected, "ww");
 
 	auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 	int failIdx;
@@ -821,7 +854,9 @@ static void TestKeyword1 ()
 		FAIL;
 	}
 
-	std::cout << ss.str();FAIL;
+	if (ss.str() != expected.str()) {
+		FAIL;
+	}
 }
 
 
