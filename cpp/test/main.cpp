@@ -293,7 +293,7 @@ static void TestCompileArities ()
 }
 
 
-static void TestRejectEmptyRule ()
+static void TestRejectEmptyKeyword ()
 {
 	try {
 		Opts opts;
@@ -749,7 +749,7 @@ static void TestNoMatch ()
 }
 
 
-static void TestRuleKeyword1 ()
+static void TestKeyword1 ()
 {
 	std::stringstream ss;
 
@@ -833,7 +833,7 @@ static bool RunTests ()
 		TestCompileTypes,
 		TestCompileWTypes,
 		TestCompileArities,
-		TestRejectEmptyRule,
+		TestRejectEmptyKeyword,
 		TestArityPrecedence1,
 		TestArityPrecedence2,
 		TestEmptyPrecedence1,
@@ -842,7 +842,7 @@ static bool RunTests ()
 		TestReject,
 		TestFatal,
 		TestNoMatch,
-		TestRuleKeyword1,
+		TestKeyword1,
 	};
 
 	try {
