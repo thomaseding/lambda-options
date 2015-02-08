@@ -639,7 +639,7 @@ static void TestObtainedValues ()
 }
 
 
-static void TestReject ()
+static void TestReject1 ()
 {
 	std::stringstream ss;
 
@@ -673,6 +673,50 @@ static void TestReject ()
 		FAIL;
 	}
 	if (failIdx != -1) {
+		FAIL;
+	}
+
+	if (ss.str() != expected.str()) {
+		FAIL;
+	}
+}
+
+
+static void TestReject2 ()
+{
+	std::stringstream ss;
+
+	Opts opts;
+	opts.AddOption("", [&] (int x) {
+		Dump(ss, x);
+		return PR::Reject;
+	});
+	opts.AddOption("", [&] (char x) {
+		Dump(ss, x);
+		return PR::Accept;
+	});
+
+	std::vector<std::string> args;
+	std::stringstream expected;
+
+	args.push_back("1");
+	Dump(expected, 1);
+	Dump(expected, '1');
+
+	args.push_back("x");
+	Dump(expected, 'x');
+
+	args.push_back("22");
+	Dump(expected, 22);
+
+	args.push_back("3");
+
+	auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
+	int failIdx;
+	if (parseEnv.Run(failIdx)) {
+		FAIL;
+	}
+	if (failIdx != 2) {
 		FAIL;
 	}
 
@@ -874,7 +918,8 @@ static bool RunTests ()
 		TestEmptyPrecedence1,
 		TestEmptyPrecedence2,
 		TestObtainedValues,
-		TestReject,
+		TestReject1,
+		TestReject2,
 		TestFatal,
 		TestNoMatch,
 		TestKeyword1,
