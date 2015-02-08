@@ -135,25 +135,25 @@ static void Pretty (std::ostream & os, std::string const & str)
 
 static void Dump (std::ostream & os, int x)
 {
-	os << "int(" << x << ");";
+	os << "int(" << x << ")\n";
 }
 
 
 static void Dump (std::ostream & os, unsigned int x)
 {
-	os << "uint(" << x << ");";
+	os << "uint(" << x << ")\n";
 }
 
 
 static void Dump (std::ostream & os, float x)
 {
-	os << "float(" << x << ");";
+	os << "float(" << x << ")\n";
 }
 
 
 static void Dump (std::ostream & os, double x)
 {
-	os << "double(" << x << ");";
+	os << "double(" << x << ")\n";
 }
 
 
@@ -161,15 +161,15 @@ static void Dump (std::ostream & os, char x)
 {
 	os << "char(";
 	Pretty(os, x);
-	os << ");";
+	os << ")\n";
 }
 
 
-static void Dump (std::ostream & os, std::string x)
+static void Dump (std::ostream & os, std::string const & x)
 {
 	os << "string(";
 	Pretty(os, x);
-	os << ");";
+	os << ")\n";
 }
 
 
@@ -177,7 +177,13 @@ template <typename T>
 static void Dump (T const & x)
 {
 	Dump(std::cout, x);
-	std::cout << std::endl;
+	std::cout.flush();
+}
+
+
+static void DumpMemo (std::ostream & os, std::string const & x)
+{
+	os << x << "\n";
 }
 
 
@@ -385,71 +391,129 @@ static void TestEmptyPrecedence2 ()
 
 static void TestObtainedValues ()
 {
-	std::vector<int> calls;
+	std::stringstream ss;
 
 	Opts opts;
 
 	opts.Add("", [&] (unsigned int x) {
-		Dump(x);
-		//ENSURE(x == 4);
-		calls.push_back(0);
+		Dump(ss, x);
 		return PR::Accept;
 	});
 	opts.Add("", [&] (int x) {
-		Dump(x);
-		//ENSURE(x == -4);
-		calls.push_back(1);
+		Dump(ss, x);
 		return PR::Accept;
 	});
 	opts.Add("", [&] (float x) {
-		Dump(x);
+		Dump(ss, x);
 		if (x == 0.0f) {
-			calls.push_back(-2);
+			DumpMemo(ss, "REJECTED");
 			return PR::Reject;
 		}
-		//ENSURE(x == 0.5e-4f);
-		calls.push_back(2);
 		return PR::Accept;
 	});
 	opts.Add("", [&] (double x) {
-		Dump(x);
-		//ENSURE(x == -0.5e-100);
-		calls.push_back(3);
+		Dump(ss, x);
 		return PR::Accept;
 	});
 	opts.Add("", [&] (char x) {
-		Dump(x);
-		//ENSURE(x == ' ');
-		calls.push_back(4);
+		Dump(ss, x);
 		return PR::Accept;
 	});
 	opts.Add("", [&] (std::string x) {
-		Dump(x);
-		//ENSURE(x == " 0");
-		calls.push_back(5);
+		Dump(ss, x);
 		return PR::Accept;
 	});
 
 	std::vector<std::string> args;
+	std::stringstream expected;
+
 	args.push_back("-4");
+	Dump(expected, -4);
+
 	args.push_back("0");
+	Dump(expected, 0u);
+
 	args.push_back("+4");
-	args.push_back("0.5e-4");
-	args.push_back("-0.5e-100");
+	Dump(expected, 4u);
+
+	args.push_back("5.1e-9");
+	Dump(expected, 5.1e-9f);
+
+	args.push_back("-5.1e-100");
+	Dump(expected, -0.0f);
+	DumpMemo(expected, "REJECTED");
+	Dump(expected, -5.1e-100);
+
+	args.push_back("0.5");
+	Dump(expected, 0.5f);
+
+	args.push_back("-0.5");
+	Dump(expected, -0.5f);
+
+	args.push_back("+0.5");
+	Dump(expected, 0.5f);
+
+	args.push_back(".5");
+	Dump(expected, 0.5f);
+
+	args.push_back("5e-1");
+	Dump(expected, 0.5f);
+
 	args.push_back(" ");
+	Dump(expected, ' ');
+
 	args.push_back("-");
+	Dump(expected, '-');
+
 	args.push_back("+");
+	Dump(expected, '+');
+
 	args.push_back(" 0");
+	Dump(expected, " 0");
+
 	args.push_back("08");
+	Dump(expected, 8u);
+
 	args.push_back("0111");
+	Dump(expected, 111u);
+
 	args.push_back("0x");
+	Dump(expected, "0x");
+
 	args.push_back("0x111");
+	Dump(expected, "0x111");
+
 	args.push_back("0X111");
+	Dump(expected, "0X111");
+
 	args.push_back("0xa");
+	Dump(expected, "0xa");
+
+	args.push_back("0XA");
+	Dump(expected, "0XA");
+
 	args.push_back("0Xa");
+	Dump(expected, "0Xa");
+
 	args.push_back("0xg");
+	Dump(expected, "0xg");
+
 	args.push_back("\n0");
+	Dump(expected, "\n0");
+
 	args.push_back("\t0");
+	Dump(expected, "\t0");
+
+	args.push_back(std::string(1, '\0'));
+	Dump(expected, '\0');
+
+	args.push_back(std::string(2, '\0'));
+	Dump(expected, std::string(2, '\0'));
+
+	std::string weird = "123";
+	weird.push_back('\0');
+	args.push_back(weird);
+	Dump(expected, weird);
 
 	auto parseEnv = opts.NewParseEnv(args.begin(), args.end());
 	int failIdx;
@@ -457,12 +521,7 @@ static void TestObtainedValues ()
 		FAIL;
 	}
 
-	for (auto call : calls) {
-		std::cout << call << std::endl;
-	}
-
-	int expectedCalls[] = { 1,0,2,3,4,5 };
-	if (!Equal(calls, expectedCalls)) {
+	if (ss.str() != expected.str()) {
 		FAIL;
 	}
 }

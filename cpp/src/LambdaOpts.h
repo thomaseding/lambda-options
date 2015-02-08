@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include <cstring>
+#include <cctype>
 #include <exception>
 #include <functional>
 #include <memory>
@@ -361,6 +361,14 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
+	template <typename C>
+	static size_t StrLen (C const * str)
+	{
+		size_t size = 0;
+		while (*str++) ++size;
+		return size;
+	}
+
 	static bool Scan (std::string const & str, char const * format, void * dest)
 	{
 		char dummy;
@@ -370,7 +378,7 @@ private:
 	static bool Scan (std::wstring const & str, char const * format, void * dest)
 	{
 		wchar_t wformat[8];
-		size_t len = std::strlen(format) + 1;
+		size_t len = StrLen(format) + 1;
 		ASSERT(__LINE__, len <= (sizeof(wformat) / sizeof(wchar_t)));
 		for (size_t i = 0; i < len; ++i) {
 			wformat[i] = format[i];
@@ -378,6 +386,21 @@ private:
 		wchar_t dummy;
 		return swscanf(str.c_str(), wformat, dest, &dummy) == 1;
 	}
+
+//////////////////////////////////////////////////////////////////////////
+
+	template <typename C, typename Dummy=void>
+	struct StringLiteral {};
+
+	template <typename Dummy>
+	struct StringLiteral<char, Dummy> {
+		static char const * xX () { return "xX"; };
+	};
+
+	template <typename Dummy>
+	struct StringLiteral<wchar_t, Dummy> {
+		static wchar_t const * xX () { return L"xX"; };
+	};
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -395,12 +418,16 @@ private:
 			ASSERT(__LINE__, iter != end);
 			String const & str = *iter;
 			T item;
-			if (str.size() > 1 && str[0] == ' ') {
+			if (str.size() > 1 && std::isspace(str.front())) {
 				return nullptr;
 			}
 			if (Scan(*iter, TypeTag<T>::ScanDescription(), &item)) {
-				++iter;
-				return AllocateCopy(item);
+				if (str.size() == StrLen(str.c_str())) {
+					if (str.find_first_of(StringLiteral<Char>::xX()) == std::string::npos) {
+						++iter;
+						return AllocateCopy(item);
+					}
+				}
 			}
 			return nullptr;
 		}
@@ -448,7 +475,13 @@ private:
 	struct TypeTagImpl<Char, Dummy> : public TypeTagBase<Char> {
 	public:
 		enum : TypeKind { Kind = __LINE__ };
-		static char const * const ScanDescription () { return "%c%c"; }
+		static std::unique_ptr<Char const> Parse (ArgsIter & iter, ArgsIter end) {
+			ASSERT(__LINE__, iter != end);
+			if (iter->size() == 1) {
+				return AllocateCopy((iter++)->front());
+			}
+			return nullptr;
+		}
 	};
 
 	template <typename Dummy>
