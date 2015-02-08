@@ -418,9 +418,11 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 	template <typename T>
-	static std::unique_ptr<T> AllocateCopy (T const & source)
+	static std::unique_ptr<typename std::remove_reference<T>::type> AllocateCopy (T && source)
 	{
-		return std::unique_ptr<T>(new T(source));
+		typedef typename std::remove_reference<T>::type T2;
+		T2 * p = new T2(std::forward<T>(source));
+		return std::unique_ptr<T2>(p);
 	}
 
 	typedef size_t TypeKind;
@@ -509,15 +511,15 @@ private:
 
 	template <typename T>
 	struct TypeTag : public TypeTagImpl<T> {
-		typedef TypeTagImpl<T> Base;
 		typedef T Type;
+		typedef TypeTagImpl<Type> Base;
 
 		static Type const & ReifyOpaque (void const * p) {
 			return *static_cast<Type const *>(p);
 		}
 
 		static void Delete (void const * p) {
-			delete static_cast<T const *>(p);
+			delete static_cast<Type const *>(p);
 		}
 
 		using Base::Parse;
