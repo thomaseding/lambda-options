@@ -132,20 +132,20 @@ private:
 	template <typename X, typename R>
 	struct FuncTraits<R(X::*)() const> {
 		enum { arity = 0 };
-		typedef R ReturnType;
+		struct Return { typedef R type; };
 	};
 
 	template <typename X, typename R, typename A>
 	struct FuncTraits<R(X::*)(A) const> {
 		enum { arity = 1 };
-		typedef R ReturnType;
+		struct Return { typedef R type; };
 		struct Arg0 { typedef A type; };
 	};
 
 	template <typename X, typename R, typename A, typename B>
 	struct FuncTraits<R(X::*)(A, B) const> {
 		enum { arity = 2 };
-		typedef R ReturnType;
+		struct Return { typedef R type; };
 		struct Arg0 { typedef A type; };
 		struct Arg1 { typedef B type; };
 	};
@@ -153,7 +153,7 @@ private:
 	template <typename X, typename R, typename A, typename B, typename C>
 	struct FuncTraits<R(X::*)(A, B, C) const> {
 		enum { arity = 3 };
-		typedef R ReturnType;
+		struct Return { typedef R type; };
 		struct Arg0 { typedef A type; };
 		struct Arg1 { typedef B type; };
 		struct Arg2 { typedef C type; };
@@ -162,7 +162,7 @@ private:
 	template <typename X, typename R, typename A, typename B, typename C, typename D>
 	struct FuncTraits<R(X::*)(A, B, C, D) const> {
 		enum { arity = 4 };
-		typedef R ReturnType;
+		struct Return { typedef R type; };
 		struct Arg0 { typedef A type; };
 		struct Arg1 { typedef B type; };
 		struct Arg2 { typedef C type; };
@@ -172,7 +172,7 @@ private:
 	template <typename X, typename R, typename A, typename B, typename C, typename D, typename E>
 	struct FuncTraits<R(X::*)(A, B, C, D, E) const> {
 		enum { arity = 5 };
-		typedef R ReturnType;
+		struct Return { typedef R type; };
 		struct Arg0 { typedef A type; };
 		struct Arg1 { typedef B type; };
 		struct Arg2 { typedef C type; };
@@ -191,6 +191,8 @@ private:
 	template <typename Func>
 	struct Adder<Func, 0> {
 		static void Add (LambdaOpts & opts, String option, Func f) {
+			typedef typename FuncTraits<Func>::Return::type R;
+			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
 			opts.AddImpl(option, f);
 		}
 	};
@@ -199,6 +201,8 @@ private:
 	struct Adder<Func, 1> {
 		static void Add (LambdaOpts & opts, String option, Func f) {
 			typedef typename FuncTraits<Func>::Arg0::type A;
+			typedef typename FuncTraits<Func>::Return::type R;
+			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
 			opts.AddImpl<A>(option, f);
 		}
 	};
@@ -208,6 +212,8 @@ private:
 		static void Add (LambdaOpts & opts, String option, Func f) {
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
+			typedef typename FuncTraits<Func>::Return::type R;
+			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
 			opts.AddImpl<A,B>(option, f);
 		}
 	};
@@ -218,6 +224,8 @@ private:
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Arg2::type C;
+			typedef typename FuncTraits<Func>::Return::type R;
+			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
 			opts.AddImpl<A,B,C>(option, f);
 		}
 	};
@@ -229,6 +237,8 @@ private:
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Arg2::type C;
 			typedef typename FuncTraits<Func>::Arg3::type D;
+			typedef typename FuncTraits<Func>::Return::type R;
+			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
 			opts.AddImpl<A,B,C,D>(option, f);
 		}
 	};
@@ -241,6 +251,8 @@ private:
 			typedef typename FuncTraits<Func>::Arg2::type C;
 			typedef typename FuncTraits<Func>::Arg3::type D;
 			typedef typename FuncTraits<Func>::Arg4::type E;
+			typedef typename FuncTraits<Func>::Return::type R;
+			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
 			opts.AddImpl<A,B,C,D,E>(option, f);
 		}
 	};
