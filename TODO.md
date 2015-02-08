@@ -4,8 +4,10 @@
 
 * Write a program that generates the repetitive code?
 * Make a `LambdaOptsImpl` that is stored in a `std::shared_ptr`
-* Does the code accept functions with const arguments such as `opts.AddOption("", [] (int const) { ... });`
-* Check that the code does not compile when given a pointer or a reference as a parameter for an option callback.
+* Does the code accept `opts.AddOption("", [] (int const) { ... });`?
+* Does the code accept `opts.AddOption("", [] (int &&) { ... });`?
+* Does the code reject `opts.AddOption("", [] (int &) { ... });`?
+* Does the code reject `opts.AddOption("", [] (int const &) { ... });`?
 * Check that code works when either/both `LambdaOpts` and `ParseEnv` are passed to different scopes. Especially when their option functions leave scope (e.g. the functions should rely on internal copies, rather than references).
 * Test ALL public interfaces.
 * Write docs.
