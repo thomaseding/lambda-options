@@ -11,23 +11,23 @@ int main (int argc, char ** argv)
 	typedef LambdaOpts<char> Opts;
 	Opts opts;
 
-	opts.Add("--help", [] () {
+	opts.AddOption("--help", [] () {
 		std::cout << "--user NAME [AGE]" << std::endl;
 		return Opts::ParseResult::Accept;
 	});
-	opts.Add("--user", [] (std::string name) {
+	opts.AddOption("--user", [] (std::string name) {
 		std::cout << "Name:" << name << std::endl;
 		return Opts::ParseResult::Accept;
 	});
-	opts.Add("--user", [] (std::string name, unsigned int age) {
+	opts.AddOption("--user", [] (std::string name, unsigned int age) {
 		std::cout << "Name:" << name << " Age:" << age << std::endl;
 		return Opts::ParseResult::Accept;
 	});
 
-	auto parseEnv = opts.NewParseEnv(argv + 1, argv + argc);
+	auto parseEnv = opts.CreateParseEnv(argv + 1, argv + argc);
 
 	int parseFailureIndex;
-	if (!parseEnv.Parse(parseFailureIndex)) {
+	if (!parseEnv.Run(parseFailureIndex)) {
 		std::cout << "Parse failed at index " << parseFailureIndex << std::endl;
 		return 1;
 	}
