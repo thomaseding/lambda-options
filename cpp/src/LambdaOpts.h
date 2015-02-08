@@ -425,7 +425,7 @@ private:
 	typedef size_t TypeKind;
 
 	template <typename T>
-	struct TypeTagBase {
+	struct TypeTagNumberBase {
 		static std::unique_ptr<T const> Parse (ArgsIter & iter, ArgsIter end) {
 			ASSERT(__LINE__, iter != end);
 			String const & str = *iter;
@@ -449,14 +449,14 @@ private:
 	struct TypeTagImpl {};
 
 	template <typename Dummy>
-	struct TypeTagImpl<int, Dummy> : public TypeTagBase<int> {
+	struct TypeTagImpl<int, Dummy> : public TypeTagNumberBase<int> {
 	public:
 		enum : TypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%d%c"; }
 	};
 
 	template <typename Dummy>
-	struct TypeTagImpl<unsigned int, Dummy> : public TypeTagBase<unsigned int> {
+	struct TypeTagImpl<unsigned int, Dummy> : public TypeTagNumberBase<unsigned int> {
 	public:
 		enum : TypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%u%c"; }
@@ -465,26 +465,26 @@ private:
 			if (!iter->empty() && iter->front() == '-') {
 				return nullptr;
 			}
-			return TypeTagBase<unsigned int>::Parse(iter, end);
+			return TypeTagNumberBase<unsigned int>::Parse(iter, end);
 		}
 	};
 
 	template <typename Dummy>
-	struct TypeTagImpl<float, Dummy> : public TypeTagBase<float> {
+	struct TypeTagImpl<float, Dummy> : public TypeTagNumberBase<float> {
 	public:
 		enum : TypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%f%c"; }
 	};
 
 	template <typename Dummy>
-	struct TypeTagImpl<double, Dummy> : public TypeTagBase<double> {
+	struct TypeTagImpl<double, Dummy> : public TypeTagNumberBase<double> {
 	public:
 		enum : TypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%lf%c"; }
 	};
 
 	template <typename Dummy>
-	struct TypeTagImpl<Char, Dummy> : public TypeTagBase<Char> {
+	struct TypeTagImpl<Char, Dummy> {
 	public:
 		enum : TypeKind { Kind = __LINE__ };
 		static std::unique_ptr<Char const> Parse (ArgsIter & iter, ArgsIter end) {
@@ -497,7 +497,7 @@ private:
 	};
 
 	template <typename Dummy>
-	struct TypeTagImpl<String, Dummy> : public TypeTagBase<String> {
+	struct TypeTagImpl<String, Dummy> {
 	public:
 		enum : TypeKind { Kind = __LINE__ };
 		static std::unique_ptr<String const> Parse (ArgsIter & iter, ArgsIter end) {
@@ -545,8 +545,6 @@ private:
 		bool Peek (T & outArg);
 
 		bool Next ();
-
-		size_t RemainingArgs () const;
 
 		UniqueOpaque OpaqueParse (TypeKind type, ArgsIter & iter, ArgsIter end);
 
@@ -775,13 +773,6 @@ bool LambdaOpts<Char>::ParseEnvImpl::Run (int & outParseFailureIndex)
 	size_t argIndex = currArg - args.begin();
 	outParseFailureIndex = static_cast<int>(argIndex);
 	return false;
-}
-
-
-template <typename Char>
-size_t LambdaOpts<Char>::ParseEnvImpl::RemainingArgs () const
-{
-	return args.end() - currArg;
 }
 
 
