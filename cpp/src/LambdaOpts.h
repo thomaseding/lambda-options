@@ -148,7 +148,7 @@ private:
 	class TypeKind;
 
 	typedef UniqueOpaque (*OpaqueParser)(ArgsIter &, ArgsIter);
-	typedef std::vector<std::pair<TypeKind, OpaqueParser>> DynamicParsers;
+	typedef std::vector<std::pair<TypeKind, OpaqueParser>> DynamicParserMap;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -558,41 +558,41 @@ private:
 
 	template <typename T, typename Dummy=void>
 	struct AddDynamicParserExtra {
-		static void Exec (DynamicParsers &) {}
+		static void Exec (DynamicParserMap &) {}
 	};
 
 	template <typename T, size_t N, typename Dummy>
 	struct AddDynamicParserExtra<std::array<T, N>, Dummy> {
-		static void Exec (DynamicParsers & dynamicParsers)
+		static void Exec (DynamicParserMap & dynamicParserMap)
 		{
-			AddDynamicParser<T>(dynamicParsers);
+			AddDynamicParser<T>(dynamicParserMap);
 		}
 	};
 
 	template <typename T>
-	static void AddDynamicParser (DynamicParsers & dynamicParsers)
+	static void AddDynamicParser (DynamicParserMap & dynamicParserMap)
 	{
 		TypeKind typeKind = TypeKind::Get<T>();
-		for (auto const & key_value : dynamicParsers) {
+		for (auto const & key_value : dynamicParserMap) {
 			TypeKind const & key = key_value.first;
 			if (key == typeKind) {
 				return;
 			}
 		}
-		AddDynamicParserExtra<T>::Exec(dynamicParsers);
+		AddDynamicParserExtra<T>::Exec(dynamicParserMap);
 		OpaqueParser parser = OpaqueParse<T>;
-		dynamicParsers.emplace_back(std::move(typeKind), parser);
+		dynamicParserMap.emplace_back(std::move(typeKind), parser);
 	}
 
 	template <typename T>
 	void AddDynamicParser ()
 	{
-		AddDynamicParser<T>(dynamicParsers);
+		AddDynamicParser<T>(dynamicParserMap);
 	}
 
 	OpaqueParser LookupDynamicParser (TypeKind const & k) const
 	{
-		for (auto const & key_value : dynamicParsers) {
+		for (auto const & key_value : dynamicParserMap) {
 			TypeKind const & key = key_value.first;
 			OpaqueParser p = key_value.second;
 			if (key == k) {
@@ -996,7 +996,7 @@ private:
 
 
 private:
-	DynamicParsers dynamicParsers;
+	DynamicParserMap dynamicParserMap;
 	std::vector<OptInfo<ParseResult()>> infos0;
 	std::vector<OptInfo<ParseResult(V)>> infos1;
 	std::vector<OptInfo<ParseResult(V,V)>> infos2;
