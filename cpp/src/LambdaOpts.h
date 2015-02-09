@@ -103,6 +103,7 @@ public:
 		std::unique_ptr<ParseEnvImpl> impl;
 	};
 
+
 //////////////////////////////////////////////////////////////////////////
 
 private:
@@ -119,14 +120,23 @@ private:
 #endif
 	}
 
+
 //////////////////////////////////////////////////////////////////////////
+
 
 	template <typename T>
 	struct Tag {
 		typedef T type;
 	};
 
+	template <typename T>
+	struct SimplifyType {
+		typedef typename std::remove_cv<typename std::remove_reference<T>::type>::type type;
+	};
+
+
 //////////////////////////////////////////////////////////////////////////
+
 
 	typedef typename Args::const_iterator ArgsIter;
 
@@ -140,7 +150,9 @@ private:
 	typedef UniqueOpaque (*OpaqueParser)(ArgsIter &, ArgsIter);
 	typedef std::vector<std::pair<TypeKind, OpaqueParser>> DynamicParsers;
 
+
 //////////////////////////////////////////////////////////////////////////
+
 
 	class TypeKind {
 	public:
@@ -190,7 +202,28 @@ private:
 		std::unique_ptr<TypeKind> arrayElem;
 	};
 
+
 ///////////////////////////////////////////////////////////////////////////
+
+
+	template <typename T, typename Dummy=void>
+	struct ReturnType {
+		static bool const allowed = false;
+	};
+
+	template <typename Dummy>
+	struct ReturnType<void, Dummy> {
+		static bool const allowed = true;
+	};
+
+	template <typename Dummy>
+	struct ReturnType<ParseResult, Dummy> {
+		static bool const allowed = true;
+	};
+
+
+///////////////////////////////////////////////////////////////////////////
+
 
 	template <typename Func>
 	struct FuncTraits : public FuncTraits<decltype(&Func::operator())> {};
@@ -246,22 +279,44 @@ private:
 		struct Arg4 { typedef E type; };
 	};
 
+
 //////////////////////////////////////////////////////////////////////////
 
-	template <typename T, typename Dummy=void>
-	struct ReturnType {
-		static bool const allowed = false;
-	};
 
-	template <typename Dummy>
-	struct ReturnType<void, Dummy> {
-		static bool const allowed = true;
-	};
+	static ParseResult Apply (std::function<ParseResult()> const & func, OpaqueArgs const & args)
+	{
+		(void) args;
+		return func();
+	}
 
-	template <typename Dummy>
-	struct ReturnType<ParseResult, Dummy> {
-		static bool const allowed = true;
-	};
+	static ParseResult Apply (std::function<ParseResult(V)> const & func, OpaqueArgs const & args)
+	{
+		return func(args[0].get());
+	}
+
+	static ParseResult Apply (std::function<ParseResult(V,V)> const & func, OpaqueArgs const & args)
+	{
+		return func(args[0].get(), args[1].get());
+	}
+
+	static ParseResult Apply (std::function<ParseResult(V,V,V)> const & func, OpaqueArgs const & args)
+	{
+		return func(args[0].get(), args[1].get(), args[2].get());
+	}
+
+	static ParseResult Apply (std::function<ParseResult(V,V,V,V)> const & func, OpaqueArgs const & args)
+	{
+		return func(args[0].get(), args[1].get(), args[2].get(), args[3].get());
+	}
+
+	static ParseResult Apply (std::function<ParseResult(V,V,V,V,V)> const & func, OpaqueArgs const & args)
+	{
+		return func(args[0].get(), args[1].get(), args[2].get(), args[3].get(), args[4].get());
+	}
+
+
+//////////////////////////////////////////////////////////////////////////
+
 
 	template <typename Func, size_t>
 	friend struct Adder;
@@ -347,60 +402,6 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-	template <typename T, typename Dummy=void>
-	struct AddDynamicParserExtra {
-		static void Exec (DynamicParsers &) {}
-	};
-
-	template <typename T, size_t N, typename Dummy>
-	struct AddDynamicParserExtra<std::array<T, N>, Dummy> {
-		static void Exec (DynamicParsers & dynamicParsers)
-		{
-			AddDynamicParser<T>(dynamicParsers);
-		}
-	};
-
-	template <typename T>
-	void AddDynamicParser ()
-	{
-		TypeKind typeKind{ Tag<T>() };
-		for (auto const & key_value : dynamicParsers) {
-			TypeKind const & key = key_value.first;
-			if (key == typeKind) {
-				return;
-			}
-		}
-		AddDynamicParserExtra<T>::Exec(dynamicParsers);
-		OpaqueParser parser = OpaqueParse<T>;
-		dynamicParsers.emplace_back(std::move(typeKind), parser);
-	}
-
-	OpaqueParser LookupDynamicParser (TypeKind const & k) const
-	{
-		for (auto const & key_value : dynamicParsers) {
-			TypeKind const & key = key_value.first;
-			OpaqueParser p = key_value.second;
-			if (key == k) {
-				return p;
-			}
-		}
-		ASSERT(__LINE__, false);
-		return nullptr;
-	}
-
-//////////////////////////////////////////////////////////////////////////
-
-	template <typename T>
-	struct SimplifyType {
-		typedef typename std::remove_cv<typename std::remove_reference<T>::type>::type type;
-	};
-
-	template <typename T>
-	void PushTypeKind (std::vector<TypeKind> & kinds)
-	{
-		kinds.push_back(TypeKind(Tag<T>()));
-		AddDynamicParser<T>();
-	}
 
 	void AddImpl (Tag<void>, String const & keyword, std::function<void()> const & func)
 	{
@@ -558,16 +559,61 @@ private:
 		PushTypeKind<E2>(info.types);
 	}
 
-//////////////////////////////////////////////////////////////////////////
-
-	static ParseResult Apply (std::function<ParseResult()> const & func, OpaqueArgs const & args);
-	static ParseResult Apply (std::function<ParseResult(V)> const & func, OpaqueArgs const & args);
-	static ParseResult Apply (std::function<ParseResult(V,V)> const & func, OpaqueArgs const & args);
-	static ParseResult Apply (std::function<ParseResult(V,V,V)> const & func, OpaqueArgs const & args);
-	static ParseResult Apply (std::function<ParseResult(V,V,V,V)> const & func, OpaqueArgs const & args);
-	static ParseResult Apply (std::function<ParseResult(V,V,V,V,V)> const & func, OpaqueArgs const & args);
 
 //////////////////////////////////////////////////////////////////////////
+
+
+	template <typename T, typename Dummy=void>
+	struct AddDynamicParserExtra {
+		static void Exec (DynamicParsers &) {}
+	};
+
+	template <typename T, size_t N, typename Dummy>
+	struct AddDynamicParserExtra<std::array<T, N>, Dummy> {
+		static void Exec (DynamicParsers & dynamicParsers)
+		{
+			AddDynamicParser<T>(dynamicParsers);
+		}
+	};
+
+	template <typename T>
+	void AddDynamicParser ()
+	{
+		TypeKind typeKind{ Tag<T>() };
+		for (auto const & key_value : dynamicParsers) {
+			TypeKind const & key = key_value.first;
+			if (key == typeKind) {
+				return;
+			}
+		}
+		AddDynamicParserExtra<T>::Exec(dynamicParsers);
+		OpaqueParser parser = OpaqueParse<T>;
+		dynamicParsers.emplace_back(std::move(typeKind), parser);
+	}
+
+	OpaqueParser LookupDynamicParser (TypeKind const & k) const
+	{
+		for (auto const & key_value : dynamicParsers) {
+			TypeKind const & key = key_value.first;
+			OpaqueParser p = key_value.second;
+			if (key == k) {
+				return p;
+			}
+		}
+		ASSERT(__LINE__, false);
+		return nullptr;
+	}
+
+	template <typename T>
+	void PushTypeKind (std::vector<TypeKind> & kinds)
+	{
+		kinds.push_back(TypeKind(Tag<T>()));
+		AddDynamicParser<T>();
+	}
+
+
+//////////////////////////////////////////////////////////////////////////
+
 
 	template <typename C>
 	static size_t StrLen (C const * str)
@@ -595,7 +641,9 @@ private:
 		return std::swscanf(str.c_str(), wformat, dest, &dummy) == 1;
 	}
 
+
 //////////////////////////////////////////////////////////////////////////
+
 
 	template <typename C, typename Dummy=void>
 	struct StringLiteral {};
@@ -610,15 +658,9 @@ private:
 		static wchar_t const * xX () { return L"xX"; };
 	};
 
+
 //////////////////////////////////////////////////////////////////////////
 
-	template <typename T>
-	static std::unique_ptr<typename std::remove_reference<T>::type> AllocateCopy (T && source)
-	{
-		typedef typename std::remove_reference<T>::type T2;
-		T2 * p = new T2(std::forward<T>(source));
-		return std::unique_ptr<T2>(p);
-	}
 
 	template <typename T>
 	static bool ScanNumber (ArgsIter & iter, ArgsIter end, T & out, char const * format)
@@ -735,6 +777,14 @@ private:
 	}
 
 	template <typename T>
+	static std::unique_ptr<typename std::remove_reference<T>::type> AllocateCopy (T && source)
+	{
+		typedef typename std::remove_reference<T>::type T2;
+		T2 * p = new T2(std::forward<T>(source));
+		return std::unique_ptr<T2>(p);
+	}
+
+	template <typename T>
 	static UniqueOpaque OpaqueParse (ArgsIter & iter, ArgsIter end)
 	{
 		T x;
@@ -743,6 +793,10 @@ private:
 		}
 		return UniqueOpaque(static_cast<T *>(nullptr), Delete<T>);
 	}
+
+
+///////////////////////////////////////////////////////////////////////////
+
 
 	template <typename FuncSig>
 	class OptInfo {
@@ -764,25 +818,166 @@ private:
 		std::vector<TypeKind> types;
 	};
 
+
 //////////////////////////////////////////////////////////////////////////
+
 
 	class ParseEnvImpl {
 	public:
-		ParseEnvImpl (LambdaOpts const & opts, Args && args);
+		ParseEnvImpl (LambdaOpts const & opts, Args && args)
+			: opts(opts)
+			, args(std::move(args))
+			, currArg(args.begin())
+		{}
 
-		bool Run (int & outParseFailureIndex);
+		bool Run (int & outParseFailureIndex)
+		{
+			currArg = args.begin();
+			while (TryParse()) {
+				continue;
+			}
+			if (currArg == args.end()) {
+				outParseFailureIndex = -1;
+				return true;
+			}
+			size_t argIndex = currArg - args.begin();
+			outParseFailureIndex = static_cast<int>(argIndex);
+			return false;
+		}
 
 		template <typename T>
-		bool Peek (T & outArg);
+		bool Peek (T & outArg)
+		{
+			if (currArg != args.end()) {
+				ArgsIter startArg = currArg;
+				bool res = Parser<T>::Parse(currArg, args.end(), outArg);
+				currArg = startArg;
+				return res;
+			}
+			return false;
+		}
 
-		bool Next ();
+		bool SkipNextArg ()
+		{
+			if (currArg != args.end()) {
+				++currArg;
+				return true;
+			}
+			return false;
+		}
 
-		UniqueOpaque OpaqueParse (TypeKind const & typeKind, ArgsIter & iter, ArgsIter end);
+		UniqueOpaque OpaqueParse (TypeKind const & typeKind, ArgsIter & iter, ArgsIter end)
+		{
+			ArgsIter const begin = iter;
+
+			OpaqueParser parser = opts.LookupDynamicParser(typeKind);
+			UniqueOpaque p = parser(iter, end);
+
+			if (p) {
+				ASSERT(__LINE__, iter > begin);
+			}
+			else {
+				iter = begin;
+			}
+
+			return p;
+		}
 
 		template <typename GenericOptInfo>
-		ParseResult TryParse (bool useKeyword, std::vector<GenericOptInfo> const & infos);
+		ParseResult TryParse (bool useKeyword, std::vector<GenericOptInfo> const & infos)
+		{
+			if (infos.empty()) {
+				return ParseResult::Reject;
+			}
+			size_t const arity = infos.front().types.size();
 
-		bool TryParse ();
+			ArgsIter const startArg = currArg;
+			ASSERT(__LINE__, startArg != args.end());
+
+			for (auto const & info : infos) {
+				if (info.keyword.empty() == useKeyword) {
+					continue;
+				}
+				currArg = startArg;
+				if (!useKeyword || *currArg++ == info.keyword) {
+					OpaqueArgs parsedArgs;
+					bool parsedFullArity = true;
+					for (size_t i = 0; i < arity; ++i) {
+						if (currArg == args.end()) {
+							parsedFullArity = false;
+							break;
+						}
+						TypeKind const & typeKind = info.types[i];
+						UniqueOpaque parsedArg = OpaqueParse(typeKind, currArg, args.end());
+						if (parsedArg == nullptr) {
+							parsedFullArity = false;
+							break;
+						}
+						parsedArgs.emplace_back(std::move(parsedArg));
+					}
+					if (parsedFullArity) {
+						ParseResult res = Apply(info.callback, parsedArgs);
+						switch (res) {
+							case ParseResult::Accept: {
+								return ParseResult::Accept;
+							} break;
+							case ParseResult::Reject: {
+								continue;
+							} break;
+							case ParseResult::Fatal: {
+								currArg = startArg;
+								return ParseResult::Fatal;
+							} break;
+							default: {
+								ASSERT(__LINE__, false);
+							}
+						}
+					}
+				}
+			}
+
+			currArg = startArg;
+			return ParseResult::Reject;
+		}
+
+		bool TryParse ()
+		{
+			if (currArg == args.end()) {
+				return false;
+			}
+
+			ParseResult res = ParseResult::Reject;
+
+			bool useKeywordState[] = { true, false };
+
+			for (bool useKeyword : useKeywordState) {
+				if (res == ParseResult::Reject) {
+					res = TryParse(useKeyword, opts.infos5);
+				}
+				if (res == ParseResult::Reject) {
+					res = TryParse(useKeyword, opts.infos4);
+				}
+				if (res == ParseResult::Reject) {
+					res = TryParse(useKeyword, opts.infos3);
+				}
+				if (res == ParseResult::Reject) {
+					res = TryParse(useKeyword, opts.infos2);
+				}
+				if (res == ParseResult::Reject) {
+					res = TryParse(useKeyword, opts.infos1);
+				}
+				if (res == ParseResult::Reject) {
+					res = TryParse(useKeyword, opts.infos0);
+				}
+			}
+
+			switch (res) {
+				case ParseResult::Accept: return true;
+				case ParseResult::Reject: return false;
+				case ParseResult::Fatal: return false;
+				default: ASSERT(__LINE__, false); return false;
+			}
+		}
 
 	public:
 		LambdaOpts const & opts;
@@ -790,7 +985,9 @@ private:
 		ArgsIter currArg;
 	};
 
+
 //////////////////////////////////////////////////////////////////////////
+
 
 private:
 	DynamicParsers dynamicParsers;
@@ -805,225 +1002,6 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-
-template <typename Char>
-typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult()> const & func, OpaqueArgs const & args)
-{
-	(void) args;
-	return func();
-}
-
-
-template <typename Char>
-typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V)> const & func, OpaqueArgs const & args)
-{
-	return func(args[0].get());
-}
-
-
-template <typename Char>
-typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V,V)> const & func, OpaqueArgs const & args)
-{
-	return func(args[0].get(), args[1].get());
-}
-
-
-template <typename Char>
-typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V,V,V)> const & func, OpaqueArgs const & args)
-{
-	return func(args[0].get(), args[1].get(), args[2].get());
-}
-
-
-template <typename Char>
-typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V,V,V,V)> const & func, OpaqueArgs const & args)
-{
-	return func(args[0].get(), args[1].get(), args[2].get(), args[3].get());
-}
-
-
-template <typename Char>
-typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::Apply (std::function<ParseResult(V,V,V,V,V)> const & func, OpaqueArgs const & args)
-{
-	return func(args[0].get(), args[1].get(), args[2].get(), args[3].get(), args[4].get());
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-
-
-template <typename Char>
-LambdaOpts<Char>::ParseEnvImpl::ParseEnvImpl (LambdaOpts const & opts, std::vector<String> && args)
-	: opts(opts)
-	, args(std::move(args))
-	, currArg(args.begin())
-{}
-
-
-template <typename Char>
-typename LambdaOpts<Char>::UniqueOpaque LambdaOpts<Char>::ParseEnvImpl::OpaqueParse (TypeKind const & typeKind, ArgsIter & iter, ArgsIter end)
-{
-	ArgsIter const begin = iter;
-
-	OpaqueParser parser = opts.LookupDynamicParser(typeKind);
-	UniqueOpaque p = parser(iter, end);
-
-	if (p) {
-		ASSERT(__LINE__, iter > begin);
-	}
-	else {
-		iter = begin;
-	}
-
-	return p;
-}
-
-
-template <typename Char>
-template <typename GenericOptInfo>
-typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::ParseEnvImpl::TryParse (bool useKeyword, std::vector<GenericOptInfo> const & infos)
-{
-	if (infos.empty()) {
-		return ParseResult::Reject;
-	}
-	size_t const arity = infos.front().types.size();
-
-	ArgsIter const startArg = currArg;
-	ASSERT(__LINE__, startArg != args.end());
-
-	for (auto const & info : infos) {
-		if (info.keyword.empty() == useKeyword) {
-			continue;
-		}
-		currArg = startArg;
-		if (!useKeyword || *currArg++ == info.keyword) {
-			OpaqueArgs parsedArgs;
-			bool parsedFullArity = true;
-			for (size_t i = 0; i < arity; ++i) {
-				if (currArg == args.end()) {
-					parsedFullArity = false;
-					break;
-				}
-				TypeKind const & typeKind = info.types[i];
-				UniqueOpaque parsedArg = OpaqueParse(typeKind, currArg, args.end());
-				if (parsedArg == nullptr) {
-					parsedFullArity = false;
-					break;
-				}
-				parsedArgs.emplace_back(std::move(parsedArg));
-			}
-			if (parsedFullArity) {
-				ParseResult res = Apply(info.callback, parsedArgs);
-				switch (res) {
-					case ParseResult::Accept: {
-						return ParseResult::Accept;
-					} break;
-					case ParseResult::Reject: {
-						continue;
-					} break;
-					case ParseResult::Fatal: {
-						currArg = startArg;
-						return ParseResult::Fatal;
-					} break;
-					default: {
-						ASSERT(__LINE__, false);
-					}
-				}
-			}
-		}
-	}
-
-	currArg = startArg;
-	return ParseResult::Reject;
-}
-
-
-template <typename Char>
-bool LambdaOpts<Char>::ParseEnvImpl::TryParse ()
-{
-	if (currArg == args.end()) {
-		return false;
-	}
-
-	ParseResult res = ParseResult::Reject;
-
-	bool useKeywordState[] = { true, false };
-
-	for (bool useKeyword : useKeywordState) {
-		if (res == ParseResult::Reject) {
-			res = TryParse(useKeyword, opts.infos5);
-		}
-		if (res == ParseResult::Reject) {
-			res = TryParse(useKeyword, opts.infos4);
-		}
-		if (res == ParseResult::Reject) {
-			res = TryParse(useKeyword, opts.infos3);
-		}
-		if (res == ParseResult::Reject) {
-			res = TryParse(useKeyword, opts.infos2);
-		}
-		if (res == ParseResult::Reject) {
-			res = TryParse(useKeyword, opts.infos1);
-		}
-		if (res == ParseResult::Reject) {
-			res = TryParse(useKeyword, opts.infos0);
-		}
-	}
-
-	switch (res) {
-		case ParseResult::Accept: return true;
-		case ParseResult::Reject: return false;
-		case ParseResult::Fatal: return false;
-		default: ASSERT(__LINE__, false); return false;
-	}
-}
-
-
-template <typename Char>
-bool LambdaOpts<Char>::ParseEnvImpl::Run (int & outParseFailureIndex)
-{
-	currArg = args.begin();
-	while (TryParse()) {
-		continue;
-	}
-	if (currArg == args.end()) {
-		outParseFailureIndex = -1;
-		return true;
-	}
-	size_t argIndex = currArg - args.begin();
-	outParseFailureIndex = static_cast<int>(argIndex);
-	return false;
-}
-
-
-template <typename Char>
-template <typename T>
-bool LambdaOpts<Char>::ParseEnvImpl::Peek (T & outArg)
-{
-	if (currArg != args.end()) {
-		ArgsIter startArg = currArg;
-		bool res = Parser<T>::Parse(currArg, args.end(), outArg);
-		currArg = startArg;
-		return res;
-	}
-	return false;
-}
-
-
-template <typename Char>
-bool LambdaOpts<Char>::ParseEnvImpl::Next ()
-{
-	if (currArg != args.end()) {
-		++currArg;
-		return true;
-	}
-	return false;
-}
-
-
 //////////////////////////////////////////////////////////////////////////
 
 
