@@ -1,6 +1,8 @@
 // Copyright (c) 2015, Thomas Eding
 // All rights reserved.
 // 
+// https://github.com/thomaseding/lambda-opts
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
 // 
