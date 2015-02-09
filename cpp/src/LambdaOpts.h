@@ -156,50 +156,43 @@ private:
 
 	class TypeKind {
 	public:
-		TypeKind (Tag<int>) { InitSimple(__LINE__); }
-		TypeKind (Tag<unsigned int>) { InitSimple(__LINE__); }
-		TypeKind (Tag<float>) { InitSimple(__LINE__); }
-		TypeKind (Tag<double>) { InitSimple(__LINE__); }
-		TypeKind (Tag<Char>) { InitSimple(__LINE__); }
-		TypeKind (Tag<String>) { InitSimple(__LINE__); }
-
-		template <typename T, size_t N>
-		TypeKind (Tag<std::array<T, N>>)
-			: typeId(__LINE__)
-			, arrayCount(N)
-			, arrayElem(new TypeKind(Tag<T>()))
-		{}
-
 		bool operator== (TypeKind const & other) const
 		{
-			if (!arrayElem && other.arrayElem) {
-				return false;
-			}
-			if (arrayElem) {
-				if (!other.arrayElem) {
-					return false;
-				}
-				if (arrayCount != other.arrayCount) {
-					return false;
-				}
-				if (!(*arrayElem == *other.arrayElem)) {
-					return false;
-				}
-			}
-			return typeId == other.typeId;
+			return id == other.id;
 		}
 
+#ifdef RTTI_DISABLED
 	private:
-		void InitSimple (size_t typeId)
+		TypeKind (void const * id)
+			: id(id)
+		{}
+
+	public:
+		template <typename T>
+		static TypeKind Get ()
 		{
-			this->typeId = typeId;
-			arrayCount = 0;
+			static char const uniqueMemLoc = 0;
+			return TypeKind(&uniqueMemLoc);
 		}
 
 	private:
-		size_t typeId;
-		size_t arrayCount;
-		std::unique_ptr<TypeKind> arrayElem;
+		void const * id;
+#else
+	private:
+		TypeKind (std::type_info const & id)
+			: id(id)
+		{}
+
+	public:
+		template <typename T>
+		static TypeKind Get ()
+		{
+			return TypeKind(typeid(T));
+		}
+
+	private:
+		std::type_info const & id;
+#endif
 	};
 
 
@@ -577,9 +570,9 @@ private:
 	};
 
 	template <typename T>
-	void AddDynamicParser ()
+	static void AddDynamicParser (DynamicParsers & dynamicParsers)
 	{
-		TypeKind typeKind{ Tag<T>() };
+		TypeKind typeKind = TypeKind::Get<T>();
 		for (auto const & key_value : dynamicParsers) {
 			TypeKind const & key = key_value.first;
 			if (key == typeKind) {
@@ -589,6 +582,12 @@ private:
 		AddDynamicParserExtra<T>::Exec(dynamicParsers);
 		OpaqueParser parser = OpaqueParse<T>;
 		dynamicParsers.emplace_back(std::move(typeKind), parser);
+	}
+
+	template <typename T>
+	void AddDynamicParser ()
+	{
+		AddDynamicParser<T>(dynamicParsers);
 	}
 
 	OpaqueParser LookupDynamicParser (TypeKind const & k) const
@@ -607,7 +606,7 @@ private:
 	template <typename T>
 	void PushTypeKind (std::vector<TypeKind> & kinds)
 	{
-		kinds.push_back(TypeKind(Tag<T>()));
+		kinds.push_back(TypeKind::Get<T>());
 		AddDynamicParser<T>();
 	}
 
