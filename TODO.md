@@ -11,23 +11,5 @@
 * Check that code works when either/both `LambdaOpts` and `ParseEnv` are passed to different scopes. Especially when their option functions leave scope (e.g. the functions should rely on internal copies, rather than references).
 * Test ALL public interfaces.
 * Write docs.
-* Add in `std::array` support
-* Add in support for custom `TypeTag`s. Might need to be of the following macro API
-```cpp
-#ifdef LAMBDA_OPTS_CUSTOM_TAG_CLASSES
-#	include LAMBDA_OPTS_CUSTOM_TAG_CLASSES
-#endif
-#ifdef LAMBDA_OPTS_CUSTOM_TAG_CASE_STATEMENTS
-#	include LAMDBA_OPTS_CUSTOM_TAG_CASE_STATEMENTS
-#endif
-```
-Can probably avoid that and store TypeKind's into an `std::map<TypeKind, Parser>`,
-where `Parser` might be 
-```cpp
-typedef std::function<xxx> OpaqueParser;
-OpaqueParser parser = [] (String const & str) {
-	return UniqueOpaque(TypeTag<int>::Parse(str).release(), TypeTag<int>::Delete);
-};
-```
-
-
+* Test `std::array` support. Do nested arrays work as well?
+* Add in support for custom type parsers?
