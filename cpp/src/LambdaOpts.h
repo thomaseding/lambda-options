@@ -271,7 +271,8 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 0> {
-		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
+		static void Add (LambdaOpts & opts, String const & keyword, Func const & f)
+		{
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(ReturnType<R>::allowed, "Illegal return type.");
 			opts.AddImpl(Tag<R>(), keyword, f);
@@ -280,7 +281,8 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 1> {
-		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
+		static void Add (LambdaOpts & opts, String const & keyword, Func const & f)
+		{
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(ReturnType<R>::allowed, "Illegal return type.");
@@ -290,7 +292,8 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 2> {
-		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
+		static void Add (LambdaOpts & opts, String const & keyword, Func const & f)
+		{
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Return::type R;
@@ -301,7 +304,8 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 3> {
-		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
+		static void Add (LambdaOpts & opts, String const & keyword, Func const & f)
+		{
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Arg2::type C;
@@ -313,7 +317,8 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 4> {
-		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
+		static void Add (LambdaOpts & opts, String const & keyword, Func const & f)
+		{
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Arg2::type C;
@@ -326,7 +331,8 @@ private:
 
 	template <typename Func>
 	struct Adder<Func, 5> {
-		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
+		static void Add (LambdaOpts & opts, String const & keyword, Func const & f)
+		{
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Arg2::type C;
@@ -343,7 +349,7 @@ private:
 
 	template <typename T, typename Dummy=void>
 	struct AddDynamicParserExtra {
-		static void Exec (DynamicParsers & dynamicParsers) {}
+		static void Exec (DynamicParsers &) {}
 	};
 
 	template <typename T, size_t N, typename Dummy>
@@ -365,7 +371,7 @@ private:
 			}
 		}
 		AddDynamicParserExtra<T>::Exec(dynamicParsers);
-		OpaqueParser parser = TypeTag<T>::OpaqueParse;
+		OpaqueParser parser = OpaqueParse<T>;
 		dynamicParsers.emplace_back(std::move(typeKind), parser);
 	}
 
@@ -426,7 +432,7 @@ private:
 	{
 		typedef typename SimplifyType<A>::type A2;
 		auto wrapper = [=] (V va) {
-			A2 && a = TypeTag<A2>::ReifyOpaque(va);
+			A2 && a = ReifyOpaque<A2>(va);
 			return func(std::forward<A>(a));
 		};
 		infos1.emplace_back(keyword, wrapper);
@@ -449,8 +455,8 @@ private:
 		typedef typename SimplifyType<A>::type A2;
 		typedef typename SimplifyType<B>::type B2;
 		auto wrapper = [=] (V va, V vb) {
-			A2 && a = TypeTag<A2>::ReifyOpaque(va);
-			B2 && b = TypeTag<B2>::ReifyOpaque(vb);
+			A2 && a = ReifyOpaque<A2>(va);
+			B2 && b = ReifyOpaque<B2>(vb);
 			return func(std::forward<A>(a), std::forward<B>(b));
 		};
 		infos2.emplace_back(keyword, wrapper);
@@ -475,9 +481,9 @@ private:
 		typedef typename SimplifyType<B>::type B2;
 		typedef typename SimplifyType<C>::type C2;
 		auto wrapper = [=] (V va, V vb, V vc) {
-			A2 && a = TypeTag<A2>::ReifyOpaque(va);
-			B2 && b = TypeTag<B2>::ReifyOpaque(vb);
-			C2 && c = TypeTag<C2>::ReifyOpaque(vc);
+			A2 && a = ReifyOpaque<A2>(va);
+			B2 && b = ReifyOpaque<B2>(vb);
+			C2 && c = ReifyOpaque<C2>(vc);
 			return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c));
 		};
 		infos3.emplace_back(keyword, wrapper);
@@ -504,10 +510,10 @@ private:
 		typedef typename SimplifyType<C>::type C2;
 		typedef typename SimplifyType<D>::type D2;
 		auto wrapper = [=] (V va, V vb, V vc, V vd) {
-			A2 && a = TypeTag<A2>::ReifyOpaque(va);
-			B2 && b = TypeTag<B2>::ReifyOpaque(vb);
-			C2 && c = TypeTag<C2>::ReifyOpaque(vc);
-			D2 && d = TypeTag<D2>::ReifyOpaque(vd);
+			A2 && a = ReifyOpaque<A2>(va);
+			B2 && b = ReifyOpaque<B2>(vb);
+			C2 && c = ReifyOpaque<C2>(vc);
+			D2 && d = ReifyOpaque<D2>(vd);
 			return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d));
 		};
 		infos4.emplace_back(keyword, wrapper);
@@ -536,11 +542,11 @@ private:
 		typedef typename SimplifyType<D>::type D2;
 		typedef typename SimplifyType<E>::type E2;
 		auto wrapper = [=] (V va, V vb, V vc, V vd, V ve) {
-			A2 && a = TypeTag<A2>::ReifyOpaque(va);
-			B2 && b = TypeTag<B2>::ReifyOpaque(vb);
-			C2 && c = TypeTag<C2>::ReifyOpaque(vc);
-			D2 && d = TypeTag<D2>::ReifyOpaque(vd);
-			E2 && e = TypeTag<E2>::ReifyOpaque(ve);
+			A2 && a = ReifyOpaque<A2>(va);
+			B2 && b = ReifyOpaque<B2>(vb);
+			C2 && c = ReifyOpaque<C2>(vc);
+			D2 && d = ReifyOpaque<D2>(vd);
+			E2 && e = ReifyOpaque<E2>(ve);
 			return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e));
 		};
 		infos5.emplace_back(keyword, wrapper);
@@ -615,63 +621,67 @@ private:
 	}
 
 	template <typename T>
-	struct TypeTagNumberBase {
-		static bool Parse (ArgsIter & iter, ArgsIter end, T & out) {
-			ASSERT(__LINE__, iter != end);
-			String const & str = *iter;
-			if (str.size() > 1 && std::isspace(str.front())) {
-				return false;
-			}
-			if (Scan(*iter, TypeTag<T>::ScanDescription(), &out)) {
-				if (str.size() == StrLen(str.c_str())) {
-					if (str.find_first_of(StringLiteral<Char>::xX()) == std::string::npos) {
-						++iter;
-						return true;
-					}
+	static bool ScanNumber (ArgsIter & iter, ArgsIter end, T & out, char const * format)
+	{
+		ASSERT(__LINE__, iter != end);
+		String const & str = *iter;
+		if (str.size() > 1 && std::isspace(str.front())) {
+			return false;
+		}
+		if (Scan(*iter, format, &out)) {
+			if (str.size() == StrLen(str.c_str())) {
+				if (str.find_first_of(StringLiteral<Char>::xX()) == std::string::npos) {
+					++iter;
+					return true;
 				}
 			}
-			return false;
+		}
+		return false;
+	}
+
+	template <typename T, typename Dummy=void>
+	struct Parser {};
+
+	template <typename Dummy>
+	struct Parser<int, Dummy> {
+		static bool Parse (ArgsIter & iter, ArgsIter end, int & out)
+		{
+			return ScanNumber(iter, end, out, "%d%c");
 		}
 	};
 
-	template <typename T, typename Dummy=void>
-	struct TypeTagImpl {};
-
 	template <typename Dummy>
-	struct TypeTagImpl<int, Dummy> : public TypeTagNumberBase<int> {
-	public:
-		static char const * const ScanDescription () { return "%d%c"; }
-	};
-
-	template <typename Dummy>
-	struct TypeTagImpl<unsigned int, Dummy> : public TypeTagNumberBase<unsigned int> {
-	public:
-		static char const * const ScanDescription () { return "%u%c"; }
-		static bool Parse (ArgsIter & iter, ArgsIter end, unsigned int & out) {
+	struct Parser<unsigned int, Dummy> {
+		static bool Parse (ArgsIter & iter, ArgsIter end, unsigned int & out)
+		{
 			ASSERT(__LINE__, iter != end);
 			if (!iter->empty() && iter->front() == '-') {
 				return false;
 			}
-			return TypeTagNumberBase<unsigned int>::Parse(iter, end, out);
+			return ScanNumber(iter, end, out, "%u%c");
 		}
 	};
 
 	template <typename Dummy>
-	struct TypeTagImpl<float, Dummy> : public TypeTagNumberBase<float> {
-	public:
-		static char const * const ScanDescription () { return "%f%c"; }
+	struct Parser<float, Dummy> {
+		static bool Parse (ArgsIter & iter, ArgsIter end, float & out)
+		{
+			return ScanNumber(iter, end, out, "%f%c");
+		}
 	};
 
 	template <typename Dummy>
-	struct TypeTagImpl<double, Dummy> : public TypeTagNumberBase<double> {
-	public:
-		static char const * const ScanDescription () { return "%lf%c"; }
+	struct Parser<double, Dummy> {
+		static bool Parse (ArgsIter & iter, ArgsIter end, double & out)
+		{
+			return ScanNumber(iter, end, out, "%lf%c");
+		}
 	};
 
 	template <typename Dummy>
-	struct TypeTagImpl<Char, Dummy> {
-	public:
-		static bool Parse (ArgsIter & iter, ArgsIter end, Char & out) {
+	struct Parser<Char, Dummy> {
+		static bool Parse (ArgsIter & iter, ArgsIter end, Char & out)
+		{
 			ASSERT(__LINE__, iter != end);
 			if (iter->size() == 1) {
 				out = iter->front();
@@ -683,9 +693,9 @@ private:
 	};
 
 	template <typename Dummy>
-	struct TypeTagImpl<String, Dummy> {
-	public:
-		static bool Parse (ArgsIter & iter, ArgsIter end, String & out) {
+	struct Parser<String, Dummy> {
+		static bool Parse (ArgsIter & iter, ArgsIter end, String & out)
+		{
 			ASSERT(__LINE__, iter != end);
 			out = *iter;
 			++iter;
@@ -694,15 +704,16 @@ private:
 	};
 
 	template <typename T, size_t N, typename Dummy>
-	struct TypeTagImpl<std::array<T, N>, Dummy> {
-		static bool Parse (ArgsIter & iter, ArgsIter end, std::array<T, N> & out) {
+	struct Parser<std::array<T, N>, Dummy> {
+		static bool Parse (ArgsIter & iter, ArgsIter end, std::array<T, N> & out)
+		{
 			static_assert(N > 0, "Parsing a 0-sized array is not well-defined.");
 			ASSERT(__LINE__, iter != end);
 			for (size_t i = 0; i < N; ++i) {
 				if (iter == end) {
 					return false;
 				}
-				if (!TypeTagImpl<T>::Parse(iter, end, out[i])) {
+				if (!Parser<T>::Parse(iter, end, out[i])) {
 					return false;
 				}
 			}
@@ -711,30 +722,27 @@ private:
 	};
 
 	template <typename T>
-	struct TypeTag : public TypeTagImpl<T> {
-		typedef T Type;
-		typedef TypeTagImpl<Type> Base;
+	static T && ReifyOpaque (void * p)
+	{
+		T & val = *static_cast<T *>(p);
+		return std::move(val);
+	}
 
-		static Type && ReifyOpaque (void * p) {
-			static_assert(std::is_same<Type, typename std::remove_reference<Type>::type>::value, "Internal error.");
-			Type & val = *static_cast<Type *>(p);
-			return std::move(val);
+	template <typename T>
+	static void Delete (void * p)
+	{
+		delete static_cast<T *>(p);
+	}
+
+	template <typename T>
+	static UniqueOpaque OpaqueParse (ArgsIter & iter, ArgsIter end)
+	{
+		T x;
+		if (Parser<T>::Parse(iter, end, x)) {
+			return UniqueOpaque(AllocateCopy(std::move(x)).release(), Delete<T>);
 		}
-
-		static void Delete (void * p) {
-			delete static_cast<Type *>(p);
-		}
-
-		using Base::Parse;
-
-		static UniqueOpaque OpaqueParse (ArgsIter & iter, ArgsIter end) {
-			T x;
-			if (Parse(iter, end, x)) {
-				return UniqueOpaque(AllocateCopy(std::move(x)).release(), Delete);
-			}
-			return UniqueOpaque(static_cast<T *>(nullptr), Delete);
-		}
-	};
+		return UniqueOpaque(static_cast<T *>(nullptr), Delete<T>);
+	}
 
 	template <typename FuncSig>
 	class OptInfo {
@@ -997,7 +1005,7 @@ bool LambdaOpts<Char>::ParseEnvImpl::Peek (T & outArg)
 {
 	if (currArg != args.end()) {
 		ArgsIter startArg = currArg;
-		bool res = TypeTag<T>::Parse(currArg, args.end(), outArg);
+		bool res = Parser<T>::Parse(currArg, args.end(), outArg);
 		currArg = startArg;
 		return res;
 	}
