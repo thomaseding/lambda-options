@@ -354,7 +354,7 @@ private:
 	};
 
 	template <typename T>
-	static void AddDynamicParser (DynamicParsers & dynamicParsers)
+	void AddDynamicParser ()
 	{
 		TypeKind typeKind{ Tag<T>() };
 		for (auto const & key_value : dynamicParsers) {
@@ -363,9 +363,9 @@ private:
 				return;
 			}
 		}
+		AddDynamicParserExtra<T>::Exec(dynamicParsers);
 		OpaqueParser parser = TypeTag<T>::OpaqueParse;
 		dynamicParsers.emplace_back(std::move(typeKind), parser);
-		AddDynamicParserExtra<T>::Exec(dynamicParsers);
 	}
 
 	OpaqueParser LookupDynamicParser (TypeKind const & k) const
@@ -392,7 +392,7 @@ private:
 	void PushTypeKind (std::vector<TypeKind> & kinds)
 	{
 		kinds.push_back(TypeKind(Tag<T>()));
-		AddDynamicParser<T>(dynamicParsers);
+		AddDynamicParser<T>();
 	}
 
 	void AddImpl (Tag<void>, String const & keyword, std::function<void()> const & func)
