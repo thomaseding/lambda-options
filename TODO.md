@@ -12,4 +12,4 @@
 * Test ALL public interfaces.
 * Write docs.
 * Test `std::array` support. Do nested arrays work as well?
-* Add in support for custom type parsers?
+* Add in support for custom type parsers? The best way to do this would probably be to expose a class to specialize. This class would have parse logic as well as some sort of type kind.
