@@ -158,7 +158,6 @@ private:
 
 		bool operator== (TypeKind const & other) const
 		{
-			ASSERT(__LINE__, typeId > 0 && other.typeId > 0);
 			if (!arrayElem && other.arrayElem) {
 				return false;
 			}
