@@ -340,33 +340,22 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-	template <typename T>
-	struct ArrayInfo {
-		static bool const valid = false;
-
-		// Dummy make code easier to write by supplying valid code to the compiler.
-		typedef int elem_type;
+	template <typename T, typename Dummy=void>
+	struct AddDynamicParserExtra {
+		static void Exec (DynamicParsers & dynamicParsers) {}
 	};
 
-	template <typename T, size_t N>
-	struct ArrayInfo<std::array<T, N>> {
-		static bool const valid = true;
-		typedef T elem_type;
-	};
-
-	template <typename T>
-	void PushTypeKind (std::vector<TypeKind> & kinds)
-	{
-		kinds.push_back(TypeKind(Tag<T>()));
-		AddDynamicParser<T>();
-	}
-
-	template <typename T>
-	void AddDynamicParser ()
-	{
-		if (ArrayInfo<T>::valid) {
-			AddDynamicParser<typename ArrayInfo<T>::elem_type>();
+	template <typename T, size_t N, typename Dummy>
+	struct AddDynamicParserExtra<std::array<T, N>, Dummy> {
+		static void Exec (DynamicParsers & dynamicParsers)
+		{
+			AddDynamicParser<T>(dynamicParsers);
 		}
+	};
+
+	template <typename T>
+	static void AddDynamicParser (DynamicParsers & dynamicParsers)
+	{
 		TypeKind typeKind{ Tag<T>() };
 		for (auto const & key_value : dynamicParsers) {
 			TypeKind const & key = key_value.first;
@@ -376,6 +365,7 @@ private:
 		}
 		OpaqueParser parser = TypeTag<T>::OpaqueParse;
 		dynamicParsers.emplace_back(std::move(typeKind), parser);
+		AddDynamicParserExtra<T>::Exec(dynamicParsers);
 	}
 
 	OpaqueParser LookupDynamicParser (TypeKind const & k) const
@@ -397,6 +387,13 @@ private:
 	struct SimplifyType {
 		typedef typename std::remove_cv<typename std::remove_reference<T>::type>::type type;
 	};
+
+	template <typename T>
+	void PushTypeKind (std::vector<TypeKind> & kinds)
+	{
+		kinds.push_back(TypeKind(Tag<T>()));
+		AddDynamicParser<T>(dynamicParsers);
+	}
 
 	void AddImpl (Tag<void>, String const & keyword, std::function<void()> const & func)
 	{
