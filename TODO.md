@@ -6,8 +6,8 @@
 * Make a `LambdaOptsImpl` that is stored in a `std::shared_ptr`
 * Does the code accept `opts.AddOption("", [] (int const) { ... });`?
 * Does the code accept `opts.AddOption("", [] (int &&) { ... });`?
-* Does the code reject `opts.AddOption("", [] (int &) { ... });`?
-* Does the code reject `opts.AddOption("", [] (int const &) { ... });`?
+* Does the code accept `opts.AddOption("", [] (int &) { ... });`?
+* Does the code accept `opts.AddOption("", [] (int const &) { ... });`?
 * Check that code works when either/both `LambdaOpts` and `ParseEnv` are passed to different scopes. Especially when their option functions leave scope (e.g. the functions should rely on internal copies, rather than references).
 * Test ALL public interfaces.
 * Write docs.

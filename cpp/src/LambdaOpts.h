@@ -367,6 +367,11 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
+	template <typename T>
+	struct SimplifyType {
+		typedef typename std::remove_cv<typename std::remove_reference<T>::type>::type type;
+	};
+
 	void AddImpl (VoidTag, String const & keyword, std::function<void()> const & func)
 	{
 		AddImpl(ParseResultTag(), keyword, [=] () {
@@ -398,7 +403,7 @@ private:
 	template <typename A>
 	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A)> const & func)
 	{
-		typedef typename std::remove_reference<A>::type A2;
+		typedef typename SimplifyType<A>::type A2;
 		auto wrapper = [=] (V va) {
 			A2 && a = TypeTag<A2>::ReifyOpaque(va);
 			return func(std::forward<A>(a));
@@ -422,8 +427,8 @@ private:
 	template <typename A, typename B>
 	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B)> const & func)
 	{
-		typedef typename std::remove_reference<A>::type A2;
-		typedef typename std::remove_reference<B>::type B2;
+		typedef typename SimplifyType<A>::type A2;
+		typedef typename SimplifyType<B>::type B2;
 		auto wrapper = [=] (V va, V vb) {
 			A2 && a = TypeTag<A2>::ReifyOpaque(va);
 			B2 && b = TypeTag<B2>::ReifyOpaque(vb);
@@ -449,9 +454,9 @@ private:
 	template <typename A, typename B, typename C>
 	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B,C)> const & func)
 	{
-		typedef typename std::remove_reference<A>::type A2;
-		typedef typename std::remove_reference<B>::type B2;
-		typedef typename std::remove_reference<C>::type C2;
+		typedef typename SimplifyType<A>::type A2;
+		typedef typename SimplifyType<B>::type B2;
+		typedef typename SimplifyType<C>::type C2;
 		auto wrapper = [=] (V va, V vb, V vc) {
 			A2 && a = TypeTag<A2>::ReifyOpaque(va);
 			B2 && b = TypeTag<B2>::ReifyOpaque(vb);
@@ -479,10 +484,10 @@ private:
 	template <typename A, typename B, typename C, typename D>
 	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B,C,D)> const & func)
 	{
-		typedef typename std::remove_reference<A>::type A2;
-		typedef typename std::remove_reference<B>::type B2;
-		typedef typename std::remove_reference<C>::type C2;
-		typedef typename std::remove_reference<D>::type D2;
+		typedef typename SimplifyType<A>::type A2;
+		typedef typename SimplifyType<B>::type B2;
+		typedef typename SimplifyType<C>::type C2;
+		typedef typename SimplifyType<D>::type D2;
 		auto wrapper = [=] (V va, V vb, V vc, V vd) {
 			A2 && a = TypeTag<A2>::ReifyOpaque(va);
 			B2 && b = TypeTag<B2>::ReifyOpaque(vb);
@@ -512,11 +517,11 @@ private:
 	template <typename A, typename B, typename C, typename D, typename E>
 	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B,C,D,E)> const & func)
 	{
-		typedef typename std::remove_reference<A>::type A2;
-		typedef typename std::remove_reference<B>::type B2;
-		typedef typename std::remove_reference<C>::type C2;
-		typedef typename std::remove_reference<D>::type D2;
-		typedef typename std::remove_reference<E>::type E2;
+		typedef typename SimplifyType<A>::type A2;
+		typedef typename SimplifyType<B>::type B2;
+		typedef typename SimplifyType<C>::type C2;
+		typedef typename SimplifyType<D>::type D2;
+		typedef typename SimplifyType<E>::type E2;
 		auto wrapper = [=] (V va, V vb, V vc, V vd, V ve) {
 			A2 && a = TypeTag<A2>::ReifyOpaque(va);
 			B2 && b = TypeTag<B2>::ReifyOpaque(vb);
