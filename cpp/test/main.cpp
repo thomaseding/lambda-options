@@ -198,6 +198,7 @@ static void UNREFERENCED_FUNCS ()
 static void TestCompileTypes ()
 {
 	Opts opts;
+
 	opts.AddOption("x", [] (int) {
 		return PR::Accept;
 	});
@@ -264,6 +265,14 @@ static void TestCompileArities ()
 	typedef int I;
 
 	Opts opts;
+
+	opts.AddOption("x", [] () {});
+	opts.AddOption("x", [] (I) {});
+	opts.AddOption("x", [] (I,I) {});
+	opts.AddOption("x", [] (I,I,I) {});
+	opts.AddOption("x", [] (I,I,I,I) {});
+	opts.AddOption("x", [] (I,I,I,I,I) {});
+
 	opts.AddOption("x", [] () {
 		return PR::Accept;
 	});

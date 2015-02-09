@@ -197,6 +197,26 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
+	class VoidTag {};
+	class ParseResultTag {};
+
+	template <typename T, typename Dummy=void>
+	struct ReturnType {
+		static bool const allowed = false;
+	};
+
+	template <typename Dummy>
+	struct ReturnType<void, Dummy> {
+		static bool const allowed = true;
+		typedef VoidTag Tag;
+	};
+
+	template <typename Dummy>
+	struct ReturnType<ParseResult, Dummy> {
+		static bool const allowed = true;
+		typedef ParseResultTag Tag;
+	};
+
 	template <typename Func, size_t>
 	friend struct Adder;
 
@@ -207,8 +227,8 @@ private:
 	struct Adder<Func, 0> {
 		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
 			typedef typename FuncTraits<Func>::Return::type R;
-			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
-			opts.AddImpl(keyword, f);
+			static_assert(ReturnType<R>::allowed, "Illegal return type.");
+			opts.AddImpl(typename ReturnType<R>::Tag(), keyword, f);
 		}
 	};
 
@@ -217,8 +237,8 @@ private:
 		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Return::type R;
-			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
-			opts.AddImpl<A>(keyword, f);
+			static_assert(ReturnType<R>::allowed, "Illegal return type.");
+			opts.AddImpl<A>(typename ReturnType<R>::Tag(), keyword, f);
 		}
 	};
 
@@ -228,8 +248,8 @@ private:
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Return::type R;
-			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
-			opts.AddImpl<A,B>(keyword, f);
+			static_assert(ReturnType<R>::allowed, "Illegal return type.");
+			opts.AddImpl<A,B>(typename ReturnType<R>::Tag(), keyword, f);
 		}
 	};
 
@@ -240,8 +260,8 @@ private:
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Arg2::type C;
 			typedef typename FuncTraits<Func>::Return::type R;
-			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
-			opts.AddImpl<A,B,C>(keyword, f);
+			static_assert(ReturnType<R>::allowed, "Illegal return type.");
+			opts.AddImpl<A,B,C>(typename ReturnType<R>::Tag(), keyword, f);
 		}
 	};
 
@@ -253,8 +273,8 @@ private:
 			typedef typename FuncTraits<Func>::Arg2::type C;
 			typedef typename FuncTraits<Func>::Arg3::type D;
 			typedef typename FuncTraits<Func>::Return::type R;
-			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
-			opts.AddImpl<A,B,C,D>(keyword, f);
+			static_assert(ReturnType<R>::allowed, "Illegal return type.");
+			opts.AddImpl<A,B,C,D>(typename ReturnType<R>::Tag(), keyword, f);
 		}
 	};
 
@@ -267,8 +287,8 @@ private:
 			typedef typename FuncTraits<Func>::Arg3::type D;
 			typedef typename FuncTraits<Func>::Arg4::type E;
 			typedef typename FuncTraits<Func>::Return::type R;
-			static_assert(std::is_same<ParseResult, R>::value, "Illegal return type.");
-			opts.AddImpl<A,B,C,D,E>(keyword, f);
+			static_assert(ReturnType<R>::allowed, "Illegal return type.");
+			opts.AddImpl<A,B,C,D,E>(typename ReturnType<R>::Tag(), keyword, f);
 		}
 	};
 
@@ -347,7 +367,15 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-	void AddImpl (String const & keyword, std::function<ParseResult()> const & func)
+	void AddImpl (VoidTag, String const & keyword, std::function<void()> const & func)
+	{
+		AddImpl(ParseResultTag(), keyword, [=] () {
+			func();
+			return ParseResult::Accept;
+		});
+	}
+
+	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult()> const & func)
 	{
 		if (keyword.empty()) {
 			throw Exception("Cannot add an empty rule.");
@@ -359,7 +387,16 @@ private:
 	}
 
 	template <typename A>
-	void AddImpl (String const & keyword, std::function<ParseResult(A)> const & func)
+	void AddImpl (VoidTag, String const & keyword, std::function<void(A)> const & func)
+	{
+		AddImpl<A>(ParseResultTag(), keyword, [=] (A && a) {
+			func(std::forward<A>(a));
+			return ParseResult::Accept;
+		});
+	}
+
+	template <typename A>
+	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A)> const & func)
 	{
 		auto wrapper = [=] (V va) {
 			auto const & a = TypeTag<A>::ReifyOpaque(va);
@@ -373,7 +410,16 @@ private:
 	}
 
 	template <typename A, typename B>
-	void AddImpl (String const & keyword, std::function<ParseResult(A,B)> const & func)
+	void AddImpl (VoidTag, String const & keyword, std::function<void(A,B)> const & func)
+	{
+		AddImpl<A,B>(ParseResultTag(), keyword, [=] (A && a, B && b) {
+			func(std::forward<A>(a), std::forward<B>(b));
+			return ParseResult::Accept;
+		});
+	}
+
+	template <typename A, typename B>
+	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B)> const & func)
 	{
 		auto wrapper = [=] (V va, V vb) {
 			auto const & a = TypeTag<A>::ReifyOpaque(va);
@@ -389,7 +435,16 @@ private:
 	}
 
 	template <typename A, typename B, typename C>
-	void AddImpl (String const & keyword, std::function<ParseResult(A,B,C)> const & func)
+	void AddImpl (VoidTag, String const & keyword, std::function<void(A,B,C)> const & func)
+	{
+		AddImpl<A,B,C>(ParseResultTag(), keyword, [=] (A && a, B && b, C && c) {
+			func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c));
+			return ParseResult::Accept;
+		});
+	}
+
+	template <typename A, typename B, typename C>
+	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B,C)> const & func)
 	{
 		auto wrapper = [=] (V va, V vb, V vc) {
 			auto const & a = TypeTag<A>::ReifyOpaque(va);
@@ -407,7 +462,16 @@ private:
 	}
 
 	template <typename A, typename B, typename C, typename D>
-	void AddImpl (String const & keyword, std::function<ParseResult(A,B,C,D)> const & func)
+	void AddImpl (VoidTag, String const & keyword, std::function<void(A,B,C,D)> const & func)
+	{
+		AddImpl<A,B,C,D>(ParseResultTag(), keyword, [=] (A && a, B && b, C && c, D && d) {
+			func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d));
+			return ParseResult::Accept;
+		});
+	}
+
+	template <typename A, typename B, typename C, typename D>
+	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B,C,D)> const & func)
 	{
 		auto wrapper = [=] (V va, V vb, V vc, V vd) {
 			auto const & a = TypeTag<A>::ReifyOpaque(va);
@@ -427,7 +491,16 @@ private:
 	}
 
 	template <typename A, typename B, typename C, typename D, typename E>
-	void AddImpl (String const & keyword, std::function<ParseResult(A,B,C,D,E)> const & func)
+	void AddImpl (VoidTag, String const & keyword, std::function<void(A,B,C,D,E)> const & func)
+	{
+		AddImpl<A,B,C,D,E>(ParseResultTag(), keyword, [=] (A && a, B && b, C && c, D && d, E && e) {
+			func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e));
+			return ParseResult::Accept;
+		});
+	}
+
+	template <typename A, typename B, typename C, typename D, typename E>
+	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B,C,D,E)> const & func)
 	{
 		auto wrapper = [=] (V va, V vb, V vc, V vd, V ve) {
 			auto a = TypeTag<A>::ReifyOpaque(va);
