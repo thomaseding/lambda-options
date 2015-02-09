@@ -92,7 +92,7 @@ public:
 		template <typename T>
 		bool Peek (T & outArg);
 
-		bool Next ();
+		bool SkipNextArg ();
 
 	private:
 		ParseEnv (LambdaOpts const & opts, Args && args);
@@ -143,7 +143,7 @@ private:
 	typedef void * V;
 	typedef void (*OpaqueDeleter)(void *);
 	typedef std::unique_ptr<void, OpaqueDeleter> UniqueOpaque;
-	typedef std::vector<UniqueOpaque> OpaqueArgs;
+	typedef std::vector<UniqueOpaque> OpaqueValues;
 
 	class TypeKind;
 
@@ -283,35 +283,35 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 
-	static ParseResult Apply (std::function<ParseResult()> const & func, OpaqueArgs const & args)
+	static ParseResult Apply (std::function<ParseResult()> const & func, OpaqueValues const & vals)
 	{
-		(void) args;
+		(void) vals;
 		return func();
 	}
 
-	static ParseResult Apply (std::function<ParseResult(V)> const & func, OpaqueArgs const & args)
+	static ParseResult Apply (std::function<ParseResult(V)> const & func, OpaqueValues const & vals)
 	{
-		return func(args[0].get());
+		return func(vals[0].get());
 	}
 
-	static ParseResult Apply (std::function<ParseResult(V,V)> const & func, OpaqueArgs const & args)
+	static ParseResult Apply (std::function<ParseResult(V,V)> const & func, OpaqueValues const & vals)
 	{
-		return func(args[0].get(), args[1].get());
+		return func(vals[0].get(), vals[1].get());
 	}
 
-	static ParseResult Apply (std::function<ParseResult(V,V,V)> const & func, OpaqueArgs const & args)
+	static ParseResult Apply (std::function<ParseResult(V,V,V)> const & func, OpaqueValues const & vals)
 	{
-		return func(args[0].get(), args[1].get(), args[2].get());
+		return func(vals[0].get(), vals[1].get(), vals[2].get());
 	}
 
-	static ParseResult Apply (std::function<ParseResult(V,V,V,V)> const & func, OpaqueArgs const & args)
+	static ParseResult Apply (std::function<ParseResult(V,V,V,V)> const & func, OpaqueValues const & vals)
 	{
-		return func(args[0].get(), args[1].get(), args[2].get(), args[3].get());
+		return func(vals[0].get(), vals[1].get(), vals[2].get(), vals[3].get());
 	}
 
-	static ParseResult Apply (std::function<ParseResult(V,V,V,V,V)> const & func, OpaqueArgs const & args)
+	static ParseResult Apply (std::function<ParseResult(V,V,V,V,V)> const & func, OpaqueValues const & vals)
 	{
-		return func(args[0].get(), args[1].get(), args[2].get(), args[3].get(), args[4].get());
+		return func(vals[0].get(), vals[1].get(), vals[2].get(), vals[3].get(), vals[4].get());
 	}
 
 
@@ -438,7 +438,7 @@ private:
 		};
 		infos1.emplace_back(keyword, wrapper);
 		auto & info = infos1.back();
-		PushTypeKind<A2>(info.types);
+		PushTypeKind<A2>(info.typeKinds);
 	}
 
 	template <typename A, typename B>
@@ -462,8 +462,8 @@ private:
 		};
 		infos2.emplace_back(keyword, wrapper);
 		auto & info = infos2.back();
-		PushTypeKind<A2>(info.types);
-		PushTypeKind<B2>(info.types);
+		PushTypeKind<A2>(info.typeKinds);
+		PushTypeKind<B2>(info.typeKinds);
 	}
 
 	template <typename A, typename B, typename C>
@@ -489,9 +489,9 @@ private:
 		};
 		infos3.emplace_back(keyword, wrapper);
 		auto & info = infos3.back();
-		PushTypeKind<A2>(info.types);
-		PushTypeKind<B2>(info.types);
-		PushTypeKind<C2>(info.types);
+		PushTypeKind<A2>(info.typeKinds);
+		PushTypeKind<B2>(info.typeKinds);
+		PushTypeKind<C2>(info.typeKinds);
 	}
 
 	template <typename A, typename B, typename C, typename D>
@@ -519,10 +519,10 @@ private:
 		};
 		infos4.emplace_back(keyword, wrapper);
 		auto & info = infos4.back();
-		PushTypeKind<A2>(info.types);
-		PushTypeKind<B2>(info.types);
-		PushTypeKind<C2>(info.types);
-		PushTypeKind<D2>(info.types);
+		PushTypeKind<A2>(info.typeKinds);
+		PushTypeKind<B2>(info.typeKinds);
+		PushTypeKind<C2>(info.typeKinds);
+		PushTypeKind<D2>(info.typeKinds);
 	}
 
 	template <typename A, typename B, typename C, typename D, typename E>
@@ -552,11 +552,11 @@ private:
 		};
 		infos5.emplace_back(keyword, wrapper);
 		auto & info = infos5.back();
-		PushTypeKind<A2>(info.types);
-		PushTypeKind<B2>(info.types);
-		PushTypeKind<C2>(info.types);
-		PushTypeKind<D2>(info.types);
-		PushTypeKind<E2>(info.types);
+		PushTypeKind<A2>(info.typeKinds);
+		PushTypeKind<B2>(info.typeKinds);
+		PushTypeKind<C2>(info.typeKinds);
+		PushTypeKind<D2>(info.typeKinds);
+		PushTypeKind<E2>(info.typeKinds);
 	}
 
 
@@ -665,7 +665,7 @@ private:
 	template <typename T>
 	static bool ScanNumber (ArgsIter & iter, ArgsIter end, T & out, char const * format)
 	{
-		ASSERT(__LINE__, iter != end);
+		ASSERT(__LINE__, iter < end);
 		String const & str = *iter;
 		if (str.size() > 1 && std::isspace(str.front())) {
 			return false;
@@ -696,7 +696,7 @@ private:
 	struct Parser<unsigned int, Dummy> {
 		static bool Parse (ArgsIter & iter, ArgsIter end, unsigned int & out)
 		{
-			ASSERT(__LINE__, iter != end);
+			ASSERT(__LINE__, iter < end);
 			if (!iter->empty() && iter->front() == '-') {
 				return false;
 			}
@@ -724,7 +724,7 @@ private:
 	struct Parser<Char, Dummy> {
 		static bool Parse (ArgsIter & iter, ArgsIter end, Char & out)
 		{
-			ASSERT(__LINE__, iter != end);
+			ASSERT(__LINE__, iter < end);
 			if (iter->size() == 1) {
 				out = iter->front();
 				++iter;
@@ -738,7 +738,7 @@ private:
 	struct Parser<String, Dummy> {
 		static bool Parse (ArgsIter & iter, ArgsIter end, String & out)
 		{
-			ASSERT(__LINE__, iter != end);
+			ASSERT(__LINE__, iter < end);
 			out = *iter;
 			++iter;
 			return true;
@@ -749,8 +749,8 @@ private:
 	struct Parser<std::array<T, N>, Dummy> {
 		static bool Parse (ArgsIter & iter, ArgsIter end, std::array<T, N> & out)
 		{
-			static_assert(N > 0, "Parsing a 0-sized array is not well-defined.");
-			ASSERT(__LINE__, iter != end);
+			static_assert(N > 0, "Parsing a zero-sized array is not well-defined.");
+			ASSERT(__LINE__, iter < end);
 			for (size_t i = 0; i < N; ++i) {
 				if (iter == end) {
 					return false;
@@ -787,6 +787,7 @@ private:
 	template <typename T>
 	static UniqueOpaque OpaqueParse (ArgsIter & iter, ArgsIter end)
 	{
+		ArgsIter const startIter(iter);
 		T x;
 		if (Parser<T>::Parse(iter, end, x)) {
 			return UniqueOpaque(AllocateCopy(std::move(x)).release(), Delete<T>);
@@ -809,13 +810,13 @@ private:
 		OptInfo (OptInfo && other)
 			: keyword(std::move(other.keyword))
 			, callback(std::move(other.callback))
-			, types(std::move(other.types))
+			, typeKinds(std::move(other.typeKinds))
 		{}
 
 	public:
 		String keyword;
 		std::function<FuncSig> callback;
-		std::vector<TypeKind> types;
+		std::vector<TypeKind> typeKinds;
 	};
 
 
@@ -866,21 +867,37 @@ private:
 			return false;
 		}
 
+	private:
 		UniqueOpaque OpaqueParse (TypeKind const & typeKind, ArgsIter & iter, ArgsIter end)
 		{
-			ArgsIter const begin = iter;
-
+			ArgsIter const startIter = iter;
 			OpaqueParser parser = opts.LookupDynamicParser(typeKind);
 			UniqueOpaque p = parser(iter, end);
-
 			if (p) {
-				ASSERT(__LINE__, iter > begin);
+				ASSERT(__LINE__, iter > startIter);
 			}
 			else {
-				iter = begin;
+				iter = startIter;
 			}
-
 			return p;
+		}
+
+		OpaqueValues ParseArgs (std::vector<TypeKind> const & typeKinds, ArgsIter & iter, ArgsIter end)
+		{
+			size_t const N = typeKinds.size();
+			OpaqueValues parsedArgs;
+			for (size_t i = 0; i < N; ++i) {
+				if (iter == end) {
+					break;
+				}
+				TypeKind const & typeKind = typeKinds[i];
+				UniqueOpaque parsedArg = OpaqueParse(typeKind, iter, end);
+				if (parsedArg == nullptr) {
+					break;
+				}
+				parsedArgs.emplace_back(std::move(parsedArg));
+			}
+			return std::move(parsedArgs);
 		}
 
 		template <typename GenericOptInfo>
@@ -889,10 +906,10 @@ private:
 			if (infos.empty()) {
 				return ParseResult::Reject;
 			}
-			size_t const arity = infos.front().types.size();
+			size_t const arity = infos.front().typeKinds.size();
 
 			ArgsIter const startArg = currArg;
-			ASSERT(__LINE__, startArg != args.end());
+			ASSERT(__LINE__, startArg < args.end());
 
 			for (auto const & info : infos) {
 				if (info.keyword.empty() == useKeyword) {
@@ -900,22 +917,10 @@ private:
 				}
 				currArg = startArg;
 				if (!useKeyword || *currArg++ == info.keyword) {
-					OpaqueArgs parsedArgs;
-					bool parsedFullArity = true;
-					for (size_t i = 0; i < arity; ++i) {
-						if (currArg == args.end()) {
-							parsedFullArity = false;
-							break;
-						}
-						TypeKind const & typeKind = info.types[i];
-						UniqueOpaque parsedArg = OpaqueParse(typeKind, currArg, args.end());
-						if (parsedArg == nullptr) {
-							parsedFullArity = false;
-							break;
-						}
-						parsedArgs.emplace_back(std::move(parsedArg));
-					}
-					if (parsedFullArity) {
+					auto const & typeKinds = info.typeKinds;
+					ASSERT(__LINE__, typeKinds.size() == arity);
+					OpaqueValues parsedArgs = ParseArgs(typeKinds, currArg, args.end());
+					if (parsedArgs.size() == arity) {
 						ParseResult res = Apply(info.callback, parsedArgs);
 						switch (res) {
 							case ParseResult::Accept: {
@@ -948,8 +953,7 @@ private:
 
 			ParseResult res = ParseResult::Reject;
 
-			bool useKeywordState[] = { true, false };
-
+			bool const useKeywordState[] = { true, false };
 			for (bool useKeyword : useKeywordState) {
 				if (res == ParseResult::Reject) {
 					res = TryParse(useKeyword, opts.infos5);
@@ -975,7 +979,10 @@ private:
 				case ParseResult::Accept: return true;
 				case ParseResult::Reject: return false;
 				case ParseResult::Fatal: return false;
-				default: ASSERT(__LINE__, false); return false;
+				default: {
+					ASSERT(__LINE__, false);
+					return false;
+				}
 			}
 		}
 
@@ -1040,9 +1047,9 @@ bool LambdaOpts<Char>::ParseEnv::Peek (T & outArg)
 
 
 template <typename Char>
-bool LambdaOpts<Char>::ParseEnv::Next ()
+bool LambdaOpts<Char>::ParseEnv::SkipNextArg ()
 {
-	return impl->Next();
+	return impl->SkipNextArg();
 }
 
 
