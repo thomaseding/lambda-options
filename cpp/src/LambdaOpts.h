@@ -121,9 +121,9 @@ private:
 
 	typedef typename Args::const_iterator ArgsIter;
 
-	typedef void const * V;
-	typedef void (*OpaqueDeleter)(void const *);
-	typedef std::unique_ptr<void const, OpaqueDeleter> UniqueOpaque;
+	typedef void * V;
+	typedef void (*OpaqueDeleter)(void *);
+	typedef std::unique_ptr<void, OpaqueDeleter> UniqueOpaque;
 	typedef std::vector<UniqueOpaque> OpaqueArgs;
 
 	typedef size_t SimpleTypeKind;
@@ -398,13 +398,14 @@ private:
 	template <typename A>
 	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A)> const & func)
 	{
+		typedef typename std::remove_reference<A>::type A2;
 		auto wrapper = [=] (V va) {
-			auto const & a = TypeTag<A>::ReifyOpaque(va);
-			return func(a);
+			A2 && a = TypeTag<A2>::ReifyOpaque(va);
+			return func(std::forward<A>(a));
 		};
 		OptInfo<ParseResult(V)> info;
 		info.keyword = keyword;
-		PushTypeKind<A>(info.types);
+		PushTypeKind<A2>(info.types);
 		info.callback = wrapper;
 		infos1.push_back(info);
 	}
@@ -421,15 +422,17 @@ private:
 	template <typename A, typename B>
 	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B)> const & func)
 	{
+		typedef typename std::remove_reference<A>::type A2;
+		typedef typename std::remove_reference<B>::type B2;
 		auto wrapper = [=] (V va, V vb) {
-			auto const & a = TypeTag<A>::ReifyOpaque(va);
-			auto const & b = TypeTag<B>::ReifyOpaque(vb);
-			return func(a, b);
+			A2 && a = TypeTag<A2>::ReifyOpaque(va);
+			B2 && b = TypeTag<B2>::ReifyOpaque(vb);
+			return func(std::forward<A>(a), std::forward<B>(b));
 		};
 		OptInfo<ParseResult(V,V)> info;
 		info.keyword = keyword;
-		PushTypeKind<A>(info.types);
-		PushTypeKind<B>(info.types);
+		PushTypeKind<A2>(info.types);
+		PushTypeKind<B2>(info.types);
 		info.callback = wrapper;
 		infos2.push_back(info);
 	}
@@ -446,17 +449,20 @@ private:
 	template <typename A, typename B, typename C>
 	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B,C)> const & func)
 	{
+		typedef typename std::remove_reference<A>::type A2;
+		typedef typename std::remove_reference<B>::type B2;
+		typedef typename std::remove_reference<C>::type C2;
 		auto wrapper = [=] (V va, V vb, V vc) {
-			auto const & a = TypeTag<A>::ReifyOpaque(va);
-			auto const & b = TypeTag<B>::ReifyOpaque(vb);
-			auto const & c = TypeTag<C>::ReifyOpaque(vc);
-			return func(a, b, c);
+			A2 && a = TypeTag<A2>::ReifyOpaque(va);
+			B2 && b = TypeTag<B2>::ReifyOpaque(vb);
+			C2 && c = TypeTag<C2>::ReifyOpaque(vc);
+			return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c));
 		};
 		OptInfo<ParseResult(V,V,V)> info;
 		info.keyword = keyword;
-		PushTypeKind<A>(info.types);
-		PushTypeKind<B>(info.types);
-		PushTypeKind<C>(info.types);
+		PushTypeKind<A2>(info.types);
+		PushTypeKind<B2>(info.types);
+		PushTypeKind<C2>(info.types);
 		info.callback = wrapper;
 		infos3.push_back(info);
 	}
@@ -473,19 +479,23 @@ private:
 	template <typename A, typename B, typename C, typename D>
 	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B,C,D)> const & func)
 	{
+		typedef typename std::remove_reference<A>::type A2;
+		typedef typename std::remove_reference<B>::type B2;
+		typedef typename std::remove_reference<C>::type C2;
+		typedef typename std::remove_reference<D>::type D2;
 		auto wrapper = [=] (V va, V vb, V vc, V vd) {
-			auto const & a = TypeTag<A>::ReifyOpaque(va);
-			auto const & b = TypeTag<B>::ReifyOpaque(vb);
-			auto const & c = TypeTag<C>::ReifyOpaque(vc);
-			auto const & d = TypeTag<D>::ReifyOpaque(vd);
-			return func(a, b, c, d);
+			A2 && a = TypeTag<A2>::ReifyOpaque(va);
+			B2 && b = TypeTag<B2>::ReifyOpaque(vb);
+			C2 && c = TypeTag<C2>::ReifyOpaque(vc);
+			D2 && d = TypeTag<D2>::ReifyOpaque(vd);
+			return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d));
 		};
 		OptInfo<ParseResult(V,V,V,V)> info;
 		info.keyword = keyword;
-		PushTypeKind<A>(info.types);
-		PushTypeKind<B>(info.types);
-		PushTypeKind<C>(info.types);
-		PushTypeKind<D>(info.types);
+		PushTypeKind<A2>(info.types);
+		PushTypeKind<B2>(info.types);
+		PushTypeKind<C2>(info.types);
+		PushTypeKind<D2>(info.types);
 		info.callback = wrapper;
 		infos4.push_back(info);
 	}
@@ -502,21 +512,26 @@ private:
 	template <typename A, typename B, typename C, typename D, typename E>
 	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B,C,D,E)> const & func)
 	{
+		typedef typename std::remove_reference<A>::type A2;
+		typedef typename std::remove_reference<B>::type B2;
+		typedef typename std::remove_reference<C>::type C2;
+		typedef typename std::remove_reference<D>::type D2;
+		typedef typename std::remove_reference<E>::type E2;
 		auto wrapper = [=] (V va, V vb, V vc, V vd, V ve) {
-			auto a = TypeTag<A>::ReifyOpaque(va);
-			auto b = TypeTag<B>::ReifyOpaque(vb);
-			auto c = TypeTag<C>::ReifyOpaque(vc);
-			auto d = TypeTag<D>::ReifyOpaque(vd);
-			auto e = TypeTag<E>::ReifyOpaque(ve);
-			return func(a, b, c, d, e);
+			A2 && a = TypeTag<A2>::ReifyOpaque(va);
+			B2 && b = TypeTag<B2>::ReifyOpaque(vb);
+			C2 && c = TypeTag<C2>::ReifyOpaque(vc);
+			D2 && d = TypeTag<D2>::ReifyOpaque(vd);
+			E2 && e = TypeTag<E2>::ReifyOpaque(ve);
+			return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e));
 		};
 		OptInfo<ParseResult(V,V,V,V,V)> info;
 		info.keyword = keyword;
-		PushTypeKind<A>(info.types);
-		PushTypeKind<B>(info.types);
-		PushTypeKind<C>(info.types);
-		PushTypeKind<D>(info.types);
-		PushTypeKind<E>(info.types);
+		PushTypeKind<A2>(info.types);
+		PushTypeKind<B2>(info.types);
+		PushTypeKind<C2>(info.types);
+		PushTypeKind<D2>(info.types);
+		PushTypeKind<E2>(info.types);
 		info.callback = wrapper;
 		infos5.push_back(info);
 	}
@@ -691,12 +706,14 @@ private:
 		typedef T Type;
 		typedef TypeTagImpl<Type> Base;
 
-		static Type const & ReifyOpaque (void const * p) {
-			return *static_cast<Type const *>(p);
+		static Type && ReifyOpaque (void * p) {
+			static_assert(std::is_same<Type, typename std::remove_reference<Type>::type>::value, "Internal error.");
+			Type & val = *static_cast<Type *>(p);
+			return std::move(val);
 		}
 
-		static void Delete (void const * p) {
-			delete static_cast<Type const *>(p);
+		static void Delete (void * p) {
+			delete static_cast<Type *>(p);
 		}
 
 		using Base::Parse;
@@ -706,7 +723,7 @@ private:
 			if (Parse(iter, end, x)) {
 				return UniqueOpaque(AllocateCopy(std::move(x)).release(), Delete);
 			}
-			return UniqueOpaque(static_cast<T const *>(nullptr), Delete);
+			return UniqueOpaque(static_cast<T *>(nullptr), Delete);
 		}
 	};
 
@@ -821,7 +838,7 @@ typename LambdaOpts<Char>::UniqueOpaque LambdaOpts<Char>::ParseEnvImpl::OpaquePa
 {
 	ArgsIter const begin = iter;
 
-	UniqueOpaque p(static_cast<char *>(nullptr), [](void const *){});
+	UniqueOpaque p(static_cast<char *>(nullptr), [](void *){});
 
 	switch (typeKind.simple) {
 		case TypeTag<int>::Kind:			p = TypeTag<int>::OpaqueParse(iter, end); break;
@@ -974,12 +991,9 @@ bool LambdaOpts<Char>::ParseEnvImpl::Peek (T & outArg)
 {
 	if (currArg != args.end()) {
 		ArgsIter startArg = currArg;
-		std::unique_ptr<T const> p = TypeTag<T>::Parse(currArg, args.end());
+		bool res = TypeTag<T>::Parse(currArg, args.end(), outArg);
 		currArg = startArg;
-		if (p) {
-			outArg = *p;
-			return true;
-		}
+		return res;
 	}
 	return false;
 }
