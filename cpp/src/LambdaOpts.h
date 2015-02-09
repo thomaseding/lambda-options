@@ -512,22 +512,21 @@ private:
 
 	template <typename T>
 	struct TypeTagNumberBase {
-		static std::unique_ptr<T const> Parse (ArgsIter & iter, ArgsIter end) {
+		static bool Parse (ArgsIter & iter, ArgsIter end, T & out) {
 			ASSERT(__LINE__, iter != end);
 			String const & str = *iter;
-			T item;
 			if (str.size() > 1 && std::isspace(str.front())) {
-				return nullptr;
+				return false;
 			}
-			if (Scan(*iter, TypeTag<T>::ScanDescription(), &item)) {
+			if (Scan(*iter, TypeTag<T>::ScanDescription(), &out)) {
 				if (str.size() == StrLen(str.c_str())) {
 					if (str.find_first_of(StringLiteral<Char>::xX()) == std::string::npos) {
 						++iter;
-						return AllocateCopy(item);
+						return true;
 					}
 				}
 			}
-			return nullptr;
+			return false;
 		}
 	};
 
@@ -546,12 +545,12 @@ private:
 	public:
 		enum : SimpleTypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%u%c"; }
-		static std::unique_ptr<unsigned int const> Parse (ArgsIter & iter, ArgsIter end) {
+		static bool Parse (ArgsIter & iter, ArgsIter end, unsigned int & out) {
 			ASSERT(__LINE__, iter != end);
 			if (!iter->empty() && iter->front() == '-') {
-				return nullptr;
+				return false;
 			}
-			return TypeTagNumberBase<unsigned int>::Parse(iter, end);
+			return TypeTagNumberBase<unsigned int>::Parse(iter, end, out);
 		}
 	};
 
@@ -573,12 +572,14 @@ private:
 	struct TypeTagImpl<Char, Dummy> {
 	public:
 		enum : SimpleTypeKind { Kind = __LINE__ };
-		static std::unique_ptr<Char const> Parse (ArgsIter & iter, ArgsIter end) {
+		static bool Parse (ArgsIter & iter, ArgsIter end, Char & out) {
 			ASSERT(__LINE__, iter != end);
 			if (iter->size() == 1) {
-				return AllocateCopy((iter++)->front());
+				out = iter->front();
+				++iter;
+				return true;
 			}
-			return nullptr;
+			return false;
 		}
 	};
 
@@ -586,30 +587,29 @@ private:
 	struct TypeTagImpl<String, Dummy> {
 	public:
 		enum : SimpleTypeKind { Kind = __LINE__ };
-		static std::unique_ptr<String const> Parse (ArgsIter & iter, ArgsIter end) {
+		static bool Parse (ArgsIter & iter, ArgsIter end, String & out) {
 			ASSERT(__LINE__, iter != end);
-			return AllocateCopy(*iter++);
+			out = *iter;
+			++iter;
+			return true;
 		}
 	};
 
 	template <typename T, size_t N, typename Dummy>
 	struct TypeTagImpl<std::array<T, N>, Dummy> {
 		enum : SimpleTypeKind { Kind = __LINE__ };
-		static std::unique_ptr<std::array<T, N> const> Parse (ArgsIter & iter, ArgsIter end) {
+		static bool Parse (ArgsIter & iter, ArgsIter end, std::array<T, N> & out) {
 			static_assert(N > 0, "Parsing a 0-sized array is not well-defined.");
-			std::array<T, N> arr;
 			ASSERT(__LINE__, iter != end);
 			for (size_t i = 0; i < N; ++i) {
 				if (iter == end) {
-					return nullptr;
+					return false;
 				}
-				std::unique_ptr<T const> p = TypeTagImpl<T>::Parse(iter, end);
-				if (!p) {
-					return nullptr;
+				if (!TypeTagImpl<T>::Parse(iter, end, out[i])) {
+					return false;
 				}
-				arr[i] = std::move(*p);
 			}
-			return AllocateCopy(std::move(arr));
+			return true;
 		}
 	};
 
@@ -629,7 +629,11 @@ private:
 		using Base::Parse;
 
 		static UniqueOpaque OpaqueParse (ArgsIter & iter, ArgsIter end) {
-			return UniqueOpaque(Parse(iter, end).release(), Delete);
+			T x;
+			if (Parse(iter, end, x)) {
+				return UniqueOpaque(AllocateCopy(std::move(x)).release(), Delete);
+			}
+			return UniqueOpaque(static_cast<T const *>(nullptr), Delete);
 		}
 	};
 
