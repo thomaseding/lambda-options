@@ -545,6 +545,9 @@ static void TestObtainedValues ()
 	std::vector<std::string> args;
 	std::stringstream expected;
 
+	args.push_back("");
+	Dump(expected, "");
+
 	args.push_back("-4");
 	Dump(expected, -4);
 
