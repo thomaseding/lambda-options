@@ -119,6 +119,13 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
+	template <typename T>
+	struct Tag {
+		typedef T type;
+	};
+
+//////////////////////////////////////////////////////////////////////////
+
 	typedef typename Args::const_iterator ArgsIter;
 
 	typedef void * V;
@@ -126,20 +133,63 @@ private:
 	typedef std::unique_ptr<void, OpaqueDeleter> UniqueOpaque;
 	typedef std::vector<UniqueOpaque> OpaqueArgs;
 
-	typedef size_t SimpleTypeKind;
-	struct TypeKind {
-		bool operator== (TypeKind const & other) const {
-			return simple == other.simple && size == other.size && elem == other.elem;
-		}
-		SimpleTypeKind simple;
-		size_t size;
-		SimpleTypeKind elem;
-	};
+	class TypeKind;
 
 	typedef UniqueOpaque (*OpaqueParser)(ArgsIter &, ArgsIter);
 	typedef std::vector<std::pair<TypeKind, OpaqueParser>> DynamicParsers;
 
 //////////////////////////////////////////////////////////////////////////
+
+	class TypeKind {
+	public:
+		TypeKind (Tag<int>) { InitSimple(__LINE__); }
+		TypeKind (Tag<unsigned int>) { InitSimple(__LINE__); }
+		TypeKind (Tag<float>) { InitSimple(__LINE__); }
+		TypeKind (Tag<double>) { InitSimple(__LINE__); }
+		TypeKind (Tag<Char>) { InitSimple(__LINE__); }
+		TypeKind (Tag<String>) { InitSimple(__LINE__); }
+
+		template <typename T, size_t N>
+		TypeKind (Tag<std::array<T, N>>)
+			: typeId(__LINE__)
+			, arrayCount(N)
+			, arrayElem(new TypeKind(Tag<T>()))
+		{}
+
+		bool operator== (TypeKind const & other) const
+		{
+			ASSERT(__LINE__, typeId > 0 && other.typeId > 0);
+			if (!arrayElem && other.arrayElem) {
+				return false;
+			}
+			if (arrayElem) {
+				if (!other.arrayElem) {
+					return false;
+				}
+				if (arrayCount != other.arrayCount) {
+					return false;
+				}
+				if (!(*arrayElem == *other.arrayElem)) {
+					return false;
+				}
+			}
+			return typeId == other.typeId;
+		}
+
+	private:
+		void InitSimple (size_t typeId)
+		{
+			this->typeId = typeId;
+			arrayCount = 0;
+		}
+
+	private:
+		size_t typeId;
+		size_t arrayCount;
+		std::unique_ptr<TypeKind> arrayElem;
+	};
+
+///////////////////////////////////////////////////////////////////////////
 
 	template <typename Func>
 	struct FuncTraits : public FuncTraits<decltype(&Func::operator())> {};
@@ -197,9 +247,6 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-	class VoidTag {};
-	class ParseResultTag {};
-
 	template <typename T, typename Dummy=void>
 	struct ReturnType {
 		static bool const allowed = false;
@@ -208,13 +255,11 @@ private:
 	template <typename Dummy>
 	struct ReturnType<void, Dummy> {
 		static bool const allowed = true;
-		typedef VoidTag Tag;
 	};
 
 	template <typename Dummy>
 	struct ReturnType<ParseResult, Dummy> {
 		static bool const allowed = true;
-		typedef ParseResultTag Tag;
 	};
 
 	template <typename Func, size_t>
@@ -228,7 +273,7 @@ private:
 		static void Add (LambdaOpts & opts, String const & keyword, Func const & f) {
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(ReturnType<R>::allowed, "Illegal return type.");
-			opts.AddImpl(typename ReturnType<R>::Tag(), keyword, f);
+			opts.AddImpl(Tag<R>(), keyword, f);
 		}
 	};
 
@@ -238,7 +283,7 @@ private:
 			typedef typename FuncTraits<Func>::Arg0::type A;
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(ReturnType<R>::allowed, "Illegal return type.");
-			opts.AddImpl<A>(typename ReturnType<R>::Tag(), keyword, f);
+			opts.AddImpl<A>(Tag<R>(), keyword, f);
 		}
 	};
 
@@ -249,7 +294,7 @@ private:
 			typedef typename FuncTraits<Func>::Arg1::type B;
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(ReturnType<R>::allowed, "Illegal return type.");
-			opts.AddImpl<A,B>(typename ReturnType<R>::Tag(), keyword, f);
+			opts.AddImpl<A,B>(Tag<R>(), keyword, f);
 		}
 	};
 
@@ -261,7 +306,7 @@ private:
 			typedef typename FuncTraits<Func>::Arg2::type C;
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(ReturnType<R>::allowed, "Illegal return type.");
-			opts.AddImpl<A,B,C>(typename ReturnType<R>::Tag(), keyword, f);
+			opts.AddImpl<A,B,C>(Tag<R>(), keyword, f);
 		}
 	};
 
@@ -274,7 +319,7 @@ private:
 			typedef typename FuncTraits<Func>::Arg3::type D;
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(ReturnType<R>::allowed, "Illegal return type.");
-			opts.AddImpl<A,B,C,D>(typename ReturnType<R>::Tag(), keyword, f);
+			opts.AddImpl<A,B,C,D>(Tag<R>(), keyword, f);
 		}
 	};
 
@@ -288,7 +333,7 @@ private:
 			typedef typename FuncTraits<Func>::Arg4::type E;
 			typedef typename FuncTraits<Func>::Return::type R;
 			static_assert(ReturnType<R>::allowed, "Illegal return type.");
-			opts.AddImpl<A,B,C,D,E>(typename ReturnType<R>::Tag(), keyword, f);
+			opts.AddImpl<A,B,C,D,E>(Tag<R>(), keyword, f);
 		}
 	};
 
@@ -299,61 +344,41 @@ private:
 	struct ArrayInfo {
 		static bool const valid = false;
 
-		// Dummies make code easier to write by supplying valid code to the compiler.
+		// Dummy make code easier to write by supplying valid code to the compiler.
 		typedef int elem_type;
-		enum : size_t { size = 1 };
 	};
 
 	template <typename T, size_t N>
 	struct ArrayInfo<std::array<T, N>> {
 		static bool const valid = true;
 		typedef T elem_type;
-		enum : size_t { size = N };
 	};
-
-	template <typename T>
-	static TypeKind GetTypeKind ()
-	{
-		typedef TypeTag<T> Tag;
-		typedef ArrayInfo<T> ArrInfo;
-		typedef typename ArrInfo::elem_type Elem;
-		typedef TypeTag<Elem> ElemTag;
-
-		TypeKind k = { Tag::Kind, ArrInfo::size, ElemTag::Kind };
-		return k;
-	}
 
 	template <typename T>
 	void PushTypeKind (std::vector<TypeKind> & kinds)
 	{
-		typedef ArrayInfo<T> ArrInfo;
-		typedef typename ArrInfo::elem_type Elem;
-
-		kinds.push_back(GetTypeKind<T>());
-
-		if (ArrInfo::valid) {
-			static_assert(!ArrayInfo<Elem>::valid, "Nested array types not supported.");
-			AddArrayDynamicParser<Elem, ArrInfo::size>();
-		}
+		kinds.push_back(TypeKind(Tag<T>()));
+		AddDynamicParser<T>();
 	}
 
-	template <typename T, size_t N>
-	void AddArrayDynamicParser ()
+	template <typename T>
+	void AddDynamicParser ()
 	{
-		typedef std::array<T, N> Arr;
-		TypeKind k = GetTypeKind<Arr>();
+		if (ArrayInfo<T>::valid) {
+			AddDynamicParser<typename ArrayInfo<T>::elem_type>();
+		}
+		TypeKind typeKind{ Tag<T>() };
 		for (auto const & key_value : dynamicParsers) {
 			TypeKind const & key = key_value.first;
-			if (key == k) {
+			if (key == typeKind) {
 				return;
 			}
 		}
-		typedef TypeTag<Arr> ArrTag;
-		OpaqueParser f = ArrTag::OpaqueParse;
-		dynamicParsers.emplace_back(k, f);
+		OpaqueParser parser = TypeTag<T>::OpaqueParse;
+		dynamicParsers.emplace_back(std::move(typeKind), parser);
 	}
 
-	static OpaqueParser LookupDynamicParser (DynamicParsers const & dynamicParsers, TypeKind const & k)
+	OpaqueParser LookupDynamicParser (TypeKind const & k) const
 	{
 		for (auto const & key_value : dynamicParsers) {
 			TypeKind const & key = key_value.first;
@@ -362,6 +387,7 @@ private:
 				return p;
 			}
 		}
+		ASSERT(__LINE__, false);
 		return nullptr;
 	}
 
@@ -372,60 +398,55 @@ private:
 		typedef typename std::remove_cv<typename std::remove_reference<T>::type>::type type;
 	};
 
-	void AddImpl (VoidTag, String const & keyword, std::function<void()> const & func)
+	void AddImpl (Tag<void>, String const & keyword, std::function<void()> const & func)
 	{
-		AddImpl(ParseResultTag(), keyword, [=] () {
+		AddImpl(Tag<ParseResult>(), keyword, [=] () {
 			func();
 			return ParseResult::Accept;
 		});
 	}
 
-	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult()> const & func)
+	void AddImpl (Tag<ParseResult>, String const & keyword, std::function<ParseResult()> const & func)
 	{
 		if (keyword.empty()) {
 			throw Exception("Cannot add an empty rule.");
 		}
-		OptInfo<ParseResult()> info;
-		info.keyword = keyword;
-		info.callback = func;
-		infos0.push_back(info);
+		infos0.emplace_back(keyword, func);
 	}
 
 	template <typename A>
-	void AddImpl (VoidTag, String const & keyword, std::function<void(A)> const & func)
+	void AddImpl (Tag<void>, String const & keyword, std::function<void(A)> const & func)
 	{
-		AddImpl<A>(ParseResultTag(), keyword, [=] (A && a) {
+		AddImpl<A>(Tag<ParseResult>(), keyword, [=] (A && a) {
 			func(std::forward<A>(a));
 			return ParseResult::Accept;
 		});
 	}
 
 	template <typename A>
-	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A)> const & func)
+	void AddImpl (Tag<ParseResult>, String const & keyword, std::function<ParseResult(A)> const & func)
 	{
 		typedef typename SimplifyType<A>::type A2;
 		auto wrapper = [=] (V va) {
 			A2 && a = TypeTag<A2>::ReifyOpaque(va);
 			return func(std::forward<A>(a));
 		};
-		OptInfo<ParseResult(V)> info;
-		info.keyword = keyword;
+		infos1.emplace_back(keyword, wrapper);
+		auto & info = infos1.back();
 		PushTypeKind<A2>(info.types);
-		info.callback = wrapper;
-		infos1.push_back(info);
 	}
 
 	template <typename A, typename B>
-	void AddImpl (VoidTag, String const & keyword, std::function<void(A,B)> const & func)
+	void AddImpl (Tag<void>, String const & keyword, std::function<void(A,B)> const & func)
 	{
-		AddImpl<A,B>(ParseResultTag(), keyword, [=] (A && a, B && b) {
+		AddImpl<A,B>(Tag<ParseResult>(), keyword, [=] (A && a, B && b) {
 			func(std::forward<A>(a), std::forward<B>(b));
 			return ParseResult::Accept;
 		});
 	}
 
 	template <typename A, typename B>
-	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B)> const & func)
+	void AddImpl (Tag<ParseResult>, String const & keyword, std::function<ParseResult(A,B)> const & func)
 	{
 		typedef typename SimplifyType<A>::type A2;
 		typedef typename SimplifyType<B>::type B2;
@@ -434,25 +455,23 @@ private:
 			B2 && b = TypeTag<B2>::ReifyOpaque(vb);
 			return func(std::forward<A>(a), std::forward<B>(b));
 		};
-		OptInfo<ParseResult(V,V)> info;
-		info.keyword = keyword;
+		infos2.emplace_back(keyword, wrapper);
+		auto & info = infos2.back();
 		PushTypeKind<A2>(info.types);
 		PushTypeKind<B2>(info.types);
-		info.callback = wrapper;
-		infos2.push_back(info);
 	}
 
 	template <typename A, typename B, typename C>
-	void AddImpl (VoidTag, String const & keyword, std::function<void(A,B,C)> const & func)
+	void AddImpl (Tag<void>, String const & keyword, std::function<void(A,B,C)> const & func)
 	{
-		AddImpl<A,B,C>(ParseResultTag(), keyword, [=] (A && a, B && b, C && c) {
+		AddImpl<A,B,C>(Tag<ParseResult>(), keyword, [=] (A && a, B && b, C && c) {
 			func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c));
 			return ParseResult::Accept;
 		});
 	}
 
 	template <typename A, typename B, typename C>
-	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B,C)> const & func)
+	void AddImpl (Tag<ParseResult>, String const & keyword, std::function<ParseResult(A,B,C)> const & func)
 	{
 		typedef typename SimplifyType<A>::type A2;
 		typedef typename SimplifyType<B>::type B2;
@@ -463,26 +482,24 @@ private:
 			C2 && c = TypeTag<C2>::ReifyOpaque(vc);
 			return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c));
 		};
-		OptInfo<ParseResult(V,V,V)> info;
-		info.keyword = keyword;
+		infos3.emplace_back(keyword, wrapper);
+		auto & info = infos3.back();
 		PushTypeKind<A2>(info.types);
 		PushTypeKind<B2>(info.types);
 		PushTypeKind<C2>(info.types);
-		info.callback = wrapper;
-		infos3.push_back(info);
 	}
 
 	template <typename A, typename B, typename C, typename D>
-	void AddImpl (VoidTag, String const & keyword, std::function<void(A,B,C,D)> const & func)
+	void AddImpl (Tag<void>, String const & keyword, std::function<void(A,B,C,D)> const & func)
 	{
-		AddImpl<A,B,C,D>(ParseResultTag(), keyword, [=] (A && a, B && b, C && c, D && d) {
+		AddImpl<A,B,C,D>(Tag<ParseResult>(), keyword, [=] (A && a, B && b, C && c, D && d) {
 			func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d));
 			return ParseResult::Accept;
 		});
 	}
 
 	template <typename A, typename B, typename C, typename D>
-	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B,C,D)> const & func)
+	void AddImpl (Tag<ParseResult>, String const & keyword, std::function<ParseResult(A,B,C,D)> const & func)
 	{
 		typedef typename SimplifyType<A>::type A2;
 		typedef typename SimplifyType<B>::type B2;
@@ -495,27 +512,25 @@ private:
 			D2 && d = TypeTag<D2>::ReifyOpaque(vd);
 			return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d));
 		};
-		OptInfo<ParseResult(V,V,V,V)> info;
-		info.keyword = keyword;
+		infos4.emplace_back(keyword, wrapper);
+		auto & info = infos4.back();
 		PushTypeKind<A2>(info.types);
 		PushTypeKind<B2>(info.types);
 		PushTypeKind<C2>(info.types);
 		PushTypeKind<D2>(info.types);
-		info.callback = wrapper;
-		infos4.push_back(info);
 	}
 
 	template <typename A, typename B, typename C, typename D, typename E>
-	void AddImpl (VoidTag, String const & keyword, std::function<void(A,B,C,D,E)> const & func)
+	void AddImpl (Tag<void>, String const & keyword, std::function<void(A,B,C,D,E)> const & func)
 	{
-		AddImpl<A,B,C,D,E>(ParseResultTag(), keyword, [=] (A && a, B && b, C && c, D && d, E && e) {
+		AddImpl<A,B,C,D,E>(Tag<ParseResult>(), keyword, [=] (A && a, B && b, C && c, D && d, E && e) {
 			func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e));
 			return ParseResult::Accept;
 		});
 	}
 
 	template <typename A, typename B, typename C, typename D, typename E>
-	void AddImpl (ParseResultTag, String const & keyword, std::function<ParseResult(A,B,C,D,E)> const & func)
+	void AddImpl (Tag<ParseResult>, String const & keyword, std::function<ParseResult(A,B,C,D,E)> const & func)
 	{
 		typedef typename SimplifyType<A>::type A2;
 		typedef typename SimplifyType<B>::type B2;
@@ -530,15 +545,13 @@ private:
 			E2 && e = TypeTag<E2>::ReifyOpaque(ve);
 			return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e));
 		};
-		OptInfo<ParseResult(V,V,V,V,V)> info;
-		info.keyword = keyword;
+		infos5.emplace_back(keyword, wrapper);
+		auto & info = infos5.back();
 		PushTypeKind<A2>(info.types);
 		PushTypeKind<B2>(info.types);
 		PushTypeKind<C2>(info.types);
 		PushTypeKind<D2>(info.types);
 		PushTypeKind<E2>(info.types);
-		info.callback = wrapper;
-		infos5.push_back(info);
 	}
 
 //////////////////////////////////////////////////////////////////////////
@@ -629,14 +642,12 @@ private:
 	template <typename Dummy>
 	struct TypeTagImpl<int, Dummy> : public TypeTagNumberBase<int> {
 	public:
-		enum : SimpleTypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%d%c"; }
 	};
 
 	template <typename Dummy>
 	struct TypeTagImpl<unsigned int, Dummy> : public TypeTagNumberBase<unsigned int> {
 	public:
-		enum : SimpleTypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%u%c"; }
 		static bool Parse (ArgsIter & iter, ArgsIter end, unsigned int & out) {
 			ASSERT(__LINE__, iter != end);
@@ -650,21 +661,18 @@ private:
 	template <typename Dummy>
 	struct TypeTagImpl<float, Dummy> : public TypeTagNumberBase<float> {
 	public:
-		enum : SimpleTypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%f%c"; }
 	};
 
 	template <typename Dummy>
 	struct TypeTagImpl<double, Dummy> : public TypeTagNumberBase<double> {
 	public:
-		enum : SimpleTypeKind { Kind = __LINE__ };
 		static char const * const ScanDescription () { return "%lf%c"; }
 	};
 
 	template <typename Dummy>
 	struct TypeTagImpl<Char, Dummy> {
 	public:
-		enum : SimpleTypeKind { Kind = __LINE__ };
 		static bool Parse (ArgsIter & iter, ArgsIter end, Char & out) {
 			ASSERT(__LINE__, iter != end);
 			if (iter->size() == 1) {
@@ -679,7 +687,6 @@ private:
 	template <typename Dummy>
 	struct TypeTagImpl<String, Dummy> {
 	public:
-		enum : SimpleTypeKind { Kind = __LINE__ };
 		static bool Parse (ArgsIter & iter, ArgsIter end, String & out) {
 			ASSERT(__LINE__, iter != end);
 			out = *iter;
@@ -690,7 +697,6 @@ private:
 
 	template <typename T, size_t N, typename Dummy>
 	struct TypeTagImpl<std::array<T, N>, Dummy> {
-		enum : SimpleTypeKind { Kind = __LINE__ };
 		static bool Parse (ArgsIter & iter, ArgsIter end, std::array<T, N> & out) {
 			static_assert(N > 0, "Parsing a 0-sized array is not well-defined.");
 			ASSERT(__LINE__, iter != end);
@@ -733,10 +739,23 @@ private:
 	};
 
 	template <typename FuncSig>
-	struct OptInfo {
+	class OptInfo {
+	public:
+		OptInfo (String const & keyword, std::function<FuncSig> const & callback)
+			: keyword(keyword)
+			, callback(callback)
+		{}
+
+		OptInfo (OptInfo && other)
+			: keyword(std::move(other.keyword))
+			, callback(std::move(other.callback))
+			, types(std::move(other.types))
+		{}
+
+	public:
 		String keyword;
-		std::vector<TypeKind> types;
 		std::function<FuncSig> callback;
+		std::vector<TypeKind> types;
 	};
 
 //////////////////////////////////////////////////////////////////////////
@@ -752,7 +771,7 @@ private:
 
 		bool Next ();
 
-		UniqueOpaque OpaqueParse (TypeKind typeKind, ArgsIter & iter, ArgsIter end);
+		UniqueOpaque OpaqueParse (TypeKind const & typeKind, ArgsIter & iter, ArgsIter end);
 
 		template <typename GenericOptInfo>
 		ParseResult TryParse (bool useKeyword, std::vector<GenericOptInfo> const & infos);
@@ -839,28 +858,12 @@ LambdaOpts<Char>::ParseEnvImpl::ParseEnvImpl (LambdaOpts const & opts, std::vect
 
 
 template <typename Char>
-typename LambdaOpts<Char>::UniqueOpaque LambdaOpts<Char>::ParseEnvImpl::OpaqueParse (TypeKind typeKind, ArgsIter & iter, ArgsIter end)
+typename LambdaOpts<Char>::UniqueOpaque LambdaOpts<Char>::ParseEnvImpl::OpaqueParse (TypeKind const & typeKind, ArgsIter & iter, ArgsIter end)
 {
 	ArgsIter const begin = iter;
 
-	UniqueOpaque p(static_cast<char *>(nullptr), [](void *){});
-
-	switch (typeKind.simple) {
-		case TypeTag<int>::Kind:			p = TypeTag<int>::OpaqueParse(iter, end); break;
-		case TypeTag<unsigned int>::Kind:	p = TypeTag<unsigned int>::OpaqueParse(iter, end); break;
-		case TypeTag<float>::Kind:			p = TypeTag<float>::OpaqueParse(iter, end); break;
-		case TypeTag<double>::Kind:			p = TypeTag<double>::OpaqueParse(iter, end); break;
-		case TypeTag<Char>::Kind:			p = TypeTag<Char>::OpaqueParse(iter, end); break;
-		case TypeTag<String>::Kind:			p = TypeTag<String>::OpaqueParse(iter, end); break;
-		default: {
-			DynamicParsers const & parsers = opts.dynamicParsers;
-			OpaqueParser parser = LookupDynamicParser(parsers, typeKind);
-			if (parser == nullptr) {
-				ASSERT(__LINE__, false);
-			}
-			p = parser(iter, end);
-		}
-	}
+	OpaqueParser parser = opts.LookupDynamicParser(typeKind);
+	UniqueOpaque p = parser(iter, end);
 
 	if (p) {
 		ASSERT(__LINE__, iter > begin);
@@ -898,7 +901,7 @@ typename LambdaOpts<Char>::ParseResult LambdaOpts<Char>::ParseEnvImpl::TryParse 
 					parsedFullArity = false;
 					break;
 				}
-				TypeKind typeKind = info.types[i];
+				TypeKind const & typeKind = info.types[i];
 				UniqueOpaque parsedArg = OpaqueParse(typeKind, currArg, args.end());
 				if (parsedArg == nullptr) {
 					parsedFullArity = false;
