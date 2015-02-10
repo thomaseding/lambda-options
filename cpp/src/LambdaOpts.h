@@ -556,51 +556,32 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 
-	template <typename T, typename Dummy=void>
-	struct AddDynamicParserExtra {
-		static void Exec (DynamicParserMap &) {}
-	};
-
-	template <typename T, size_t N, typename Dummy>
-	struct AddDynamicParserExtra<std::array<T, N>, Dummy> {
-		static void Exec (DynamicParserMap & dynamicParserMap)
-		{
-			AddDynamicParser<T>(dynamicParserMap);
-		}
-	};
-
-	template <typename T>
-	static void AddDynamicParser (DynamicParserMap & dynamicParserMap)
+	template <typename K, typename V>
+	static V const * Lookup (std::vector<std::pair<K, V>> const & assocs, K const & key)
 	{
-		TypeKind typeKind = TypeKind::Get<T>();
-		for (auto const & key_value : dynamicParserMap) {
-			TypeKind const & key = key_value.first;
-			if (key == typeKind) {
-				return;
+		for (auto const & assoc : assocs) {
+			if (assoc.first == key) {
+				return &assoc.second;
 			}
 		}
-		AddDynamicParserExtra<T>::Exec(dynamicParserMap);
-		OpaqueParser parser = OpaqueParse<T>;
-		dynamicParserMap.emplace_back(std::move(typeKind), parser);
+		return nullptr;
 	}
 
 	template <typename T>
 	void AddDynamicParser ()
 	{
-		AddDynamicParser<T>(dynamicParserMap);
+		TypeKind typeKind = TypeKind::Get<T>();
+		if (Lookup(dynamicParserMap, typeKind) == nullptr) {
+			OpaqueParser parser = OpaqueParse<T>;
+			dynamicParserMap.emplace_back(std::move(typeKind), parser);
+		}
 	}
 
 	OpaqueParser LookupDynamicParser (TypeKind const & k) const
 	{
-		for (auto const & key_value : dynamicParserMap) {
-			TypeKind const & key = key_value.first;
-			OpaqueParser p = key_value.second;
-			if (key == k) {
-				return p;
-			}
-		}
-		ASSERT(__LINE__, false);
-		return nullptr;
+		OpaqueParser const * pParser = Lookup(dynamicParserMap, k);
+		ASSERT(__LINE__, pParser != nullptr);
+		return *pParser;
 	}
 
 	template <typename T>
