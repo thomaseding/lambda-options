@@ -35,6 +35,7 @@
 #include <exception>
 #include <functional>
 #include <memory>
+#include <new>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -95,11 +96,11 @@ namespace lambda_opts
 			static wchar_t const * xX () { return L"xX"; };
 		};
 
-		template <typename Char, typename T>
+		template <typename Char>
 		static bool ScanNumber (
 			typename std::vector<std::basic_string<Char>>::const_iterator & iter,
 			typename std::vector<std::basic_string<Char>>::const_iterator end,
-			T & out,
+			void * out,
 			char const * format)
 		{
 			ASSERT(__LINE__, iter < end);
@@ -129,47 +130,47 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct Parser<Char, int> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, int & out)
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
 		{
-			return unstable_dont_use::ScanNumber<Char>(iter, end, out, "%d%c");
+			return unstable_dont_use::ScanNumber<Char>(iter, end, memory, "%d%c");
 		}
 	};
 
 	template <typename Char>
 	struct Parser<Char, unsigned int> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, unsigned int & out)
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			if (!iter->empty() && iter->front() == '-') {
 				return false;
 			}
-			return unstable_dont_use::ScanNumber<Char>(iter, end, out, "%u%c");
+			return unstable_dont_use::ScanNumber<Char>(iter, end, memory, "%u%c");
 		}
 	};
 
 	template <typename Char>
 	struct Parser<Char, float> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, float & out)
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
 		{
-			return unstable_dont_use::ScanNumber<Char>(iter, end, out, "%f%c");
+			return unstable_dont_use::ScanNumber<Char>(iter, end, memory, "%f%c");
 		}
 	};
 
 	template <typename Char>
 	struct Parser<Char, double> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, double & out)
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
 		{
-			return unstable_dont_use::ScanNumber<Char>(iter, end, out, "%lf%c");
+			return unstable_dont_use::ScanNumber<Char>(iter, end, memory, "%lf%c");
 		}
 	};
 
 	template <typename Char>
 	struct Parser<Char, Char> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, Char & out)
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			if (iter->size() == 1) {
-				out = iter->front();
+				*static_cast<char *>(memory) = iter->front();
 				++iter;
 				return true;
 			}
@@ -179,10 +180,10 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct Parser<Char, std::basic_string<Char>> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, std::basic_string<Char> & out)
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
-			out = *iter;
+			new (memory) std::basic_string<Char>(*iter);
 			++iter;
 			return true;
 		}
@@ -190,15 +191,30 @@ namespace lambda_opts
 
 	template <typename Char, typename T, size_t N>
 	struct Parser<Char, std::array<T, N>> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, std::array<T, N> & out)
+	private:
+		typedef std::array<T, N> Array;
+		static void DeallocatePartial (size_t beginIdx, Array & array)
+		{
+			for (size_t i = beginIdx; i > 0; --i) {
+				T & elem = array[i - 1];
+				elem.~T();
+			}
+		}
+
+	public:
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
 		{
 			static_assert(N > 0, "Parsing a zero-sized array is not well-defined.");
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
+			Array & array = *static_cast<Array *>(memory);
 			for (size_t i = 0; i < N; ++i) {
 				if (iter == end) {
+					DeallocatePartial(i, array);
 					return false;
 				}
-				if (!Parser<Char, T>::Parse(iter, end, out[i])) {
+				T & elem = array[i];
+				if (!Parser<Char, T>::Parse(iter, end, &elem)) {
+					DeallocatePartial(i, array);
 					return false;
 				}
 			}
@@ -516,9 +532,17 @@ private:
 	static UniqueOpaque OpaqueParse (ArgsIter & iter, ArgsIter end)
 	{
 		ArgsIter const startIter(iter);
-		T x;
-		if (lambda_opts::Parser<Char, T>::Parse(iter, end, x)) {
-			return UniqueOpaque(AllocateCopy(std::move(x)).release(), Delete<T>);
+		union U {
+			T object;
+			char memory[sizeof(T)];
+
+			U () : memory() {}
+			~U () {}
+		} u;
+		if (lambda_opts::Parser<Char, T>::Parse(iter, end, u.memory)) {
+			auto p = UniqueOpaque(AllocateCopy(std::move(u.object)).release(), Delete<T>);
+			u.object.~T();
+			return p;
 		}
 		return UniqueOpaque(static_cast<T *>(nullptr), Delete<T>);
 	}
