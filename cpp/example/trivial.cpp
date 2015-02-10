@@ -8,8 +8,7 @@
 
 int main (int argc, char ** argv)
 {
-	typedef LambdaOpts<char> Opts;
-	Opts opts;
+	LambdaOpts<char> opts;
 
 	opts.AddOption("--help", [] () {
 		std::cout << "--user NAME [AGE]" << std::endl;
