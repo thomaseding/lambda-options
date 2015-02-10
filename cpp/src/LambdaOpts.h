@@ -45,15 +45,122 @@
 //////////////////////////////////////////////////////////////////////////
 
 
+template <typename Char>
+class LambdaOpts;
+
+
 namespace lambda_opts
 {
+	class Exception : std::exception {
+	public:
+		Exception (std::string const & message)
+			: message(message)
+		{}
+
+		virtual char const * what () const throw() override
+		{
+			return message.c_str();
+		}
+
+	private:
+		std::string message;
+	};
+
+	template <typename Char>
+	class ArgsIter {
+	public:
+		typedef std::basic_string<Char> String;
+
+	private:
+		friend class LambdaOpts<Char>;
+
+		typedef std::vector<String> Args;
+		typedef typename Args::const_iterator Iter;
+
+	public:
+		ArgsIter & operator++ ()
+		{
+			if (iter == end) {
+				throw Exception("lambda_opts::ArgsIter::operator++(): Cannot increment past end iterator.");
+			}
+			++iter;
+			return *this;
+		}
+
+		ArgsIter operator++ (int)
+		{
+			ArgsIter old = *this;
+			++*this;
+			return old;
+		}
+
+		bool operator== (ArgsIter const & other) const
+		{
+			EnsureSameBacking(other);
+			return iter == other.iter;
+		}
+
+		bool operator!= (ArgsIter const & other) const
+		{
+			return !(*this == other);
+		}
+
+		bool operator< (ArgsIter const & other) const
+		{
+			EnsureSameBacking(other);
+			return iter < other.iter;
+		}
+
+		bool operator> (ArgsIter const & other) const
+		{
+			return other < *this;
+		}
+
+		bool operator<= (ArgsIter const & other) const
+		{
+			return *this < other || *this == other;
+		}
+
+		bool operator>= (ArgsIter const & other) const
+		{
+			return *this > other || *this == other;
+		}
+
+		String const & operator* () const
+		{
+			return *iter;
+		}
+
+		String const * operator-> () const
+		{
+			return iter.operator->();
+		}
+
+	private:
+		ArgsIter (Iter iter, Iter end)
+			: iter(iter)
+			, end(end)
+		{}
+
+		void EnsureSameBacking (ArgsIter const & other) const
+		{
+			if (end != other.end) {
+				throw Exception("Iterators do not correspond to the same data.");
+			}
+		}
+
+	private:
+		Iter iter;
+		Iter end;
+	};
+
 	namespace unstable_dont_use
 	{
 		inline void ASSERT (unsigned int line, bool truth)
 		{
 			if (!truth) {
 				char msg[1024];
-				sprintf(msg, "LambdaOpts::ASSERT failed in '%s' on line %u. Please file a bug report.", __FILE__, line);
+				sprintf(msg, "ASSERT failed in '%s' on line %u. Please file a bug report.", __FILE__, line);
 				throw std::logic_error(msg);
 			}
 		}
@@ -98,8 +205,8 @@ namespace lambda_opts
 
 		template <typename Char>
 		static bool ScanNumber (
-			typename std::vector<std::basic_string<Char>>::const_iterator & iter,
-			typename std::vector<std::basic_string<Char>>::const_iterator end,
+			ArgsIter<Char> & iter,
+			ArgsIter<Char> end,
 			void * out,
 			char const * format)
 		{
@@ -120,17 +227,12 @@ namespace lambda_opts
 		}
 	}
 
-	template <typename Char>
-	struct ArgsIter {
-		typedef typename std::vector<std::basic_string<Char>>::const_iterator type;
-	};
-
 	template <typename Char, typename T>
 	struct Parser {};
 
 	template <typename Char>
 	struct Parser<Char, int> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
 		{
 			return unstable_dont_use::ScanNumber<Char>(iter, end, memory, "%d%c");
 		}
@@ -138,7 +240,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct Parser<Char, unsigned int> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			if (!iter->empty() && iter->front() == '-') {
@@ -150,7 +252,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct Parser<Char, float> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
 		{
 			return unstable_dont_use::ScanNumber<Char>(iter, end, memory, "%f%c");
 		}
@@ -158,7 +260,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct Parser<Char, double> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
 		{
 			return unstable_dont_use::ScanNumber<Char>(iter, end, memory, "%lf%c");
 		}
@@ -166,7 +268,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct Parser<Char, Char> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			if (iter->size() == 1) {
@@ -180,7 +282,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct Parser<Char, std::basic_string<Char>> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			new (memory) std::basic_string<Char>(*iter);
@@ -202,7 +304,7 @@ namespace lambda_opts
 		}
 
 	public:
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
 		{
 			static_assert(N > 0, "Parsing a zero-sized array is not well-defined.");
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
@@ -241,21 +343,6 @@ public:
 		Accept,
 		Reject,
 		Fatal,
-	};
-
-	class Exception : std::exception {
-	public:
-		Exception (std::string const & message)
-			: message(message)
-		{}
-
-		virtual char const * what () const throw() override
-		{
-			return message.c_str();
-		}
-
-	private:
-		std::string message;
 	};
 
 	LambdaOpts ();
@@ -531,7 +618,6 @@ private:
 	template <typename T>
 	static UniqueOpaque OpaqueParse (ArgsIter & iter, ArgsIter end)
 	{
-		ArgsIter const startIter(iter);
 		union U {
 			T object;
 			char memory[sizeof(T)];
@@ -539,9 +625,14 @@ private:
 			U () : memory() {}
 			~U () {}
 		} u;
-		if (lambda_opts::Parser<Char, T>::Parse(iter, end, u.memory)) {
+
+		lambda_opts::ArgsIter<Char> iterWrapper(iter, end);
+		lambda_opts::ArgsIter<Char> endWrapper(end, end);
+
+		if (lambda_opts::Parser<Char, T>::Parse(iterWrapper, endWrapper, u.memory)) {
 			auto p = UniqueOpaque(AllocateCopy(std::move(u.object)).release(), Delete<T>);
 			u.object.~T();
+			iter = iterWrapper.iter;
 			return p;
 		}
 		return UniqueOpaque(static_cast<T *>(nullptr), Delete<T>);
@@ -655,7 +746,7 @@ private:
 		void AddImpl (Tag<ParseResult>, String const & keyword, std::function<ParseResult()> const & func)
 		{
 			if (keyword.empty()) {
-				throw Exception("Cannot add an empty rule.");
+				throw lambda_opts::Exception("Cannot add an empty rule.");
 			}
 			infos0.emplace_back(keyword, func);
 		}
@@ -932,8 +1023,10 @@ private:
 			OpaqueParser parser = opts->LookupDynamicParser(typeKind);
 			UniqueOpaque p = parser(iter, end);
 			if (p) {
+				ASSERT(__LINE__, startIter <= iter);
 				if (iter <= startIter) {
-					throw Exception("Parser generated a value, but did not consume any data.");
+					// TODO: Get rid of this and only throw if a fixed point is detected.
+					throw lambda_opts::Exception("Parser generated a value, but did not consume any data.");
 				}
 			}
 			else {

@@ -308,7 +308,7 @@ static void TestRejectEmptyKeyword ()
 		Opts opts;
 		opts.AddOption("", [] () { return PR::Accept; });
 	}
-	catch (Opts::Exception const & e) {
+	catch (lambda_opts::Exception const & e) {
 		return;
 	}
 	FAIL;

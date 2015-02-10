@@ -25,7 +25,7 @@ namespace lambda_opts
 {
 	template <typename Char>
 	struct Parser<Char, Point> {
-		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
 		{
 			std::array<float, 3> p;
 			if (Parser<Char, std::array<float, 3>>::Parse(iter, end, &p)) {
