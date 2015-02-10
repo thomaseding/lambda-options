@@ -108,7 +108,7 @@ namespace lambda_opts
 			if (str.size() > 1 && std::isspace(str.front())) {
 				return false;
 			}
-			if (Scan(*iter, format, &out)) {
+			if (Scan(*iter, format, out)) {
 				if (str.size() == StrLen(str.c_str())) {
 					if (str.find_first_of(StringLiteral<Char>::xX()) == std::string::npos) {
 						++iter;
