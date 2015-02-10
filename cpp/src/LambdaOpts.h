@@ -35,9 +35,177 @@
 #include <exception>
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
+namespace lambda_opts
+{
+	namespace unstable_dont_use
+	{
+		inline void ASSERT (unsigned int line, bool truth)
+		{
+			if (!truth) {
+				char msg[1024];
+				sprintf(msg, "LambdaOpts::ASSERT failed in '%s' on line %u. Please file a bug report.", __FILE__, line);
+				throw std::logic_error(msg);
+			}
+		}
+
+		template <typename Char>
+		inline size_t StrLen (Char const * str)
+		{
+			size_t size = 0;
+			while (*str++) ++size;
+			return size;
+		}
+
+		inline bool Scan (std::string const & str, char const * format, void * dest)
+		{
+			char dummy;
+			return std::sscanf(str.c_str(), format, dest, &dummy) == 1;
+		}
+
+		inline bool Scan (std::wstring const & str, char const * format, void * dest)
+		{
+			wchar_t wformat[8];
+			size_t len = StrLen(format) + 1;
+			for (size_t i = 0; i < len; ++i) {
+				wformat[i] = format[i];
+			}
+			wchar_t dummy;
+			return std::swscanf(str.c_str(), wformat, dest, &dummy) == 1;
+		}
+
+		template <typename Char>
+		struct StringLiteral {};
+
+		template <>
+		struct StringLiteral<char> {
+			static char const * xX () { return "xX"; };
+		};
+
+		template <>
+		struct StringLiteral<wchar_t> {
+			static wchar_t const * xX () { return L"xX"; };
+		};
+
+		template <typename Char, typename T>
+		static bool ScanNumber (
+			typename std::vector<std::basic_string<Char>>::const_iterator & iter,
+			typename std::vector<std::basic_string<Char>>::const_iterator end,
+			T & out,
+			char const * format)
+		{
+			ASSERT(__LINE__, iter < end);
+			auto const & str = *iter;
+			if (str.size() > 1 && std::isspace(str.front())) {
+				return false;
+			}
+			if (Scan(*iter, format, &out)) {
+				if (str.size() == StrLen(str.c_str())) {
+					if (str.find_first_of(StringLiteral<Char>::xX()) == std::string::npos) {
+						++iter;
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+	}
+
+	template <typename Char>
+	struct ArgsIter {
+		typedef typename std::vector<std::basic_string<Char>>::const_iterator type;
+	};
+
+	template <typename Char, typename T>
+	struct Parser {};
+
+	template <typename Char>
+	struct Parser<Char, int> {
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, int & out)
+		{
+			return unstable_dont_use::ScanNumber<Char>(iter, end, out, "%d%c");
+		}
+	};
+
+	template <typename Char>
+	struct Parser<Char, unsigned int> {
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, unsigned int & out)
+		{
+			unstable_dont_use::ASSERT(__LINE__, iter < end);
+			if (!iter->empty() && iter->front() == '-') {
+				return false;
+			}
+			return unstable_dont_use::ScanNumber<Char>(iter, end, out, "%u%c");
+		}
+	};
+
+	template <typename Char>
+	struct Parser<Char, float> {
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, float & out)
+		{
+			return unstable_dont_use::ScanNumber<Char>(iter, end, out, "%f%c");
+		}
+	};
+
+	template <typename Char>
+	struct Parser<Char, double> {
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, double & out)
+		{
+			return unstable_dont_use::ScanNumber<Char>(iter, end, out, "%lf%c");
+		}
+	};
+
+	template <typename Char>
+	struct Parser<Char, Char> {
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, Char & out)
+		{
+			unstable_dont_use::ASSERT(__LINE__, iter < end);
+			if (iter->size() == 1) {
+				out = iter->front();
+				++iter;
+				return true;
+			}
+			return false;
+		}
+	};
+
+	template <typename Char>
+	struct Parser<Char, std::basic_string<Char>> {
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, std::basic_string<Char> & out)
+		{
+			unstable_dont_use::ASSERT(__LINE__, iter < end);
+			out = *iter;
+			++iter;
+			return true;
+		}
+	};
+
+	template <typename Char, typename T, size_t N>
+	struct Parser<Char, std::array<T, N>> {
+		static bool Parse (typename ArgsIter<Char>::type & iter, typename ArgsIter<Char>::type end, std::array<T, N> & out)
+		{
+			static_assert(N > 0, "Parsing a zero-sized array is not well-defined.");
+			unstable_dont_use::ASSERT(__LINE__, iter < end);
+			for (size_t i = 0; i < N; ++i) {
+				if (iter == end) {
+					return false;
+				}
+				if (!Parser<Char, T>::Parse(iter, end, out[i])) {
+					return false;
+				}
+			}
+			return true;
+		}
+	};
+}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -129,11 +297,7 @@ public:
 private:
 	static void ASSERT (unsigned int line, bool truth)
 	{
-		if (!truth) {
-			char msg[1024];
-			sprintf(msg, "LambdaOpts::ASSERT failed in '%s' on line %u. Please file a bug report.", __FILE__, line);
-			throw Exception(msg);
-		}
+		lambda_opts::unstable_dont_use::ASSERT(line, truth);
 	}
 
 
@@ -327,146 +491,6 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 
-	template <typename C>
-	static size_t StrLen (C const * str)
-	{
-		size_t size = 0;
-		while (*str++) ++size;
-		return size;
-	}
-
-	static bool Scan (std::string const & str, char const * format, void * dest)
-	{
-		char dummy;
-		return std::sscanf(str.c_str(), format, dest, &dummy) == 1;
-	}
-
-	static bool Scan (std::wstring const & str, char const * format, void * dest)
-	{
-		wchar_t wformat[8];
-		size_t len = StrLen(format) + 1;
-		ASSERT(__LINE__, len <= (sizeof(wformat) / sizeof(wchar_t)));
-		for (size_t i = 0; i < len; ++i) {
-			wformat[i] = format[i];
-		}
-		wchar_t dummy;
-		return std::swscanf(str.c_str(), wformat, dest, &dummy) == 1;
-	}
-
-	template <typename C, typename Dummy=void>
-	struct StringLiteral {};
-
-	template <typename Dummy>
-	struct StringLiteral<char, Dummy> {
-		static char const * xX () { return "xX"; };
-	};
-
-	template <typename Dummy>
-	struct StringLiteral<wchar_t, Dummy> {
-		static wchar_t const * xX () { return L"xX"; };
-	};
-
-	template <typename T>
-	static bool ScanNumber (ArgsIter & iter, ArgsIter end, T & out, char const * format)
-	{
-		ASSERT(__LINE__, iter < end);
-		String const & str = *iter;
-		if (str.size() > 1 && std::isspace(str.front())) {
-			return false;
-		}
-		if (Scan(*iter, format, &out)) {
-			if (str.size() == StrLen(str.c_str())) {
-				if (str.find_first_of(StringLiteral<Char>::xX()) == std::string::npos) {
-					++iter;
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	template <typename T, typename Dummy=void>
-	struct Parser {};
-
-	template <typename Dummy>
-	struct Parser<int, Dummy> {
-		static bool Parse (ArgsIter & iter, ArgsIter end, int & out)
-		{
-			return ScanNumber(iter, end, out, "%d%c");
-		}
-	};
-
-	template <typename Dummy>
-	struct Parser<unsigned int, Dummy> {
-		static bool Parse (ArgsIter & iter, ArgsIter end, unsigned int & out)
-		{
-			ASSERT(__LINE__, iter < end);
-			if (!iter->empty() && iter->front() == '-') {
-				return false;
-			}
-			return ScanNumber(iter, end, out, "%u%c");
-		}
-	};
-
-	template <typename Dummy>
-	struct Parser<float, Dummy> {
-		static bool Parse (ArgsIter & iter, ArgsIter end, float & out)
-		{
-			return ScanNumber(iter, end, out, "%f%c");
-		}
-	};
-
-	template <typename Dummy>
-	struct Parser<double, Dummy> {
-		static bool Parse (ArgsIter & iter, ArgsIter end, double & out)
-		{
-			return ScanNumber(iter, end, out, "%lf%c");
-		}
-	};
-
-	template <typename Dummy>
-	struct Parser<Char, Dummy> {
-		static bool Parse (ArgsIter & iter, ArgsIter end, Char & out)
-		{
-			ASSERT(__LINE__, iter < end);
-			if (iter->size() == 1) {
-				out = iter->front();
-				++iter;
-				return true;
-			}
-			return false;
-		}
-	};
-
-	template <typename Dummy>
-	struct Parser<String, Dummy> {
-		static bool Parse (ArgsIter & iter, ArgsIter end, String & out)
-		{
-			ASSERT(__LINE__, iter < end);
-			out = *iter;
-			++iter;
-			return true;
-		}
-	};
-
-	template <typename T, size_t N, typename Dummy>
-	struct Parser<std::array<T, N>, Dummy> {
-		static bool Parse (ArgsIter & iter, ArgsIter end, std::array<T, N> & out)
-		{
-			static_assert(N > 0, "Parsing a zero-sized array is not well-defined.");
-			ASSERT(__LINE__, iter < end);
-			for (size_t i = 0; i < N; ++i) {
-				if (iter == end) {
-					return false;
-				}
-				if (!Parser<T>::Parse(iter, end, out[i])) {
-					return false;
-				}
-			}
-			return true;
-		}
-	};
-
 	template <typename T>
 	static T && ReifyOpaque (void * p)
 	{
@@ -493,7 +517,7 @@ private:
 	{
 		ArgsIter const startIter(iter);
 		T x;
-		if (Parser<T>::Parse(iter, end, x)) {
+		if (lambda_opts::Parser<Char, T>::Parse(iter, end, x)) {
 			return UniqueOpaque(AllocateCopy(std::move(x)).release(), Delete<T>);
 		}
 		return UniqueOpaque(static_cast<T *>(nullptr), Delete<T>);
@@ -861,7 +885,7 @@ private:
 		{
 			if (currArg != args.end()) {
 				ArgsIter startArg = currArg;
-				bool res = Parser<T>::Parse(currArg, args.end(), outArg);
+				bool res = lambda_opts::Parser<Char, T>::Parse(currArg, args.end(), outArg);
 				currArg = startArg;
 				return res;
 			}
@@ -884,7 +908,9 @@ private:
 			OpaqueParser parser = opts->LookupDynamicParser(typeKind);
 			UniqueOpaque p = parser(iter, end);
 			if (p) {
-				ASSERT(__LINE__, iter > startIter);
+				if (iter <= startIter) {
+					throw Exception("Parser generated a value, but did not consume any data.");
+				}
 			}
 			else {
 				iter = startIter;
