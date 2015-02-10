@@ -1,7 +1,7 @@
 // Copyright (c) 2015, Thomas Eding
 // All rights reserved.
 // 
-// https://github.com/thomaseding/lambda-opts
+// Homepage: https://github.com/thomaseding/lambda-opts
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -38,10 +38,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-#ifndef NDEBUG
-#	include <stdexcept>
-#endif
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -109,15 +105,11 @@ public:
 private:
 	static void ASSERT (unsigned int line, bool truth)
 	{
-#ifdef NDEBUG
-		(void) truth;
-#else
 		if (!truth) {
 			char msg[1024];
-			sprintf(msg, "LambdaOpts::ASSERT failed in '%s' on line %u", __FILE__, line);
-			throw std::logic_error(msg);
+			sprintf(msg, "LambdaOpts::ASSERT failed in '%s' on line %u. Please file a bug report.", __FILE__, line);
+			throw Exception(msg);
 		}
-#endif
 	}
 
 
