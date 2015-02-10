@@ -3,7 +3,6 @@
 
 
 * Write a program that generates the repetitive code?
-* Make a `LambdaOptsImpl` that is stored in a `std::shared_ptr`
 * Does the code accept `opts.AddOption("", [] (int const) { ... });`?
 * Does the code accept `opts.AddOption("", [] (int &&) { ... });`?
 * Does the code accept `opts.AddOption("", [] (int &) { ... });`?
