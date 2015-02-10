@@ -12,15 +12,12 @@ int main (int argc, char ** argv)
 
 	opts.AddOption("--help", [] () {
 		std::cout << "--user NAME [AGE]" << std::endl;
-		return Opts::ParseResult::Accept;
 	});
 	opts.AddOption("--user", [] (std::string name) {
 		std::cout << "Name:" << name << std::endl;
-		return Opts::ParseResult::Accept;
 	});
 	opts.AddOption("--user", [] (std::string name, unsigned int age) {
 		std::cout << "Name:" << name << " Age:" << age << std::endl;
-		return Opts::ParseResult::Accept;
 	});
 
 	auto parseEnv = opts.CreateParseEnv(argv + 1, argv + argc);
