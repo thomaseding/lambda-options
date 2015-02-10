@@ -92,6 +92,12 @@ public:
 		ParseEnv (ParseEnv && other);
 		ParseEnv & operator= (ParseEnv && other);
 
+		bool Run ()
+		{
+			int dummy;
+			return Run(dummy);
+		}
+
 		bool Run (int & outParseFailureIndex)
 		{
 			return impl->Run(outParseFailureIndex);
