@@ -385,6 +385,10 @@ namespace lambda_opts
 		}
 
 	private:
+		Maybe (Maybe const &);          // disable
+		void operator= (Maybe const &); // disable
+
+	private:
 		union View {
 			T object;
 			char raw[sizeof(T)];
