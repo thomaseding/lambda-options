@@ -204,7 +204,7 @@ namespace lambda_opts
 		};
 
 		template <typename Char>
-		static bool ScanNumber (
+		inline bool ScanNumber (
 			ArgsIter<Char> & iter,
 			ArgsIter<Char> end,
 			void * out,
@@ -227,15 +227,29 @@ namespace lambda_opts
 		}
 	}
 
-	template <typename Char, typename T>
-	class Parser;
+	template <typename T>
+	class Maybe;
 
 	template <typename Char, typename T>
 	struct RawParser {};
 
+	template <typename Char, typename T>
+	inline bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, Maybe<T> & out)
+	{
+		if (out.validObject) {
+			out.view.object.~T();
+			out.validObject = false;
+		}
+		if (RawParser<Char, T>::RawParse(iter, end, out.view.raw)) {
+			out.validObject = true;
+			return true;
+		}
+		return false;
+	}
+
 	template <typename Char>
 	struct RawParser<Char, int> {
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%d%c");
 		}
@@ -243,7 +257,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, unsigned int> {
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			if (!iter->empty() && iter->front() == '-') {
@@ -255,7 +269,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, float> {
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%f%c");
 		}
@@ -263,7 +277,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, double> {
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%lf%c");
 		}
@@ -271,7 +285,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, Char> {
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			if (iter->size() == 1) {
@@ -285,7 +299,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, std::basic_string<Char>> {
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			new (raw) std::basic_string<Char>(*iter);
@@ -307,7 +321,7 @@ namespace lambda_opts
 		}
 
 	public:
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			static_assert(N > 0, "Parsing a zero-sized array is not well-defined.");
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
@@ -319,7 +333,7 @@ namespace lambda_opts
 				}
 				T & elem = array[i];
 				char * rawElem = reinterpret_cast<char *>(&elem);
-				if (!RawParser<Char, T>::Parse(iter, end, rawElem)) {
+				if (!RawParser<Char, T>::RawParse(iter, end, rawElem)) {
 					DeallocatePartial(i, array);
 					return false;
 				}
@@ -330,8 +344,8 @@ namespace lambda_opts
 
 	template <typename T>
 	class Maybe {
-		template <typename, typename>
-		friend class Parser;
+		template <typename Char, typename T2>
+		friend bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, Maybe<T2> & out);
 
 	public:
 		Maybe ()
@@ -373,23 +387,6 @@ namespace lambda_opts
 			~View () {}
 		} view;
 		bool validObject;
-	};
-
-	template <typename Char, typename T>
-	class Parser {
-	public:
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, Maybe<T> & out)
-		{
-			if (out.validObject) {
-				out.view.object.~T();
-				out.validObject = false;
-			}
-			if (RawParser<Char, T>::Parse(iter, end, out.view.raw)) {
-				out.validObject = true;
-				return true;
-			}
-			return false;
-		}
 	};
 }
 
@@ -689,7 +686,7 @@ private:
 		lambda_opts::ArgsIter<Char> iterWrapper(iter, end);
 		lambda_opts::ArgsIter<Char> endWrapper(end, end);
 		lambda_opts::Maybe<T> maybe;
-		if (lambda_opts::Parser<Char, T>::Parse(iterWrapper, endWrapper, maybe)) {
+		if (lambda_opts::Parse<Char, T>(iterWrapper, endWrapper, maybe)) {
 			auto p = UniqueOpaque(AllocateCopy(std::move(*maybe)).release(), Delete<T>);
 			iter = iterWrapper.iter;
 			return p;
@@ -1059,7 +1056,7 @@ private:
 		{
 			if (currArg != args.end()) {
 				ArgsIter startArg = currArg;
-				bool res = lambda_opts::Parser<Char, T>::Parse(currArg, args.end(), outArg);
+				bool res = lambda_opts::Parse<Char, T>(currArg, args.end(), outArg);
 				currArg = startArg;
 				return res;
 			}
