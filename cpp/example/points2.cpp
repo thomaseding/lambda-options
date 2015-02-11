@@ -25,7 +25,7 @@ namespace lambda_opts
 {
 	template <typename Char>
 	struct RawParser<Char, Point> {
-		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			Maybe<std::array<float, 3>> maybeVals;
 			if (Parse<Char, std::array<float, 3>>(iter, end, maybeVals)) {

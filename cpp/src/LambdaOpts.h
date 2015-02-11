@@ -234,13 +234,19 @@ namespace lambda_opts
 	struct RawParser {};
 
 	template <typename Char, typename T>
+	inline bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+	{
+		return RawParser<Char, T>()(iter, end, raw);
+	}
+
+	template <typename Char, typename T>
 	inline bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, Maybe<T> & out)
 	{
 		if (out.validObject) {
 			out.view.object.~T();
 			out.validObject = false;
 		}
-		if (RawParser<Char, T>::RawParse(iter, end, out.view.raw)) {
+		if (RawParse<Char, T>(iter, end, out.view.raw)) {
 			out.validObject = true;
 			return true;
 		}
@@ -249,7 +255,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, int> {
-		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%d%c");
 		}
@@ -257,7 +263,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, unsigned int> {
-		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			if (!iter->empty() && iter->front() == '-') {
@@ -269,7 +275,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, float> {
-		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%f%c");
 		}
@@ -277,7 +283,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, double> {
-		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%lf%c");
 		}
@@ -285,7 +291,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, Char> {
-		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			if (iter->size() == 1) {
@@ -299,7 +305,7 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, std::basic_string<Char>> {
-		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			new (raw) std::basic_string<Char>(*iter);
@@ -321,7 +327,7 @@ namespace lambda_opts
 		}
 
 	public:
-		static bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			static_assert(N > 0, "Parsing a zero-sized array is not well-defined.");
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
@@ -333,7 +339,7 @@ namespace lambda_opts
 				}
 				T & elem = array[i];
 				char * rawElem = reinterpret_cast<char *>(&elem);
-				if (!RawParser<Char, T>::RawParse(iter, end, rawElem)) {
+				if (!RawParse<Char, T>(iter, end, rawElem)) {
 					DeallocatePartial(i, array);
 					return false;
 				}
