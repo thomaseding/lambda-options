@@ -24,12 +24,12 @@ public:
 namespace lambda_opts
 {
 	template <typename Char>
-	struct Parser<Char, Point> {
+	struct RawParser<Char, Point> {
 		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
-			std::array<float, 3> vals;
-			char * rawVals = reinterpret_cast<char *>(&vals);
-			if (Parser<Char, std::array<float, 3>>::Parse(iter, end, rawVals)) {
+			Maybe<Char, std::array<float, 3>> maybeVals;
+			if (Parser<Char, std::array<float, 3>>::Parse(iter, end, maybeVals)) {
+				auto & vals = *maybeVals;
 				new (raw) Point(vals[0], vals[1], vals[2]);
 				return true;
 			}

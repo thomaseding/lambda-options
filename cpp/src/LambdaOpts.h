@@ -228,10 +228,13 @@ namespace lambda_opts
 	}
 
 	template <typename Char, typename T>
-	struct Parser {};
+	class Parser;
+
+	template <typename Char, typename T>
+	struct RawParser {};
 
 	template <typename Char>
-	struct Parser<Char, int> {
+	struct RawParser<Char, int> {
 		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%d%c");
@@ -239,7 +242,7 @@ namespace lambda_opts
 	};
 
 	template <typename Char>
-	struct Parser<Char, unsigned int> {
+	struct RawParser<Char, unsigned int> {
 		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
@@ -251,7 +254,7 @@ namespace lambda_opts
 	};
 
 	template <typename Char>
-	struct Parser<Char, float> {
+	struct RawParser<Char, float> {
 		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%f%c");
@@ -259,7 +262,7 @@ namespace lambda_opts
 	};
 
 	template <typename Char>
-	struct Parser<Char, double> {
+	struct RawParser<Char, double> {
 		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%lf%c");
@@ -267,7 +270,7 @@ namespace lambda_opts
 	};
 
 	template <typename Char>
-	struct Parser<Char, Char> {
+	struct RawParser<Char, Char> {
 		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
@@ -281,7 +284,7 @@ namespace lambda_opts
 	};
 
 	template <typename Char>
-	struct Parser<Char, std::basic_string<Char>> {
+	struct RawParser<Char, std::basic_string<Char>> {
 		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
@@ -292,7 +295,7 @@ namespace lambda_opts
 	};
 
 	template <typename Char, typename T, size_t N>
-	struct Parser<Char, std::array<T, N>> {
+	struct RawParser<Char, std::array<T, N>> {
 	private:
 		typedef std::array<T, N> Array;
 		static void DeallocatePartial (size_t beginIdx, Array & array)
@@ -316,12 +319,75 @@ namespace lambda_opts
 				}
 				T & elem = array[i];
 				char * rawElem = reinterpret_cast<char *>(&elem);
-				if (!Parser<Char, T>::Parse(iter, end, rawElem)) {
+				if (!RawParser<Char, T>::Parse(iter, end, rawElem)) {
 					DeallocatePartial(i, array);
 					return false;
 				}
 			}
 			return true;
+		}
+	};
+
+	template <typename Char, typename T>
+	class Maybe {
+		friend class Parser<Char, T>;
+
+	public:
+		Maybe ()
+			: view()
+			, validObject(false)
+		{}
+
+		~Maybe ()
+		{
+			if (validObject) {
+				view.object.~T();
+			}
+		}
+
+		bool HasValidObject () const
+		{
+			return validObject;
+		}
+
+		T & operator* ()
+		{
+			if (!validObject) {
+				throw Exception("ParsedValue::Get: Object is not valid.");
+			}
+			return view.object;
+		}
+
+		T * operator-> ()
+		{
+			return &operator*();
+		}
+
+	private:
+		union View {
+			T object;
+			char raw[sizeof(T)];
+
+			View () : raw() {}
+			~View () {}
+		} view;
+		bool validObject;
+	};
+
+	template <typename Char, typename T>
+	class Parser {
+	public:
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, Maybe<Char, T> & out)
+		{
+			if (out.validObject) {
+				out.view.object.~T();
+				out.validObject = false;
+			}
+			if (RawParser<Char, T>::Parse(iter, end, out.view.raw)) {
+				out.validObject = true;
+				return true;
+			}
+			return false;
 		}
 	};
 }
@@ -619,20 +685,11 @@ private:
 	template <typename T>
 	static UniqueOpaque OpaqueParse (ArgsIter & iter, ArgsIter end)
 	{
-		union U {
-			T object;
-			char raw[sizeof(T)];
-
-			U () : raw() {}
-			~U () {}
-		} u;
-
 		lambda_opts::ArgsIter<Char> iterWrapper(iter, end);
 		lambda_opts::ArgsIter<Char> endWrapper(end, end);
-
-		if (lambda_opts::Parser<Char, T>::Parse(iterWrapper, endWrapper, u.raw)) {
-			auto p = UniqueOpaque(AllocateCopy(std::move(u.object)).release(), Delete<T>);
-			u.object.~T();
+		lambda_opts::Maybe<Char, T> maybe;
+		if (lambda_opts::Parser<Char, T>::Parse(iterWrapper, endWrapper, maybe)) {
+			auto p = UniqueOpaque(AllocateCopy(std::move(*maybe)).release(), Delete<T>);
 			iter = iterWrapper.iter;
 			return p;
 		}
