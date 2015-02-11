@@ -232,47 +232,47 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct Parser<Char, int> {
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
-			return unstable_dont_use::ScanNumber<Char>(iter, end, memory, "%d%c");
+			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%d%c");
 		}
 	};
 
 	template <typename Char>
 	struct Parser<Char, unsigned int> {
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			if (!iter->empty() && iter->front() == '-') {
 				return false;
 			}
-			return unstable_dont_use::ScanNumber<Char>(iter, end, memory, "%u%c");
+			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%u%c");
 		}
 	};
 
 	template <typename Char>
 	struct Parser<Char, float> {
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
-			return unstable_dont_use::ScanNumber<Char>(iter, end, memory, "%f%c");
+			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%f%c");
 		}
 	};
 
 	template <typename Char>
 	struct Parser<Char, double> {
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
-			return unstable_dont_use::ScanNumber<Char>(iter, end, memory, "%lf%c");
+			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%lf%c");
 		}
 	};
 
 	template <typename Char>
 	struct Parser<Char, Char> {
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			if (iter->size() == 1) {
-				*static_cast<char *>(memory) = iter->front();
+				*raw = iter->front();
 				++iter;
 				return true;
 			}
@@ -282,10 +282,10 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct Parser<Char, std::basic_string<Char>> {
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
-			new (memory) std::basic_string<Char>(*iter);
+			new (raw) std::basic_string<Char>(*iter);
 			++iter;
 			return true;
 		}
@@ -304,18 +304,19 @@ namespace lambda_opts
 		}
 
 	public:
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
 			static_assert(N > 0, "Parsing a zero-sized array is not well-defined.");
 			unstable_dont_use::ASSERT(__LINE__, iter < end);
-			Array & array = *static_cast<Array *>(memory);
+			Array & array = *reinterpret_cast<Array *>(raw);
 			for (size_t i = 0; i < N; ++i) {
 				if (iter == end) {
 					DeallocatePartial(i, array);
 					return false;
 				}
 				T & elem = array[i];
-				if (!Parser<Char, T>::Parse(iter, end, &elem)) {
+				char * rawElem = reinterpret_cast<char *>(&elem);
+				if (!Parser<Char, T>::Parse(iter, end, rawElem)) {
 					DeallocatePartial(i, array);
 					return false;
 				}
@@ -620,16 +621,16 @@ private:
 	{
 		union U {
 			T object;
-			char memory[sizeof(T)];
+			char raw[sizeof(T)];
 
-			U () : memory() {}
+			U () : raw() {}
 			~U () {}
 		} u;
 
 		lambda_opts::ArgsIter<Char> iterWrapper(iter, end);
 		lambda_opts::ArgsIter<Char> endWrapper(end, end);
 
-		if (lambda_opts::Parser<Char, T>::Parse(iterWrapper, endWrapper, u.memory)) {
+		if (lambda_opts::Parser<Char, T>::Parse(iterWrapper, endWrapper, u.raw)) {
 			auto p = UniqueOpaque(AllocateCopy(std::move(u.object)).release(), Delete<T>);
 			u.object.~T();
 			iter = iterWrapper.iter;

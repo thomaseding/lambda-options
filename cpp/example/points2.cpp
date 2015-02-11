@@ -25,11 +25,12 @@ namespace lambda_opts
 {
 	template <typename Char>
 	struct Parser<Char, Point> {
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, void * memory)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
 		{
-			std::array<float, 3> p;
-			if (Parser<Char, std::array<float, 3>>::Parse(iter, end, &p)) {
-				new (memory) Point(p[0], p[1], p[2]);
+			std::array<float, 3> vals;
+			char * rawVals = reinterpret_cast<char *>(&vals);
+			if (Parser<Char, std::array<float, 3>>::Parse(iter, end, rawVals)) {
+				new (raw) Point(vals[0], vals[1], vals[2]);
 				return true;
 			}
 			return false;
