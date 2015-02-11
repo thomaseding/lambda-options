@@ -328,9 +328,10 @@ namespace lambda_opts
 		}
 	};
 
-	template <typename Char, typename T>
+	template <typename T>
 	class Maybe {
-		friend class Parser<Char, T>;
+		template <typename, typename>
+		friend class Parser;
 
 	public:
 		Maybe ()
@@ -377,7 +378,7 @@ namespace lambda_opts
 	template <typename Char, typename T>
 	class Parser {
 	public:
-		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, Maybe<Char, T> & out)
+		static bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, Maybe<T> & out)
 		{
 			if (out.validObject) {
 				out.view.object.~T();
@@ -687,7 +688,7 @@ private:
 	{
 		lambda_opts::ArgsIter<Char> iterWrapper(iter, end);
 		lambda_opts::ArgsIter<Char> endWrapper(end, end);
-		lambda_opts::Maybe<Char, T> maybe;
+		lambda_opts::Maybe<T> maybe;
 		if (lambda_opts::Parser<Char, T>::Parse(iterWrapper, endWrapper, maybe)) {
 			auto p = UniqueOpaque(AllocateCopy(std::move(*maybe)).release(), Delete<T>);
 			iter = iterWrapper.iter;
