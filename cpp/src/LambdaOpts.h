@@ -385,7 +385,9 @@ namespace lambda_opts
 		}
 
 	private:
+		Maybe (Maybe &&);               // disable
 		Maybe (Maybe const &);          // disable
+		void operator= (Maybe &&);      // disable
 		void operator= (Maybe const &); // disable
 
 	private:
