@@ -1107,6 +1107,85 @@ public:
 			FAIL;
 		}
 	}
+
+
+	static void TestParseState ()
+	{
+		std::wstringstream ss;
+
+		Opts opts;
+		opts.AddOption(Q(""), [&] (int x) {
+			Dump(ss, x);
+		});
+		opts.AddOption(Q(""), [&] (lambda_opts::ParseState<Char> parseState) {
+			using namespace lambda_opts;
+
+			DumpMemo(ss, L"<parse-state>");
+
+			Dump(ss, *parseState.iter);
+			++parseState.iter;
+
+			Dump(ss, *parseState.iter);
+			++parseState.iter;
+
+			lambda_opts::Maybe<unsigned int> mUint;
+			if (Parse<Char, unsigned int>(parseState, mUint)) {
+				FAIL;
+			}
+			lambda_opts::Maybe<int> mInt;
+			if (!Parse<Char, int>(parseState, mInt)) {
+				FAIL;
+			}
+			Dump(ss, *mInt);
+
+			if (!Parse<Char, unsigned int>(parseState, mUint)) {
+				FAIL;
+			}
+			Dump(ss, *mUint);
+
+			Dump(ss, *parseState.iter);
+			++parseState.iter;
+
+			DumpMemo(ss, L"</parse-state>");
+		});
+	
+		std::vector<String> args;
+		std::wstringstream expected;
+
+		args.push_back(Q("0"));
+		Dump(expected, 0);
+
+		args.push_back(Q("1"));
+		Dump(expected, 1);
+
+		args.push_back(Q("x"));
+		args.push_back(Q("y"));
+		args.push_back(Q("-1"));
+		args.push_back(Q("2"));
+		args.push_back(Q("z"));
+		DumpMemo(expected, L"<parse-state>");
+		Dump(expected, L"x");
+		Dump(expected, L"y");
+		Dump(expected, -1);
+		Dump(expected, 2u);
+		Dump(expected, L"z");
+		DumpMemo(expected, L"</parse-state>");
+
+		args.push_back(Q("3"));
+		Dump(expected, 3);
+
+		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
+		int failIdx;
+		if (!parseEnv.Run(failIdx)) {
+			FAIL;
+		}
+		if (failIdx != -1) {
+			FAIL;
+		}
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
 };
 
 
@@ -1131,6 +1210,7 @@ static bool RunCharTests ()
 		Tests<Char>::TestKeyword1,
 		Tests<Char>::TestArrays,
 		Tests<Char>::TestCustomParser,
+		Tests<Char>::TestParseState,
 	};
 
 	try {
