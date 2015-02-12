@@ -154,13 +154,28 @@ namespace lambda_opts
 		Iter end;
 	};
 
+	template <typename Char>
+	class ParseState {
+		friend class LambdaOpts<Char>;
+
+	private:
+		ParseState (ArgsIter<Char> & iter, ArgsIter<Char> end)
+			: iter(iter)
+			, end(end)
+		{}
+
+	public:
+		ArgsIter<Char> & iter;
+		ArgsIter<Char> const end;
+	};
+
 	namespace unstable_dont_use
 	{
 		inline void ASSERT (unsigned int line, bool truth)
 		{
 			if (!truth) {
 				char msg[1024];
-				sprintf(msg, "ASSERT failed in '%s' on line %u. Please file a bug report.", __FILE__, line);
+				sprintf(msg, "ASSERT failed in '%s' on line %u.", __FILE__, line);
 				throw std::logic_error(msg);
 			}
 		}
@@ -205,20 +220,18 @@ namespace lambda_opts
 
 		template <typename Char>
 		inline bool ScanNumber (
-			ArgsIter<Char> & iter,
-			ArgsIter<Char> end,
-			void * out,
+			ParseState<Char> & parseState,
+			char * raw,
 			char const * format)
 		{
-			ASSERT(__LINE__, iter < end);
-			auto const & str = *iter;
+			auto const & str = *parseState.iter;
 			if (str.size() > 1 && std::isspace(str.front())) {
 				return false;
 			}
-			if (Scan(*iter, format, out)) {
+			if (Scan(str, format, raw)) {
 				if (str.size() == StrLen(str.c_str())) {
 					if (str.find_first_of(StringLiteral<Char>::xX()) == std::string::npos) {
-						++iter;
+						++parseState.iter;
 						return true;
 					}
 				}
@@ -234,19 +247,19 @@ namespace lambda_opts
 	struct RawParser {};
 
 	template <typename Char, typename T>
-	inline bool RawParse (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+	inline bool RawParse (ParseState<Char> & parseState, char * raw)
 	{
-		return RawParser<Char, T>()(iter, end, raw);
+		return RawParser<Char, T>()(parseState, raw);
 	}
 
 	template <typename Char, typename T>
-	inline bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, Maybe<T> & out)
+	inline bool Parse (ParseState<Char> & parseState, Maybe<T> & out)
 	{
 		if (out.validObject) {
 			out.view.object.~T();
 			out.validObject = false;
 		}
-		if (RawParse<Char, T>(iter, end, out.view.raw)) {
+		if (RawParse<Char, T>(parseState, out.view.raw)) {
 			out.validObject = true;
 			return true;
 		}
@@ -254,49 +267,56 @@ namespace lambda_opts
 	}
 
 	template <typename Char>
-	struct RawParser<Char, int> {
-		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+	struct RawParser<Char, ParseState<Char>> {
+		bool operator() (ParseState<Char> & parseState, char * raw)
 		{
-			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%d%c");
+			new (raw) ParseState<Char>(parseState);
+			return true;
+		}
+	};
+
+	template <typename Char>
+	struct RawParser<Char, int> {
+		bool operator() (ParseState<Char> & parseState, char * raw)
+		{
+			return unstable_dont_use::ScanNumber<Char>(parseState, raw, "%d%c");
 		}
 	};
 
 	template <typename Char>
 	struct RawParser<Char, unsigned int> {
-		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ParseState<Char> & parseState, char * raw)
 		{
-			unstable_dont_use::ASSERT(__LINE__, iter < end);
-			if (!iter->empty() && iter->front() == '-') {
+			if (!parseState.iter->empty() && parseState.iter->front() == '-') {
 				return false;
 			}
-			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%u%c");
+			return unstable_dont_use::ScanNumber<Char>(parseState, raw, "%u%c");
 		}
 	};
 
 	template <typename Char>
 	struct RawParser<Char, float> {
-		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ParseState<Char> & parseState, char * raw)
 		{
-			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%f%c");
+			return unstable_dont_use::ScanNumber<Char>(parseState, raw, "%f%c");
 		}
 	};
 
 	template <typename Char>
 	struct RawParser<Char, double> {
-		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ParseState<Char> & parseState, char * raw)
 		{
-			return unstable_dont_use::ScanNumber<Char>(iter, end, raw, "%lf%c");
+			return unstable_dont_use::ScanNumber<Char>(parseState, raw, "%lf%c");
 		}
 	};
 
 	template <typename Char>
 	struct RawParser<Char, Char> {
-		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ParseState<Char> & parseState, char * raw)
 		{
-			unstable_dont_use::ASSERT(__LINE__, iter < end);
-			if (iter->size() == 1) {
-				*raw = iter->front();
-				++iter;
+			if (parseState.iter->size() == 1) {
+				*raw = parseState.iter->front();
+				++parseState.iter;
 				return true;
 			}
 			return false;
@@ -305,11 +325,10 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, std::basic_string<Char>> {
-		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ParseState<Char> & parseState, char * raw)
 		{
-			unstable_dont_use::ASSERT(__LINE__, iter < end);
-			new (raw) std::basic_string<Char>(*iter);
-			++iter;
+			new (raw) std::basic_string<Char>(*parseState.iter);
+			++parseState.iter;
 			return true;
 		}
 	};
@@ -327,19 +346,18 @@ namespace lambda_opts
 		}
 
 	public:
-		bool operator() (ArgsIter<Char> & iter, ArgsIter<Char> end, char * raw)
+		bool operator() (ParseState<Char> & parseState, char * raw)
 		{
 			static_assert(N > 0, "Parsing a zero-sized array is not well-defined.");
-			unstable_dont_use::ASSERT(__LINE__, iter < end);
 			Array & array = *reinterpret_cast<Array *>(raw);
 			for (size_t i = 0; i < N; ++i) {
-				if (iter == end) {
+				if (parseState.iter == parseState.end) {
 					DeallocatePartial(i, array);
 					return false;
 				}
 				T & elem = array[i];
 				char * rawElem = reinterpret_cast<char *>(&elem);
-				if (!RawParse<Char, T>(iter, end, rawElem)) {
+				if (!RawParse<Char, T>(parseState, rawElem)) {
 					DeallocatePartial(i, array);
 					return false;
 				}
@@ -351,7 +369,7 @@ namespace lambda_opts
 	template <typename T>
 	class Maybe {
 		template <typename Char, typename T2>
-		friend bool Parse (ArgsIter<Char> & iter, ArgsIter<Char> end, Maybe<T2> & out);
+		friend bool Parse (ParseState<Char> & parseState, Maybe<T2> & out);
 
 	public:
 		Maybe ()
@@ -451,17 +469,6 @@ public:
 			return impl->Run(outParseFailureIndex);
 		}
 
-		template <typename T>
-		bool Peek (T & outArg)
-		{
-			return impl->Peek(outArg);
-		}
-
-		bool SkipNextArg ()
-		{
-			return impl->SkipNextArg();
-		}
-
 	private:
 		ParseEnv (std::shared_ptr<LambdaOptsImpl const> opts, Args && args);
 		ParseEnv (ParseEnv const & other);       // disable
@@ -498,8 +505,6 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 
-	typedef typename Args::const_iterator ArgsIter;
-
 	typedef void * V;
 	typedef void (*OpaqueDeleter)(void *);
 	typedef std::unique_ptr<void, OpaqueDeleter> UniqueOpaque;
@@ -507,7 +512,7 @@ private:
 
 	class TypeKind;
 
-	typedef UniqueOpaque (*OpaqueParser)(ArgsIter &, ArgsIter);
+	typedef UniqueOpaque (*OpaqueParser)(lambda_opts::ParseState<Char> &);
 	typedef std::vector<std::pair<TypeKind, OpaqueParser>> DynamicParserMap;
 
 
@@ -693,15 +698,11 @@ private:
 	}
 
 	template <typename T>
-	static UniqueOpaque OpaqueParse (ArgsIter & iter, ArgsIter end)
+	static UniqueOpaque OpaqueParse (lambda_opts::ParseState<Char> & parseState)
 	{
-		lambda_opts::ArgsIter<Char> iterWrapper(iter, end);
-		lambda_opts::ArgsIter<Char> endWrapper(end, end);
 		lambda_opts::Maybe<T> maybe;
-		if (lambda_opts::Parse<Char, T>(iterWrapper, endWrapper, maybe)) {
-			auto p = UniqueOpaque(AllocateCopy(std::move(*maybe)).release(), Delete<T>);
-			iter = iterWrapper.iter;
-			return p;
+		if (lambda_opts::Parse<Char, T>(parseState, maybe)) {
+			return UniqueOpaque(AllocateCopy(std::move(*maybe)).release(), Delete<T>);
 		}
 		return UniqueOpaque(static_cast<T *>(nullptr), Delete<T>);
 	}
@@ -1045,65 +1046,39 @@ private:
 		ParseEnvImpl (std::shared_ptr<LambdaOptsImpl const> opts, Args && args)
 			: opts(opts)
 			, args(std::move(args))
-			, currArg(args.begin())
+			, begin(args.begin(), args.end())
+			, end(args.end(), args.end())
+			, iter(begin)
+			, parseState(iter, end)
 		{}
 
 		bool Run (int & outParseFailureIndex)
 		{
-			currArg = args.begin();
+			iter = begin;
 			while (TryParse()) {
 				continue;
 			}
-			if (currArg == args.end()) {
+			if (iter == end) {
 				outParseFailureIndex = -1;
 				return true;
 			}
-			size_t argIndex = currArg - args.begin();
-			outParseFailureIndex = static_cast<int>(argIndex);
-			return false;
-		}
-
-		template <typename T>
-		bool Peek (T & outArg)
-		{
-			if (currArg != args.end()) {
-				ArgsIter startArg = currArg;
-				bool res = lambda_opts::Parse<Char, T>(currArg, args.end(), outArg);
-				currArg = startArg;
-				return res;
-			}
-			return false;
-		}
-
-		bool SkipNextArg ()
-		{
-			if (currArg != args.end()) {
-				++currArg;
-				return true;
-			}
+			outParseFailureIndex = static_cast<int>(iter.iter - begin.iter);
 			return false;
 		}
 
 	private:
-		UniqueOpaque OpaqueParse (TypeKind const & typeKind, ArgsIter & iter, ArgsIter end)
+		UniqueOpaque OpaqueParse (TypeKind const & typeKind)
 		{
-			ArgsIter const startIter = iter;
+			auto const startIter = iter;
 			OpaqueParser parser = opts->LookupDynamicParser(typeKind);
-			UniqueOpaque p = parser(iter, end);
-			if (p) {
-				ASSERT(__LINE__, startIter <= iter);
-				if (iter <= startIter) {
-					// TODO: Get rid of this and only throw if a fixed point is detected.
-					throw lambda_opts::Exception("Parser generated a value, but did not consume any data.");
-				}
-			}
-			else {
+			UniqueOpaque p = parser(parseState);
+			if (!p) {
 				iter = startIter;
 			}
 			return p;
 		}
 
-		OpaqueValues ParseArgs (std::vector<TypeKind> const & typeKinds, ArgsIter & iter, ArgsIter end)
+		OpaqueValues ParseArgs (std::vector<TypeKind> const & typeKinds)
 		{
 			size_t const N = typeKinds.size();
 			OpaqueValues parsedArgs;
@@ -1112,7 +1087,7 @@ private:
 					break;
 				}
 				TypeKind const & typeKind = typeKinds[i];
-				UniqueOpaque parsedArg = OpaqueParse(typeKind, iter, end);
+				UniqueOpaque parsedArg = OpaqueParse(typeKind);
 				if (parsedArg == nullptr) {
 					break;
 				}
@@ -1129,18 +1104,18 @@ private:
 			}
 			size_t const arity = infos.front().typeKinds.size();
 
-			ArgsIter const startArg = currArg;
-			ASSERT(__LINE__, startArg < args.end());
+			auto const startIter = iter;
+			ASSERT(__LINE__, startIter < end);
 
 			for (auto const & info : infos) {
 				if (info.keyword.empty() == useKeyword) {
 					continue;
 				}
-				currArg = startArg;
-				if (!useKeyword || *currArg++ == info.keyword) {
+				iter = startIter;
+				if (!useKeyword || *iter++ == info.keyword) {
 					auto const & typeKinds = info.typeKinds;
 					ASSERT(__LINE__, typeKinds.size() == arity);
-					OpaqueValues parsedArgs = ParseArgs(typeKinds, currArg, args.end());
+					OpaqueValues parsedArgs = ParseArgs(typeKinds);
 					if (parsedArgs.size() == arity) {
 						ParseResult res = Apply(info.callback, parsedArgs);
 						switch (res) {
@@ -1151,7 +1126,7 @@ private:
 								continue;
 							} break;
 							case ParseResult::Fatal: {
-								currArg = startArg;
+								iter = startIter;
 								return ParseResult::Fatal;
 							} break;
 							default: {
@@ -1162,13 +1137,13 @@ private:
 				}
 			}
 
-			currArg = startArg;
+			iter = startIter;
 			return ParseResult::Reject;
 		}
 
 		bool TryParse ()
 		{
-			if (currArg == args.end()) {
+			if (iter == end) {
 				return false;
 			}
 
@@ -1210,7 +1185,10 @@ private:
 	public:
 		std::shared_ptr<LambdaOptsImpl const> opts;
 		Args args;
-		ArgsIter currArg;
+		lambda_opts::ArgsIter<Char> const begin;
+		lambda_opts::ArgsIter<Char> const end;
+		lambda_opts::ArgsIter<Char> iter;
+		lambda_opts::ParseState<Char> parseState;
 	};
 
 
