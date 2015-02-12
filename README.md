@@ -8,9 +8,9 @@ A declarative command line parser for C++.
 
 Quick installation: Download the required header here: [cpp/src/LambdaOpts.h](cpp/src/LambdaOpts.h?ts=4)
 
-Examples directory: [cpp/example](cpp/src/example)
+Examples directory: [cpp/example](cpp/example)
 
-##Docs as well as more examples coming soon!
+###Docs as well as more examples coming soon!
 
 --------------
 
