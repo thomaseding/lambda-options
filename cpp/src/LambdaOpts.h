@@ -343,8 +343,7 @@ namespace lambda_opts
 		static void DeallocatePartial (size_t beginIdx, Array & array)
 		{
 			for (size_t i = beginIdx; i > 0; --i) {
-				T & elem = array[i - 1];
-				elem.~T();
+				array[i - 1].~T();
 			}
 		}
 
