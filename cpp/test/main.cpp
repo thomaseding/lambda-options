@@ -925,6 +925,107 @@ public:
 			FAIL;
 		}
 	}
+
+
+	static void TestArrays ()
+	{
+		std::wstringstream ss;
+
+		Opts opts;
+		opts.AddOption(Q(""), [&] (std::array<std::array<int, 2>, 2> xs) {
+			DumpMemo(ss, L"<array>");
+			Dump(ss, xs[0][0]);
+			Dump(ss, xs[0][1]);
+			Dump(ss, xs[1][0]);
+			Dump(ss, xs[1][1]);
+			DumpMemo(ss, L"</array>");
+		});
+		opts.AddOption(Q(""), [&] (std::array<int, 3> xs) {
+			DumpMemo(ss, L"<array>");
+			Dump(ss, xs[0]);
+			Dump(ss, xs[1]);
+			Dump(ss, xs[2]);
+			DumpMemo(ss, L"</array>");
+		});
+		opts.AddOption(Q(""), [&] (int x) {
+			Dump(ss, x);
+		});
+		opts.AddOption(Q(""), [&] (int a, int b, int c, int d, int e) {
+			DumpMemo(ss, L"<not-array>");
+			Dump(ss, a);
+			Dump(ss, b);
+			Dump(ss, c);
+			Dump(ss, d);
+			Dump(ss, e);
+			DumpMemo(ss, L"</not-array>");
+		});
+		opts.AddOption(Q(""), [&] (Char x) {
+			Dump(ss, x);
+		});
+
+		std::vector<String> args;
+		std::wstringstream expected;
+
+		args.push_back(Q("-1"));
+		args.push_back(Q("-2"));
+		args.push_back(Q("-3"));
+		args.push_back(Q("-4"));
+		args.push_back(Q("-5"));
+		DumpMemo(expected, L"<not-array>");
+		Dump(expected, -1);
+		Dump(expected, -2);
+		Dump(expected, -3);
+		Dump(expected, -4);
+		Dump(expected, -5);
+		DumpMemo(expected, L"</not-array>");
+
+		args.push_back(Q("x"));
+		Dump(expected, L'x');
+
+		args.push_back(Q("1"));
+		args.push_back(Q("2"));
+		args.push_back(Q("3"));
+		args.push_back(Q("4"));
+		DumpMemo(expected, L"<array>");
+		Dump(expected, 1);
+		Dump(expected, 2);
+		Dump(expected, 3);
+		Dump(expected, 4);
+		DumpMemo(expected, L"</array>");
+
+		args.push_back(Q("x"));
+		Dump(expected, L'x');
+
+		args.push_back(Q("5"));
+		args.push_back(Q("6"));
+		args.push_back(Q("7"));
+		DumpMemo(expected, L"<array>");
+		Dump(expected, 5);
+		Dump(expected, 6);
+		Dump(expected, 7);
+		DumpMemo(expected, L"</array>");
+
+		args.push_back(Q("x"));
+		Dump(expected, L'x');
+
+		args.push_back(Q("8"));
+		Dump(expected, 8);
+
+		args.push_back(Q("9"));
+		Dump(expected, 9);
+
+		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
+		int failIdx;
+		if (!parseEnv.Run(failIdx)) {
+			FAIL;
+		}
+		if (failIdx != -1) {
+			FAIL;
+		}
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
 };
 
 
@@ -947,6 +1048,7 @@ static bool RunCharTests ()
 		Tests<Char>::TestFatal,
 		Tests<Char>::TestNoMatch,
 		Tests<Char>::TestKeyword1,
+		Tests<Char>::TestArrays,
 	};
 
 	try {
