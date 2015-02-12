@@ -10,7 +10,7 @@ A declarative command line parser for C++.
 Quick installation: Download the required header here: [cpp/src/LambdaOpts.h](cpp/src/LambdaOpts.h?ts=4)
 
 
-Example:
+Basic example:
 ```cpp
 #include "LambdaOpts.h"
 #include <iostream>
@@ -22,22 +22,17 @@ int main (int argc, char ** argv)
 
 	opts.AddOption("--help", [] () {
 		std::cout << "--user NAME [AGE]" << std::endl;
-		return Opts::ParseResult::Accept;
 	});
 	opts.AddOption("--user", [] (std::string name) {
 		std::cout << "Name:" << name << std::endl;
-		return Opts::ParseResult::Accept;
 	});
 	opts.AddOption("--user", [] (std::string name, unsigned int age) {
 		std::cout << "Name:" << name << " Age:" << age << std::endl;
-		return Opts::ParseResult::Accept;
 	});
 
 	auto parseEnv = opts.CreateParseEnv(argv + 1, argv + argc);
 
-	int parseFailureIndex;
-	if (!parseEnv.Run(parseFailureIndex)) {
-		std::cout << "Parse failed at index " << parseFailureIndex << std::endl;
+	if (!parseEnv.Run()) {
 		return 1;
 	}
 
