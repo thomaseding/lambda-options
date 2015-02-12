@@ -81,7 +81,7 @@ namespace lambda_opts
 		ArgsIter & operator++ ()
 		{
 			if (iter == end) {
-				throw Exception("lambda_opts::ArgsIter::operator++(): Cannot increment past end iterator.");
+				throw Exception("lambda_opts::ArgsIter<Char>::operator++: Cannot increment past end iterator.");
 			}
 			++iter;
 			return *this;
@@ -395,17 +395,22 @@ namespace lambda_opts
 			return validObject;
 		}
 
-		T & operator* ()
+		T & Get ()
 		{
 			if (!validObject) {
-				throw Exception("ParsedValue::Get: Object is not valid.");
+				throw Exception("lambda_opts::Maybe<T>::Get: Object is not valid.");
 			}
 			return ObjectRef();
 		}
 
+		T & operator* ()
+		{
+			return Get();
+		}
+
 		T * operator-> ()
 		{
-			return &ObjectRef();
+			return &Get();
 		}
 
 	private:
