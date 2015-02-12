@@ -40,6 +40,43 @@ namespace
 //////////////////////////////////////////////////////////////////////////
 
 
+class Bit {
+private:
+	Bit ();	// Intentionally disable to ensure LambdaOpts can handle values it cannot default instantiate.
+
+public:
+	Bit (bool value)
+		: value(value)
+	{}
+
+public:
+	bool value;
+};
+
+
+namespace lambda_opts
+{
+	template <typename Char>
+	struct RawParser<Char, Bit> {
+		bool operator() (ParseState<Char> & parseState, char * raw)
+		{
+			Maybe<int> mNum;
+			if (Parse<Char, int>(parseState, mNum)) {
+				int num = *mNum;
+				if (num == 0 || num == 1) {
+					new (raw) Bit(num != 0);
+					return true;
+				}
+			}
+			return false;
+		}
+	};
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
 template <typename T>
 static bool Equal (std::vector<T> const & xs, std::vector<T> const & ys)
 {
@@ -1026,6 +1063,50 @@ public:
 			FAIL;
 		}
 	}
+
+
+	static void TestCustomParser ()
+	{
+		std::wstringstream ss;
+
+		Opts opts;
+		opts.AddOption(Q(""), [&] (Bit x) {
+			DumpMemo(ss, L"bit");
+			Dump(ss, x.value);
+		});
+		opts.AddOption(Q(""), [&] (int x) {
+			Dump(ss, x);
+		});
+	
+		std::vector<String> args;
+		std::wstringstream expected;
+
+		args.push_back(Q("-1"));
+		Dump(expected, -1);
+
+		args.push_back(Q("0"));
+		DumpMemo(expected, L"bit");
+		Dump(expected, false);
+
+		args.push_back(Q("1"));
+		DumpMemo(expected, L"bit");
+		Dump(expected, true);
+
+		args.push_back(Q("2"));
+		Dump(expected, 2);
+
+		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
+		int failIdx;
+		if (!parseEnv.Run(failIdx)) {
+			FAIL;
+		}
+		if (failIdx != -1) {
+			FAIL;
+		}
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
 };
 
 
@@ -1049,6 +1130,7 @@ static bool RunCharTests ()
 		Tests<Char>::TestNoMatch,
 		Tests<Char>::TestKeyword1,
 		Tests<Char>::TestArrays,
+		Tests<Char>::TestCustomParser,
 	};
 
 	try {
