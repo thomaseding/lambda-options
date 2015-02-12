@@ -308,7 +308,7 @@ static void TestRejectEmptyKeyword ()
 		Opts opts;
 		opts.AddOption("", [] () { return PR::Accept; });
 	}
-	catch (lambda_opts::Exception const & e) {
+	catch (lambda_opts::Exception const &) {
 		return;
 	}
 	FAIL;
@@ -780,10 +780,10 @@ static void TestFatal ()
 static void TestNoMatch ()
 {
 	Opts opts;
-	opts.AddOption("", [] (int x) {
+	opts.AddOption("", [] (int) {
 		return PR::Accept;
 	});
-	opts.AddOption("", [] (char x) {
+	opts.AddOption("", [] (char) {
 		return PR::Accept;
 	});
 
@@ -952,7 +952,7 @@ static bool RunTests ()
 }
 
 
-int main (int argc, char ** argv)
+int main (int, char **)
 {
 	std::setlocale(LC_ALL, "C");
 	if (!RunTests()) {

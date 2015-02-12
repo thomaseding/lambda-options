@@ -51,7 +51,7 @@ class LambdaOpts;
 
 namespace lambda_opts
 {
-	class Exception : std::exception {
+	class Exception : public std::exception {
 	public:
 		Exception (std::string const & message)
 			: message(message)
@@ -164,6 +164,9 @@ namespace lambda_opts
 			, end(end)
 		{}
 
+	private:
+		void operator= (ParseState const &); // disable
+
 	public:
 		ArgsIter<Char> & iter;
 		ArgsIter<Char> const end;
@@ -256,10 +259,10 @@ namespace lambda_opts
 	inline bool Parse (ParseState<Char> & parseState, Maybe<T> & out)
 	{
 		if (out.validObject) {
-			out.view.object.~T();
+			out.ObjectRef().~T();
 			out.validObject = false;
 		}
-		if (RawParse<Char, T>(parseState, out.view.raw)) {
+		if (RawParse<Char, T>(parseState, out.RawMemory())) {
 			out.validObject = true;
 			return true;
 		}
@@ -373,14 +376,18 @@ namespace lambda_opts
 
 	public:
 		Maybe ()
-			: view()
+#if _MSC_VER
+			: raw(static_cast<char *>(nullptr), free)
 			, validObject(false)
+#else
+			: validObject(false)
+#endif
 		{}
 
 		~Maybe ()
 		{
 			if (validObject) {
-				view.object.~T();
+				ObjectRef().~T();
 			}
 		}
 
@@ -394,12 +401,35 @@ namespace lambda_opts
 			if (!validObject) {
 				throw Exception("ParsedValue::Get: Object is not valid.");
 			}
-			return view.object;
+			return ObjectRef();
 		}
 
 		T * operator-> ()
 		{
-			return &operator*();
+			return &ObjectRef();
+		}
+
+	private:
+		T & ObjectRef ()
+		{
+#if _MSC_VER
+			return *reinterpret_cast<T *>(raw.get());
+#else
+			view.object;
+#endif
+		}
+
+		char * RawMemory ()
+		{
+#if _MSC_VER
+			if (!raw) {
+				void * p = malloc(sizeof(T));
+				raw = std::unique_ptr<char, void(*)(void*)>(static_cast<char *>(p), free);
+			}
+			return raw.get();
+#else
+			view.raw;
+#endif
 		}
 
 	private:
@@ -409,6 +439,9 @@ namespace lambda_opts
 		void operator= (Maybe const &); // disable
 
 	private:
+#if _MSC_VER
+		std::unique_ptr<char, void(*)(void*)> raw;	// Only way I can figure out how to get memory aligned to that of T. (__alignof(T) gives compiler error...)
+#else
 		union View {
 			T object;
 			char raw[sizeof(T)];
@@ -416,6 +449,7 @@ namespace lambda_opts
 			View () : raw() {}
 			~View () {}
 		} view;
+#endif
 		bool validObject;
 	};
 }
@@ -547,6 +581,8 @@ private:
 		TypeKind (std::type_info const & id)
 			: id(id)
 		{}
+
+		void operator= (TypeKind const &); // disable
 
 	public:
 		template <typename T>
