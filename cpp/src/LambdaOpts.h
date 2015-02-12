@@ -315,7 +315,7 @@ namespace lambda_opts
 		bool operator() (ParseState<Char> & parseState, char * raw)
 		{
 			if (parseState.iter->size() == 1) {
-				*raw = parseState.iter->front();
+				new (raw) Char(parseState.iter->front());
 				++parseState.iter;
 				return true;
 			}
