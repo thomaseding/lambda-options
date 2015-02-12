@@ -6,9 +6,13 @@ A declarative command line parser for C++.
 * Easy to learn. The API is tiny and simple.
 * Easy to integrate. Contained in a single [header file](cpp/src/LambdaOpts.h?ts=4).
 
-
 Quick installation: Download the required header here: [cpp/src/LambdaOpts.h](cpp/src/LambdaOpts.h?ts=4)
 
+Examples directory: [cpp/example](cpp/src/example)
+
+##Docs as well as more examples coming soon!
+
+--------------
 
 Basic example:
 ```cpp
