@@ -340,32 +340,43 @@ namespace lambda_opts
 	struct RawParser<Char, std::array<T, N>> {
 	private:
 		typedef std::array<T, N> Array;
-		static void DeallocatePartial (size_t beginIdx, Array & array)
+
+	public:
+		~RawParser ()
 		{
-			for (size_t i = beginIdx; i > 0; --i) {
-				array[i - 1].~T();
+			Array & array = *pArray;
+			if (!success) {
+				while (currIndex-- > 0) {
+					array[currIndex].~T();
+				}
 			}
 		}
 
-	public:
 		bool operator() (ParseState<Char> & parseState, char * raw)
 		{
 			static_assert(N > 0, "Parsing a zero-sized array is not well-defined.");
-			Array & array = *reinterpret_cast<Array *>(raw);
-			for (size_t i = 0; i < N; ++i) {
+			success = false;
+			pArray = reinterpret_cast<Array *>(raw);
+			Array & array = *pArray;
+			currIndex = 0;
+			for (; currIndex < N; ++currIndex) {
 				if (parseState.iter == parseState.end) {
-					DeallocatePartial(i, array);
 					return false;
 				}
-				T & elem = array[i];
+				T & elem = array[currIndex];
 				char * rawElem = reinterpret_cast<char *>(&elem);
 				if (!RawParse<Char, T>(parseState, rawElem)) {
-					DeallocatePartial(i, array);
 					return false;
 				}
 			}
+			success = true;
 			return true;
 		}
+
+	private:
+		bool success;
+		size_t currIndex;
+		Array * pArray;
 	};
 
 	template <typename T>
