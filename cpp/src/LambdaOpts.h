@@ -1462,7 +1462,7 @@ void LambdaOpts<Char>::Keyword::AddSubKeyword (Keyword const & subKeyword)
 	try {
 		Validate();
 	}
-	catch (lambda_opts::Exception const e) {
+	catch (lambda_opts::Exception const & e) {
 		subKeywords.pop_back();
 		throw e;
 	}
