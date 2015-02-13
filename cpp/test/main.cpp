@@ -134,7 +134,7 @@ class Tests {
 private:
 	typedef std::basic_string<Char> String;
 	typedef LambdaOpts<Char> Opts;
-	typedef typename Opts::ParseResult PR;
+	typedef typename lambda_opts::ParseResult PR;
 	typedef typename Opts::Keyword Keyword;
 
 

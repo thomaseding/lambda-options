@@ -486,6 +486,12 @@ namespace lambda_opts
 #endif
 		bool validObject;
 	};
+
+	enum class ParseResult {
+		Accept,
+		Reject,
+		Fatal,
+	};
 }
 
 
@@ -496,6 +502,7 @@ template <typename Char = char>
 class LambdaOpts {
 	typedef std::basic_string<Char> String;
 	typedef std::vector<String> Args;
+	typedef lambda_opts::ParseResult ParseResult;
 	class LambdaOptsImpl;
 	class ParseEnvImpl;
 
@@ -503,12 +510,6 @@ public:
 	typedef Char char_type;
 
 	class ParseEnv;
-
-	enum class ParseResult {
-		Accept,
-		Reject,
-		Fatal,
-	};
 
 	class Keyword {
 	public:
