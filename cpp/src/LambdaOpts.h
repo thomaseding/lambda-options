@@ -262,10 +262,12 @@ namespace lambda_opts
 			out.Get().~T();
 			out.objectExists = false;
 		}
+		ArgsIter<Char> const startIter = parseState.iter;
 		if (RawParse<Char, T>(parseState, out.RawMemory())) {
 			out.objectExists = true;
 			return true;
 		}
+		parseState.iter = startIter;
 		return false;
 	}
 
@@ -1155,13 +1157,8 @@ private:
 	private:
 		UniqueOpaque OpaqueParse (TypeKind const & typeKind)
 		{
-			auto const startIter = iter;
 			OpaqueParser parser = opts->LookupDynamicParser(typeKind);
-			UniqueOpaque p = parser(parseState);
-			if (!p) {
-				iter = startIter;
-			}
-			return p;
+			return parser(parseState);
 		}
 
 		OpaqueValues ParseArgs (std::vector<TypeKind> const & typeKinds)
