@@ -154,7 +154,7 @@ namespace lambda_opts
 		Iter end;
 	};
 
-	template <typename Char>
+	template <typename Char = char>
 	class ParseState {
 		friend class LambdaOpts<Char>;
 
