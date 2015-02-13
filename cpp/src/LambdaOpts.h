@@ -511,6 +511,8 @@ public:
 	};
 
 	class Keyword {
+		friend class LambdaOpts;
+
 	public:
 		Keyword ();
 		explicit Keyword (char shortName);
@@ -523,12 +525,17 @@ public:
 		Keyword (char shortName, String const & group, String const & help);
 		Keyword (String const & longName, char shortName, String const & group, String const & help);
 
+		void AddSubKeyword (Keyword const & subKeyword);
+
 	private:
 		void Init (String const * longName, String const * group, String const * help);
 		void Init (String const * longName, char shortName, String const * group, String const * help);
 
+		void Validate () const;
+
 	public:
 		std::vector<String> names;
+		std::vector<std::shared_ptr<Keyword>> subKeywords;
 		String help;
 		String group;
 	};
@@ -545,6 +552,7 @@ public:
 	template <typename Func>
 	void AddOption (Keyword const & keyword, Func const & f)
 	{
+		keyword.Validate();
 		impl->AddOption<Func>(keyword, f);
 	}
 
@@ -1198,11 +1206,29 @@ private:
 			return std::move(parsedArgs);
 		}
 
-		bool MatchKeyword (Keyword const & keyword, String const & arg) const
+		bool MatchKeyword (Keyword const & keyword)
 		{
+			if (keyword.names.empty()) {
+				return true;
+			}
+
+			auto const startIter1 = iter;
+
 			for (String const & name : keyword.names) {
-				if (arg == name) {
-					return true;
+				iter = startIter1;
+				if (*iter == name) {
+					++iter;
+					if (keyword.subKeywords.empty()) {
+						return true;
+					}
+					auto const startIter2 = iter;
+					for (auto const & subKeyword : keyword.subKeywords) {
+						iter = startIter2;
+						if (MatchKeyword(*subKeyword)) {
+							return true;
+						}
+					}
+					return false;
 				}
 			}
 			return false;
@@ -1217,17 +1243,13 @@ private:
 			size_t const arity = infos.front().typeKinds.size();
 
 			auto const startIter = iter;
-			ASSERT(__LINE__, startIter < end);
 
 			for (auto const & info : infos) {
 				if (info.keyword.names.empty() == useKeyword) {
 					continue;
 				}
 				iter = startIter;
-				if (!useKeyword || MatchKeyword(info.keyword, *iter)) {
-					if (useKeyword) {
-						++iter;
-					}
+				if (!useKeyword || MatchKeyword(info.keyword)) {
 					auto const & typeKinds = info.typeKinds;
 					ASSERT(__LINE__, typeKinds.size() == arity);
 					OpaqueValues parsedArgs = ParseArgs(typeKinds);
@@ -1431,6 +1453,30 @@ void LambdaOpts<Char>::Keyword::Init (String const * longName, char shortName, S
 	shortNameStr.push_back('-');
 	shortNameStr.push_back(shortName);
 	names.push_back(shortNameStr);
+}
+
+
+template <typename Char>
+void LambdaOpts<Char>::Keyword::AddSubKeyword (Keyword const & subKeyword)
+{
+	subKeywords.push_back(std::shared_ptr<Keyword>(new Keyword(subKeyword)));
+}
+
+
+template <typename Char>
+void LambdaOpts<Char>::Keyword::Validate () const
+{
+	if (names.empty() && !subKeywords.empty()) {
+		throw lambda_opts::Exception("Empty keyword cannot have sub-keywords.");
+	}
+	for (auto const & subKeyword : subKeywords) {
+		if (!subKeyword) {
+			throw lambda_opts::Exception("Sub-keywords cannot be null.");
+		}
+		if (subKeyword->names.empty()) {
+			throw lambda_opts::Exception("Sub-keywords cannot have empty names.");
+		}
+	}
 }
 
 
