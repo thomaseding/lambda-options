@@ -1249,7 +1249,7 @@ private:
 					continue;
 				}
 				iter = startIter;
-				if (!useKeyword || MatchKeyword(info.keyword)) {
+				if (MatchKeyword(info.keyword)) {
 					auto const & typeKinds = info.typeKinds;
 					ASSERT(__LINE__, typeKinds.size() == arity);
 					OpaqueValues parsedArgs = ParseArgs(typeKinds);
