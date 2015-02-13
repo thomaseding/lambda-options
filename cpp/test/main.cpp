@@ -116,16 +116,6 @@ namespace lambda_opts
 //////////////////////////////////////////////////////////////////////////
 
 
-template <typename T>
-static bool Equal (std::vector<T> const & xs, std::vector<T> const & ys)
-{
-	if (xs.size() != ys.size()) {
-		return false;
-	}
-	return std::equal(xs.begin(), xs.end(), ys.begin());
-}
-
-
 template <typename T, size_t N>
 static bool Equal (std::vector<T> const & xs, T const (&ys)[N])
 {
@@ -145,6 +135,7 @@ private:
 	typedef std::basic_string<Char> String;
 	typedef LambdaOpts<Char> Opts;
 	typedef typename Opts::ParseResult PR;
+	typedef typename Opts::Keyword Keyword;
 
 
 	static std::wstring L (std::string const & str)
@@ -330,6 +321,8 @@ private:
 	
 
 public:
+	static Keyword const empty;
+
 	static void TestCompileTypes ()
 	{
 		Opts opts;
@@ -412,7 +405,7 @@ public:
 	{
 		try {
 			Opts opts;
-			opts.AddOption(Q(""), [] () { return PR::Accept; });
+			opts.AddOption(empty, [] () { return PR::Accept; });
 		}
 		catch (lambda_opts::Exception const &) {
 			return;
@@ -427,23 +420,23 @@ public:
 		std::vector<int> calls;
 	
 		Opts opts;
-		opts.AddOption(Q(""), [&] (S) {
+		opts.AddOption(empty, [&] (S) {
 			calls.push_back(1);
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [&] (S,S) {
+		opts.AddOption(empty, [&] (S,S) {
 			calls.push_back(2);
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [&] (S,S,S) {
+		opts.AddOption(empty, [&] (S,S,S) {
 			calls.push_back(3);
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [&] (S,S,S,S) {
+		opts.AddOption(empty, [&] (S,S,S,S) {
 			calls.push_back(4);
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [&] (S,S,S,S,S) {
+		opts.AddOption(empty, [&] (S,S,S,S,S) {
 			calls.push_back(5);
 			return PR::Accept;
 		});
@@ -536,7 +529,7 @@ public:
 		std::vector<int> calls;
 	
 		Opts opts;
-		opts.AddOption(Q(""), [&] (S) {
+		opts.AddOption(empty, [&] (S) {
 			calls.push_back(0);
 			return PR::Accept;
 		});
@@ -586,7 +579,7 @@ public:
 			calls.push_back(1);
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [&] (S) {
+		opts.AddOption(empty, [&] (S) {
 			calls.push_back(2); return
 			PR::Accept;
 		});
@@ -619,19 +612,19 @@ public:
 	
 		Opts opts;
 	
-		opts.AddOption(Q(""), [&] (bool x) {
+		opts.AddOption(empty, [&] (bool x) {
 			Dump(ss, x);
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [&] (unsigned int x) {
+		opts.AddOption(empty, [&] (unsigned int x) {
 			Dump(ss, x);
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [&] (int x) {
+		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [&] (float x) {
+		opts.AddOption(empty, [&] (float x) {
 			Dump(ss, x);
 			if (x == 0.0f) {
 				DumpMemo(ss, L"REJECTED");
@@ -639,15 +632,15 @@ public:
 			}
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [&] (double x) {
+		opts.AddOption(empty, [&] (double x) {
 			Dump(ss, x);
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [&] (Char x) {
+		opts.AddOption(empty, [&] (Char x) {
 			Dump(ss, x);
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [&] (String x) {
+		opts.AddOption(empty, [&] (String x) {
 			Dump(ss, x);
 			return PR::Accept;
 		});
@@ -781,11 +774,11 @@ public:
 		std::wstringstream ss;
 	
 		Opts opts;
-		opts.AddOption(Q(""), [&] (int x) {
+		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
 			return PR::Reject;
 		});
-		opts.AddOption(Q(""), [&] (String x) {
+		opts.AddOption(empty, [&] (String x) {
 			Dump(ss, x);
 			return PR::Accept;
 		});
@@ -824,11 +817,11 @@ public:
 		std::wstringstream ss;
 	
 		Opts opts;
-		opts.AddOption(Q(""), [&] (int x) {
+		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
 			return PR::Reject;
 		});
-		opts.AddOption(Q(""), [&] (Char x) {
+		opts.AddOption(empty, [&] (Char x) {
 			Dump(ss, x);
 			return PR::Accept;
 		});
@@ -868,11 +861,11 @@ public:
 		std::wstringstream ss;
 	
 		Opts opts;
-		opts.AddOption(Q(""), [&] (int x) {
+		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
 			return PR::Fatal;
 		});
-		opts.AddOption(Q(""), [&] (String x) {
+		opts.AddOption(empty, [&] (String x) {
 			Dump(ss, x);
 			return PR::Accept;
 		});
@@ -905,10 +898,10 @@ public:
 	static void TestNoMatch ()
 	{
 		Opts opts;
-		opts.AddOption(Q(""), [] (int) {
+		opts.AddOption(empty, [] (int) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [] (Char) {
+		opts.AddOption(empty, [] (Char) {
 			return PR::Accept;
 		});
 	
@@ -935,17 +928,17 @@ public:
 		std::wstringstream ss;
 	
 		Opts opts;
-		opts.AddOption(Q(""), [&] (int x) {
+		opts.AddOption(empty, [&] (int x) {
 			DumpMemo(ss, L"int");
 			Dump(ss, x);
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [&] (Char x) {
+		opts.AddOption(empty, [&] (Char x) {
 			DumpMemo(ss, L"char");
 			Dump(ss, x);
 			return PR::Accept;
 		});
-		opts.AddOption(Q(""), [&] (String x) {
+		opts.AddOption(empty, [&] (String x) {
 			DumpMemo(ss, L"string");
 			Dump(ss, x);
 			return PR::Accept;
@@ -1046,7 +1039,7 @@ public:
 		std::wstringstream ss;
 
 		Opts opts;
-		opts.AddOption(Q(""), [&] (std::array<std::array<int, 2>, 2> xs) {
+		opts.AddOption(empty, [&] (std::array<std::array<int, 2>, 2> xs) {
 			DumpMemo(ss, L"<array>");
 			Dump(ss, xs[0][0]);
 			Dump(ss, xs[0][1]);
@@ -1054,17 +1047,17 @@ public:
 			Dump(ss, xs[1][1]);
 			DumpMemo(ss, L"</array>");
 		});
-		opts.AddOption(Q(""), [&] (std::array<int, 3> xs) {
+		opts.AddOption(empty, [&] (std::array<int, 3> xs) {
 			DumpMemo(ss, L"<array>");
 			Dump(ss, xs[0]);
 			Dump(ss, xs[1]);
 			Dump(ss, xs[2]);
 			DumpMemo(ss, L"</array>");
 		});
-		opts.AddOption(Q(""), [&] (int x) {
+		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
 		});
-		opts.AddOption(Q(""), [&] (int a, int b, int c, int d, int e) {
+		opts.AddOption(empty, [&] (int a, int b, int c, int d, int e) {
 			DumpMemo(ss, L"<not-array>");
 			Dump(ss, a);
 			Dump(ss, b);
@@ -1073,7 +1066,7 @@ public:
 			Dump(ss, e);
 			DumpMemo(ss, L"</not-array>");
 		});
-		opts.AddOption(Q(""), [&] (Char x) {
+		opts.AddOption(empty, [&] (Char x) {
 			Dump(ss, x);
 		});
 
@@ -1147,11 +1140,11 @@ public:
 		std::wstringstream ss;
 
 		Opts opts;
-		opts.AddOption(Q(""), [&] (Bit x) {
+		opts.AddOption(empty, [&] (Bit x) {
 			DumpMemo(ss, L"bit");
 			Dump(ss, x.value);
 		});
-		opts.AddOption(Q(""), [&] (int x) {
+		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
 		});
 	
@@ -1191,10 +1184,10 @@ public:
 		std::wstringstream ss;
 
 		Opts opts;
-		opts.AddOption(Q(""), [&] (int x) {
+		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
 		});
-		opts.AddOption(Q(""), [&] (lambda_opts::ParseState<Char> parseState) {
+		opts.AddOption(empty, [&] (lambda_opts::ParseState<Char> parseState) {
 			using namespace lambda_opts;
 
 			DumpMemo(ss, L"<parse-state>");
@@ -1274,7 +1267,7 @@ public:
 		value = 0;
 
 		Opts opts;
-		opts.AddOption(Q(""), [&] (lambda_opts::ParseState<Char> parseState) {
+		opts.AddOption(empty, [&] (lambda_opts::ParseState<Char> parseState) {
 			{
 				lambda_opts::Maybe<TestMaybeLifetimeHelper> mObject;
 				if (value != 0) {
@@ -1306,6 +1299,10 @@ public:
 		}
 	}
 };
+
+
+template <typename Char>
+typename LambdaOpts<Char>::Keyword const Tests<Char>::empty;
 
 
 template <typename Char>
