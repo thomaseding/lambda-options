@@ -77,6 +77,45 @@ namespace lambda_opts
 //////////////////////////////////////////////////////////////////////////
 
 
+class TestMaybeLifetimeHelper {
+public:
+	static int const P1 = 7907;
+	static int const P2 = 7919;
+
+	static int value;
+
+	TestMaybeLifetimeHelper ()
+	{
+		value += P1;
+	}
+
+	~TestMaybeLifetimeHelper ()
+	{
+		value += P2;
+	}
+};
+
+
+int TestMaybeLifetimeHelper::value = 666;
+
+
+namespace lambda_opts
+{
+	template <typename Char>
+	struct RawParser<Char, TestMaybeLifetimeHelper> {
+		bool operator() (ParseState<Char> & parseState, char * raw)
+		{
+			new (raw) TestMaybeLifetimeHelper();
+			++parseState.iter;
+			return true;
+		}
+	};
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
 template <typename T>
 static bool Equal (std::vector<T> const & xs, std::vector<T> const & ys)
 {
@@ -1186,6 +1225,48 @@ public:
 			FAIL;
 		}
 	}
+
+
+	static void TestMaybeLifetime ()
+	{
+		int const & P1 = TestMaybeLifetimeHelper::P1;
+		int const & P2 = TestMaybeLifetimeHelper::P2;
+		int & value = TestMaybeLifetimeHelper::value;
+
+		value = 0;
+
+		Opts opts;
+		opts.AddOption(Q(""), [&] (lambda_opts::ParseState<Char> parseState) {
+			{
+				lambda_opts::Maybe<TestMaybeLifetimeHelper> mObject;
+				if (value != 0) {
+					FAIL;
+				}
+			}
+			if (value != 0) {
+				FAIL;
+			}
+			{
+				lambda_opts::Maybe<TestMaybeLifetimeHelper> mObject;
+				if (!lambda_opts::Parse<Char, TestMaybeLifetimeHelper>(parseState, mObject)) {
+					FAIL;
+				}
+				if (value != P1) {
+					FAIL;
+				}
+			}
+			if (value != P1 + P2) {
+				FAIL;
+			}
+		});
+
+		std::vector<String> args(1);
+
+		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
+		if (!parseEnv.Run()) {
+			FAIL;
+		}
+	}
 };
 
 
@@ -1211,6 +1292,7 @@ static bool RunCharTests ()
 		Tests<Char>::TestArrays,
 		Tests<Char>::TestCustomParser,
 		Tests<Char>::TestParseState,
+		Tests<Char>::TestMaybeLifetime,
 	};
 
 	try {
