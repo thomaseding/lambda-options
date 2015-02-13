@@ -510,10 +510,40 @@ public:
 		Fatal,
 	};
 
+	class Keyword {
+	public:
+		Keyword ();
+		explicit Keyword (char shortName);
+		explicit Keyword (String const & longName);
+		Keyword (String const & longName, char shortName);
+		Keyword (char shortName, String const & help);
+		Keyword (String const & longName, String const & help);
+		Keyword (String const & longName, char shortName, String const & help);
+		Keyword (String const & longName, String const & group, String const & help);
+		Keyword (char shortName, String const & group, String const & help);
+		Keyword (String const & longName, char shortName, String const & group, String const & help);
+
+	private:
+		void Init (String const * longName, String const * group, String const * help);
+		void Init (String const * longName, char shortName, String const * group, String const * help);
+
+	public:
+		std::vector<String> names;
+		String help;
+		String group;
+	};
+
 	LambdaOpts ();
 
 	template <typename Func>
 	void AddOption (String const & keyword, Func const & f)
+	{
+		Keyword kw(keyword);
+		impl->AddOption<Func>(kw, f);
+	}
+
+	template <typename Func>
+	void AddOption (Keyword const & keyword, Func const & f)
 	{
 		impl->AddOption<Func>(keyword, f);
 	}
@@ -796,14 +826,14 @@ private:
 		struct Adder {};
 
 		template <typename Func>
-		void AddOption (String const & keyword, Func const & f)
+		void AddOption (Keyword const & keyword, Func const & f)
 		{
 			Adder<Func, FuncTraits<Func>::arity>::Add(*this, keyword, f);
 		}
 
 		template <typename Func>
 		struct Adder<Func, 0> {
-			static void Add (LambdaOptsImpl & opts, String const & keyword, Func const & f)
+			static void Add (LambdaOptsImpl & opts, Keyword const & keyword, Func const & f)
 			{
 				typedef typename FuncTraits<Func>::Return::type R;
 				static_assert(ReturnType<R>::allowed, "Illegal return type.");
@@ -813,7 +843,7 @@ private:
 
 		template <typename Func>
 		struct Adder<Func, 1> {
-			static void Add (LambdaOptsImpl & opts, String const & keyword, Func const & f)
+			static void Add (LambdaOptsImpl & opts, Keyword const & keyword, Func const & f)
 			{
 				typedef typename FuncTraits<Func>::Arg0::type A;
 				typedef typename FuncTraits<Func>::Return::type R;
@@ -824,7 +854,7 @@ private:
 
 		template <typename Func>
 		struct Adder<Func, 2> {
-			static void Add (LambdaOptsImpl & opts, String const & keyword, Func const & f)
+			static void Add (LambdaOptsImpl & opts, Keyword const & keyword, Func const & f)
 			{
 				typedef typename FuncTraits<Func>::Arg0::type A;
 				typedef typename FuncTraits<Func>::Arg1::type B;
@@ -836,7 +866,7 @@ private:
 
 		template <typename Func>
 		struct Adder<Func, 3> {
-			static void Add (LambdaOptsImpl & opts, String const & keyword, Func const & f)
+			static void Add (LambdaOptsImpl & opts, Keyword const & keyword, Func const & f)
 			{
 				typedef typename FuncTraits<Func>::Arg0::type A;
 				typedef typename FuncTraits<Func>::Arg1::type B;
@@ -849,7 +879,7 @@ private:
 
 		template <typename Func>
 		struct Adder<Func, 4> {
-			static void Add (LambdaOptsImpl & opts, String const & keyword, Func const & f)
+			static void Add (LambdaOptsImpl & opts, Keyword const & keyword, Func const & f)
 			{
 				typedef typename FuncTraits<Func>::Arg0::type A;
 				typedef typename FuncTraits<Func>::Arg1::type B;
@@ -863,7 +893,7 @@ private:
 
 		template <typename Func>
 		struct Adder<Func, 5> {
-			static void Add (LambdaOptsImpl & opts, String const & keyword, Func const & f)
+			static void Add (LambdaOptsImpl & opts, Keyword const & keyword, Func const & f)
 			{
 				typedef typename FuncTraits<Func>::Arg0::type A;
 				typedef typename FuncTraits<Func>::Arg1::type B;
@@ -876,7 +906,7 @@ private:
 			}
 		};
 
-		void AddImpl (Tag<void>, String const & keyword, std::function<void()> const & func)
+		void AddImpl (Tag<void>, Keyword const & keyword, std::function<void()> const & func)
 		{
 			AddImpl(Tag<ParseResult>(), keyword, [=] () {
 				func();
@@ -884,16 +914,16 @@ private:
 			});
 		}
 
-		void AddImpl (Tag<ParseResult>, String const & keyword, std::function<ParseResult()> const & func)
+		void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult()> const & func)
 		{
-			if (keyword.empty()) {
+			if (keyword.names.empty()) {
 				throw lambda_opts::Exception("Cannot add an empty rule.");
 			}
 			infos0.emplace_back(keyword, func);
 		}
 
 		template <typename A>
-		void AddImpl (Tag<void>, String const & keyword, std::function<void(A)> const & func)
+		void AddImpl (Tag<void>, Keyword const & keyword, std::function<void(A)> const & func)
 		{
 			AddImpl<A>(Tag<ParseResult>(), keyword, [=] (A && a) {
 				func(std::forward<A>(a));
@@ -902,7 +932,7 @@ private:
 		}
 
 		template <typename A>
-		void AddImpl (Tag<ParseResult>, String const & keyword, std::function<ParseResult(A)> const & func)
+		void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult(A)> const & func)
 		{
 			typedef typename SimplifyType<A>::type A2;
 			auto wrapper = [=] (V va) {
@@ -915,7 +945,7 @@ private:
 		}
 
 		template <typename A, typename B>
-		void AddImpl (Tag<void>, String const & keyword, std::function<void(A,B)> const & func)
+		void AddImpl (Tag<void>, Keyword const & keyword, std::function<void(A,B)> const & func)
 		{
 			AddImpl<A,B>(Tag<ParseResult>(), keyword, [=] (A && a, B && b) {
 				func(std::forward<A>(a), std::forward<B>(b));
@@ -924,7 +954,7 @@ private:
 		}
 
 		template <typename A, typename B>
-		void AddImpl (Tag<ParseResult>, String const & keyword, std::function<ParseResult(A,B)> const & func)
+		void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult(A,B)> const & func)
 		{
 			typedef typename SimplifyType<A>::type A2;
 			typedef typename SimplifyType<B>::type B2;
@@ -940,7 +970,7 @@ private:
 		}
 
 		template <typename A, typename B, typename C>
-		void AddImpl (Tag<void>, String const & keyword, std::function<void(A,B,C)> const & func)
+		void AddImpl (Tag<void>, Keyword const & keyword, std::function<void(A,B,C)> const & func)
 		{
 			AddImpl<A,B,C>(Tag<ParseResult>(), keyword, [=] (A && a, B && b, C && c) {
 				func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c));
@@ -949,7 +979,7 @@ private:
 		}
 
 		template <typename A, typename B, typename C>
-		void AddImpl (Tag<ParseResult>, String const & keyword, std::function<ParseResult(A,B,C)> const & func)
+		void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult(A,B,C)> const & func)
 		{
 			typedef typename SimplifyType<A>::type A2;
 			typedef typename SimplifyType<B>::type B2;
@@ -968,7 +998,7 @@ private:
 		}
 
 		template <typename A, typename B, typename C, typename D>
-		void AddImpl (Tag<void>, String const & keyword, std::function<void(A,B,C,D)> const & func)
+		void AddImpl (Tag<void>, Keyword const & keyword, std::function<void(A,B,C,D)> const & func)
 		{
 			AddImpl<A,B,C,D>(Tag<ParseResult>(), keyword, [=] (A && a, B && b, C && c, D && d) {
 				func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d));
@@ -977,7 +1007,7 @@ private:
 		}
 
 		template <typename A, typename B, typename C, typename D>
-		void AddImpl (Tag<ParseResult>, String const & keyword, std::function<ParseResult(A,B,C,D)> const & func)
+		void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult(A,B,C,D)> const & func)
 		{
 			typedef typename SimplifyType<A>::type A2;
 			typedef typename SimplifyType<B>::type B2;
@@ -999,7 +1029,7 @@ private:
 		}
 
 		template <typename A, typename B, typename C, typename D, typename E>
-		void AddImpl (Tag<void>, String const & keyword, std::function<void(A,B,C,D,E)> const & func)
+		void AddImpl (Tag<void>, Keyword const & keyword, std::function<void(A,B,C,D,E)> const & func)
 		{
 			AddImpl<A,B,C,D,E>(Tag<ParseResult>(), keyword, [=] (A && a, B && b, C && c, D && d, E && e) {
 				func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e));
@@ -1008,7 +1038,7 @@ private:
 		}
 
 		template <typename A, typename B, typename C, typename D, typename E>
-		void AddImpl (Tag<ParseResult>, String const & keyword, std::function<ParseResult(A,B,C,D,E)> const & func)
+		void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult(A,B,C,D,E)> const & func)
 		{
 			typedef typename SimplifyType<A>::type A2;
 			typedef typename SimplifyType<B>::type B2;
@@ -1078,7 +1108,7 @@ private:
 		template <typename FuncSig>
 		class OptInfo {
 		public:
-			OptInfo (String const & keyword, std::function<FuncSig> const & callback)
+			OptInfo (Keyword const & keyword, std::function<FuncSig> const & callback)
 				: keyword(keyword)
 				, callback(callback)
 			{}
@@ -1090,7 +1120,7 @@ private:
 			{}
 
 		public:
-			String keyword;
+			Keyword keyword;
 			std::function<FuncSig> callback;
 			std::vector<TypeKind> typeKinds;
 		};
@@ -1168,6 +1198,16 @@ private:
 			return std::move(parsedArgs);
 		}
 
+		bool MatchKeyword (Keyword const & keyword, String const & arg) const
+		{
+			for (String const & name : keyword.names) {
+				if (arg == name) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		template <typename GenericOptInfo>
 		ParseResult TryParse (bool useKeyword, std::vector<GenericOptInfo> const & infos)
 		{
@@ -1180,11 +1220,14 @@ private:
 			ASSERT(__LINE__, startIter < end);
 
 			for (auto const & info : infos) {
-				if (info.keyword.empty() == useKeyword) {
+				if (info.keyword.names.empty() == useKeyword) {
 					continue;
 				}
 				iter = startIter;
-				if (!useKeyword || *iter++ == info.keyword) {
+				if (!useKeyword || MatchKeyword(info.keyword, *iter)) {
+					if (useKeyword) {
+						++iter;
+					}
 					auto const & typeKinds = info.typeKinds;
 					ASSERT(__LINE__, typeKinds.size() == arity);
 					OpaqueValues parsedArgs = ParseArgs(typeKinds);
@@ -1289,6 +1332,109 @@ typename LambdaOpts<Char>::ParseEnv LambdaOpts<Char>::CreateParseEnv (StringIter
 {
 	return ParseEnv(impl, Args(begin, end));
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
+template <typename Char>
+LambdaOpts<Char>::Keyword::Keyword ()
+{
+	Init(nullptr, nullptr, nullptr);
+}
+
+
+template <typename Char>
+LambdaOpts<Char>::Keyword::Keyword (char shortName)
+{
+	Init(nullptr, &shortName, nullptr, nullptr);
+}
+
+
+template <typename Char>
+LambdaOpts<Char>::Keyword::Keyword (String const & longName)
+{
+	Init(&longName, nullptr, nullptr);
+}
+
+
+template <typename Char>
+LambdaOpts<Char>::Keyword::Keyword (String const & longName, char shortName)
+{
+	Init(&longName, &shortName, nullptr, nullptr);
+}
+
+
+template <typename Char>
+LambdaOpts<Char>::Keyword::Keyword (char shortName, String const & help)
+{
+	Init(nullptr, shortName, nullptr, &help);
+}
+
+
+template <typename Char>
+LambdaOpts<Char>::Keyword::Keyword (String const & longName, String const & help)
+{
+	Init(&longName, nullptr, &help);
+}
+
+
+template <typename Char>
+LambdaOpts<Char>::Keyword::Keyword (String const & longName, char shortName, String const & help)
+{
+	Init(&longName, &shortName, nullptr, &help);
+}
+
+
+template <typename Char>
+LambdaOpts<Char>::Keyword::Keyword (String const & longName, String const & group, String const & help)
+{
+	Init(&longName, shortName, &group, &help);
+}
+
+
+template <typename Char>
+LambdaOpts<Char>::Keyword::Keyword (char shortName, String const & group, String const & help)
+{
+	Init(nullptr, shortName, &group, &help);
+}
+
+
+template <typename Char>
+LambdaOpts<Char>::Keyword::Keyword (String const & longName, char shortName, String const & group, String const & help)
+{
+	Init(&longName, shortName, &group, &help);
+}
+
+
+template <typename Char>
+void LambdaOpts<Char>::Keyword::Init (String const * longName, String const * group, String const * help)
+{
+	if (longName != nullptr) {
+		names.push_back(*longName);
+	}
+	if (group != nullptr) {
+		this->group = *group;
+	}
+	if (help != nullptr) {
+		this->help = *help;
+	}
+}
+
+
+template <typename Char>
+void LambdaOpts<Char>::Keyword::Init (String const * longName, char shortName, String const * group, String const * help)
+{
+	Init(longName, group, help);
+
+	std::basic_string<Char> shortNameStr;
+	shortNameStr.push_back('-');
+	shortNameStr.push_back(shortName);
+	names.push_back(shortNameStr);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
 
 
 template <typename Char>
