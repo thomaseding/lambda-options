@@ -856,10 +856,41 @@ public:
 	}
 	
 	
-	static void TestFatal ()
+	static void TestFatal1 ()
 	{
 		std::wstringstream ss;
 	
+		Opts opts;
+		opts.AddOption(empty, [&] (String x) {
+			Dump(ss, x);
+			return PR::Fatal;
+		});
+	
+		std::vector<String> args;
+		args.push_back(Q("x"));
+	
+		std::wstringstream expected;
+		Dump(expected, L"x");
+	
+		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
+		int failIdx;
+		if (parseEnv.Run(failIdx)) {
+			FAIL;
+		}
+		if (failIdx != 0) {
+			FAIL;
+		}
+	
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
+
+	static void TestFatal2 ()
+	{
+		std::wstringstream ss;
+
 		Opts opts;
 		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
@@ -869,17 +900,17 @@ public:
 			Dump(ss, x);
 			return PR::Accept;
 		});
-	
+
 		std::vector<String> args;
 		args.push_back(Q("x"));
 		args.push_back(Q("1"));
 		args.push_back(Q("y"));
 		args.push_back(Q("2"));
-	
+
 		std::wstringstream expected;
 		Dump(expected, L"x");
 		Dump(expected, 1);
-	
+
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 		int failIdx;
 		if (parseEnv.Run(failIdx)) {
@@ -888,7 +919,7 @@ public:
 		if (failIdx != 1) {
 			FAIL;
 		}
-	
+
 		if (ss.str() != expected.str()) {
 			FAIL;
 		}
@@ -1415,7 +1446,8 @@ static bool RunCharTests ()
 		Tests<Char>::TestObtainedValues,
 		Tests<Char>::TestReject1,
 		Tests<Char>::TestReject2,
-		Tests<Char>::TestFatal,
+		Tests<Char>::TestFatal1,
+		Tests<Char>::TestFatal2,
 		Tests<Char>::TestNoMatch,
 		Tests<Char>::TestKeyword1,
 		Tests<Char>::TestArrays,
