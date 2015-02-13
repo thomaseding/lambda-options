@@ -511,8 +511,6 @@ public:
 	};
 
 	class Keyword {
-		friend class LambdaOpts;
-
 	public:
 		Keyword ();
 		explicit Keyword (char shortName);
@@ -526,6 +524,7 @@ public:
 		Keyword (String const & longName, char shortName, String const & group, String const & help);
 
 		void AddSubKeyword (Keyword const & subKeyword);
+		std::vector<std::shared_ptr<Keyword const>> const & SubKeywords () const;
 
 	private:
 		void Init (String const * longName, String const * group, String const * help);
@@ -533,9 +532,10 @@ public:
 
 		void Validate () const;
 
+	private:
+		std::vector<std::shared_ptr<Keyword const>> subKeywords;
 	public:
 		std::vector<String> names;
-		std::vector<std::shared_ptr<Keyword>> subKeywords;
 		String help;
 		String group;
 	};
@@ -552,7 +552,6 @@ public:
 	template <typename Func>
 	void AddOption (Keyword const & keyword, Func const & f)
 	{
-		keyword.Validate();
 		impl->AddOption<Func>(keyword, f);
 	}
 
@@ -1218,11 +1217,11 @@ private:
 				iter = startIter1;
 				if (*iter == name) {
 					++iter;
-					if (keyword.subKeywords.empty()) {
+					if (keyword.SubKeywords().empty()) {
 						return true;
 					}
 					auto const startIter2 = iter;
-					for (auto const & subKeyword : keyword.subKeywords) {
+					for (auto const & subKeyword : keyword.SubKeywords()) {
 						iter = startIter2;
 						if (MatchKeyword(*subKeyword)) {
 							return true;
@@ -1460,6 +1459,20 @@ template <typename Char>
 void LambdaOpts<Char>::Keyword::AddSubKeyword (Keyword const & subKeyword)
 {
 	subKeywords.push_back(std::shared_ptr<Keyword>(new Keyword(subKeyword)));
+	try {
+		Validate();
+	}
+	catch (lambda_opts::Exception const e) {
+		subKeywords.pop_back();
+		throw e;
+	}
+}
+
+
+template <typename Char>
+auto LambdaOpts<Char>::Keyword::SubKeywords () const -> std::vector<std::shared_ptr<Keyword const>> const &
+{
+	return subKeywords;
 }
 
 
