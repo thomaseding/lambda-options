@@ -1320,9 +1320,37 @@ public:
 			if (value != P1 + P2) {
 				FAIL;
 			}
+			value = 0;
+			{
+				typedef std::array<TestMaybeLifetimeHelper, 5> Array;
+				lambda_opts::Maybe<Array> mObject;
+				if (lambda_opts::Parse<Char, Array>(parseState, mObject)) {
+					FAIL;
+				}
+				if (value != 3 * P1 + 3 * P2) {
+					FAIL;
+				}
+			}
+			if (value != 3 * P1 + 3 * P2) {
+				FAIL;
+			}
+			value = 0;
+			{
+				typedef std::array<TestMaybeLifetimeHelper, 3> Array;
+				lambda_opts::Maybe<Array> mObject;
+				if (!lambda_opts::Parse<Char, Array>(parseState, mObject)) {
+					FAIL;
+				}
+				if (value != 3 * P1) {
+					FAIL;
+				}
+			}
+			if (value != 3 * P1 + 3 * P2) {
+				FAIL;
+			}
 		});
 
-		std::vector<String> args(1);
+		std::vector<String> args(4);
 
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
 		if (!parseEnv.Run()) {
