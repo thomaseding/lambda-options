@@ -1349,6 +1349,8 @@ static bool RunCharTests ()
 
 static bool RunTests ()
 {
+	static_assert(std::is_same<LambdaOpts<>::char_type, LambdaOpts<char>::char_type>::value, "Default [Char] type is not [char].");
+
 	if (!RunCharTests<char>()) {
 		return false;
 	}

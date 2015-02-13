@@ -492,7 +492,7 @@ namespace lambda_opts
 //////////////////////////////////////////////////////////////////////////
 
 
-template <typename Char>
+template <typename Char = char>
 class LambdaOpts {
 	typedef std::basic_string<Char> String;
 	typedef std::vector<String> Args;
@@ -500,6 +500,8 @@ class LambdaOpts {
 	class ParseEnvImpl;
 
 public:
+	typedef Char char_type;
+
 	class ParseEnv;
 
 	enum class ParseResult {
