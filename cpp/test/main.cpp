@@ -58,13 +58,13 @@ namespace lambda_opts
 {
 	template <typename Char>
 	struct RawParser<Char, Bit> {
-		bool operator() (ParseState<Char> & parseState, char * raw)
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
 			Maybe<int> mNum;
 			if (Parse<Char, int>(parseState, mNum)) {
 				int num = *mNum;
 				if (num == 0 || num == 1) {
-					new (raw) Bit(num != 0);
+					new (rawMemory) Bit(num != 0);
 					return true;
 				}
 			}
@@ -103,9 +103,9 @@ namespace lambda_opts
 {
 	template <typename Char>
 	struct RawParser<Char, TestMaybeLifetimeHelper> {
-		bool operator() (ParseState<Char> & parseState, char * raw)
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
-			new (raw) TestMaybeLifetimeHelper();
+			new (rawMemory) TestMaybeLifetimeHelper();
 			++parseState.iter;
 			return true;
 		}

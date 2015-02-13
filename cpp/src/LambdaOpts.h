@@ -224,14 +224,14 @@ namespace lambda_opts
 		template <typename Char>
 		inline bool ScanNumber (
 			ParseState<Char> & parseState,
-			char * raw,
+			void * rawMemory,
 			char const * format)
 		{
 			auto const & str = *parseState.iter;
 			if (str.size() > 1 && std::isspace(str.front())) {
 				return false;
 			}
-			if (Scan(str, format, raw)) {
+			if (Scan(str, format, rawMemory)) {
 				if (str.size() == StrLen(str.c_str())) {
 					if (str.find_first_of(StringLiteral<Char>::xX()) == std::string::npos) {
 						++parseState.iter;
@@ -250,20 +250,20 @@ namespace lambda_opts
 	struct RawParser {};
 
 	template <typename Char, typename T>
-	inline bool RawParse (ParseState<Char> & parseState, char * raw)
+	inline bool RawParse (ParseState<Char> & parseState, void * rawMemory)
 	{
-		return RawParser<Char, T>()(parseState, raw);
+		return RawParser<Char, T>()(parseState, rawMemory);
 	}
 
 	template <typename Char, typename T>
 	inline bool Parse (ParseState<Char> & parseState, Maybe<T> & out)
 	{
-		if (out.validObject) {
-			out.ObjectRef().~T();
-			out.validObject = false;
+		if (out.objectExists) {
+			out.Get().~T();
+			out.objectExists = false;
 		}
 		if (RawParse<Char, T>(parseState, out.RawMemory())) {
-			out.validObject = true;
+			out.objectExists = true;
 			return true;
 		}
 		return false;
@@ -271,25 +271,25 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, ParseState<Char>> {
-		bool operator() (ParseState<Char> & parseState, char * raw)
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
-			new (raw) ParseState<Char>(parseState);
+			new (rawMemory) ParseState<Char>(parseState);
 			return true;
 		}
 	};
 
 	template <typename Char>
 	struct RawParser<Char, bool> {
-		bool operator() (ParseState<Char> & parseState, char * raw)
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
 			std::basic_string<Char> const & s = *parseState.iter;
 			if (s.size() == 4 && s[0] == 't' && s[1] == 'r' && s[2] == 'u' && s[3] == 'e') {
-				new (raw) bool(true);
+				new (rawMemory) bool(true);
 				++parseState.iter;
 				return true;
 			}
 			if (s.size() == 5 && s[0] == 'f' && s[1] == 'a' && s[2] == 'l' && s[3] == 's' && s[4] == 'e') {
-				new (raw) bool(false);
+				new (rawMemory) bool(false);
 				++parseState.iter;
 				return true;
 			}
@@ -299,45 +299,45 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, int> {
-		bool operator() (ParseState<Char> & parseState, char * raw)
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
-			return unstable_dont_use::ScanNumber<Char>(parseState, raw, "%d%c");
+			return unstable_dont_use::ScanNumber<Char>(parseState, rawMemory, "%d%c");
 		}
 	};
 
 	template <typename Char>
 	struct RawParser<Char, unsigned int> {
-		bool operator() (ParseState<Char> & parseState, char * raw)
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
 			if (!parseState.iter->empty() && parseState.iter->front() == '-') {
 				return false;
 			}
-			return unstable_dont_use::ScanNumber<Char>(parseState, raw, "%u%c");
+			return unstable_dont_use::ScanNumber<Char>(parseState, rawMemory, "%u%c");
 		}
 	};
 
 	template <typename Char>
 	struct RawParser<Char, float> {
-		bool operator() (ParseState<Char> & parseState, char * raw)
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
-			return unstable_dont_use::ScanNumber<Char>(parseState, raw, "%f%c");
+			return unstable_dont_use::ScanNumber<Char>(parseState, rawMemory, "%f%c");
 		}
 	};
 
 	template <typename Char>
 	struct RawParser<Char, double> {
-		bool operator() (ParseState<Char> & parseState, char * raw)
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
-			return unstable_dont_use::ScanNumber<Char>(parseState, raw, "%lf%c");
+			return unstable_dont_use::ScanNumber<Char>(parseState, rawMemory, "%lf%c");
 		}
 	};
 
 	template <typename Char>
 	struct RawParser<Char, Char> {
-		bool operator() (ParseState<Char> & parseState, char * raw)
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
 			if (parseState.iter->size() == 1) {
-				new (raw) Char(parseState.iter->front());
+				new (rawMemory) Char(parseState.iter->front());
 				++parseState.iter;
 				return true;
 			}
@@ -347,9 +347,9 @@ namespace lambda_opts
 
 	template <typename Char>
 	struct RawParser<Char, std::basic_string<Char>> {
-		bool operator() (ParseState<Char> & parseState, char * raw)
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
-			new (raw) std::basic_string<Char>(*parseState.iter);
+			new (rawMemory) std::basic_string<Char>(*parseState.iter);
 			++parseState.iter;
 			return true;
 		}
@@ -371,11 +371,11 @@ namespace lambda_opts
 			}
 		}
 
-		bool operator() (ParseState<Char> & parseState, char * raw)
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
 			static_assert(N > 0, "Parsing a zero-sized array is not well-defined.");
 			success = false;
-			pArray = reinterpret_cast<Array *>(raw);
+			pArray = reinterpret_cast<Array *>(rawMemory);
 			Array & array = *pArray;
 			currIndex = 0;
 			for (; currIndex < N; ++currIndex) {
@@ -405,32 +405,34 @@ namespace lambda_opts
 
 	public:
 		Maybe ()
-#if _MSC_VER
-			: raw(static_cast<char *>(nullptr), free)
-			, validObject(false)
-#else
-			: validObject(false)
-#endif
-		{}
+			: alignedPtr(buffer)
+			, objectExists(false)
+		{
+			size_t space = sizeof(buffer);
+			alignedPtr = std::align(std::alignment_of<T>::value, sizeof(T), alignedPtr, space);
+			if (alignedPtr == nullptr) {
+				throw Exception("Could not create memory aligned for T in Maybe<T>.");
+			}
+		}
 
 		~Maybe ()
 		{
-			if (validObject) {
-				ObjectRef().~T();
+			if (objectExists) {
+				Get().~T();
 			}
 		}
 
 		bool HasValidObject () const
 		{
-			return validObject;
+			return objectExists;
 		}
 
 		T & Get ()
 		{
-			if (!validObject) {
+			if (!objectExists) {
 				throw Exception("lambda_opts::Maybe<T>::Get: Object is not valid.");
 			}
-			return ObjectRef();
+			return *RawMemory();
 		}
 
 		T & operator* ()
@@ -444,26 +446,9 @@ namespace lambda_opts
 		}
 
 	private:
-		T & ObjectRef ()
+		T * RawMemory ()
 		{
-#if _MSC_VER
-			return *reinterpret_cast<T *>(raw.get());
-#else
-			view.object;
-#endif
-		}
-
-		char * RawMemory ()
-		{
-#if _MSC_VER
-			if (!raw) {
-				void * p = malloc(sizeof(T));
-				raw = std::unique_ptr<char, void(*)(void*)>(static_cast<char *>(p), free);
-			}
-			return raw.get();
-#else
-			view.raw;
-#endif
+			return reinterpret_cast<T *>(alignedPtr);
 		}
 
 	private:
@@ -473,18 +458,9 @@ namespace lambda_opts
 		void operator= (Maybe const &); // disable
 
 	private:
-#if _MSC_VER
-		std::unique_ptr<char, void(*)(void*)> raw;	// Only way I can figure out how to get memory aligned to that of T. (__alignof(T) gives compiler error...)
-#else
-		union View {
-			T object;
-			char raw[sizeof(T)];
-
-			View () : raw() {}
-			~View () {}
-		} view;
-#endif
-		bool validObject;
+		char buffer[2 * sizeof(T) + 64];
+		void * alignedPtr;
+		bool objectExists;
 	};
 
 	enum class ParseResult {
