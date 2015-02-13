@@ -251,6 +251,12 @@ private:
 	}
 
 
+	static void Dump (std::wostream & os, bool x)
+	{
+		os << L"bool(" << (x ? L"true" : L"false") << L")\n";
+	}
+
+
 	static void Dump (std::wostream & os, int x)
 	{
 		os << L"int(" << x << L")\n";
@@ -305,6 +311,18 @@ private:
 	}
 
 
+	static void Dump (std::wostream & os, char const * x)
+	{
+		Dump(os, std::string(x));
+	}
+
+
+	static void Dump (std::wostream & os, wchar_t const * x)
+	{
+		Dump(os, std::wstring(x));
+	}
+
+
 	static void DumpMemo (std::wostream & os, std::wstring const & x)
 	{
 		os << x << L"\n";
@@ -316,6 +334,9 @@ public:
 	{
 		Opts opts;
 	
+		opts.AddOption(Q("x"), [] (bool) {
+			return PR::Accept;
+		});
 		opts.AddOption(Q("x"), [] (int) {
 			return PR::Accept;
 		});
@@ -598,6 +619,10 @@ public:
 	
 		Opts opts;
 	
+		opts.AddOption(Q(""), [&] (bool x) {
+			Dump(ss, x);
+			return PR::Accept;
+		});
 		opts.AddOption(Q(""), [&] (unsigned int x) {
 			Dump(ss, x);
 			return PR::Accept;
@@ -632,6 +657,18 @@ public:
 	
 		args.push_back(Q(""));
 		Dump(expected, "");
+
+		args.push_back(Q("true"));
+		Dump(expected, true);
+
+		args.push_back(Q("false"));
+		Dump(expected, false);
+
+		args.push_back(Q(" false"));
+		Dump(expected, L" false");
+
+		args.push_back(Q("false "));
+		Dump(expected, L"false ");
 	
 		args.push_back(Q("-4"));
 		Dump(expected, -4);
@@ -676,6 +713,9 @@ public:
 	
 		args.push_back(Q(" 0"));
 		Dump(expected, L" 0");
+
+		args.push_back(Q("0 "));
+		Dump(expected, L"0 ");
 	
 		args.push_back(Q("08"));
 		Dump(expected, 8u);
@@ -730,8 +770,6 @@ public:
 			FAIL;
 		}
 	
-		std::wstring actualStr = ss.str();
-		std::wstring expectedStr = expected.str();
 		if (ss.str() != expected.str()) {
 			FAIL;
 		}

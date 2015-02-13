@@ -279,6 +279,25 @@ namespace lambda_opts
 	};
 
 	template <typename Char>
+	struct RawParser<Char, bool> {
+		bool operator() (ParseState<Char> & parseState, char * raw)
+		{
+			std::basic_string<Char> const & s = *parseState.iter;
+			if (s.size() == 4 && s[0] == 't' && s[1] == 'r' && s[2] == 'u' && s[3] == 'e') {
+				new (raw) bool(true);
+				++parseState.iter;
+				return true;
+			}
+			if (s.size() == 5 && s[0] == 'f' && s[1] == 'a' && s[2] == 'l' && s[3] == 's' && s[4] == 'e') {
+				new (raw) bool(false);
+				++parseState.iter;
+				return true;
+			}
+			return false;
+		}
+	};
+
+	template <typename Char>
 	struct RawParser<Char, int> {
 		bool operator() (ParseState<Char> & parseState, char * raw)
 		{
