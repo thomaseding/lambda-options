@@ -6,5 +6,3 @@
 * Check that code works when either/both `LambdaOpts` and `ParseEnv` are passed to different scopes. Especially when their option functions leave scope (e.g. the functions should rely on internal copies, rather than references).
 * Write docs.
 * Do I want to supply a default `RawParser` for `bool`? Probably not because what should it accept? `"True"`, `"true"`, `"TRUE"`, `"1"`, `"t"`, etc. Probably best left for the consumer and/or in a seperate parser-extension header. (On second though, I should supply one for `"true"` and "`false`".)
-* Test `T` lifetime within `Maybe<T>`.
-* Destructor for `RawParser<Char, std::array<T, N>>` needs to be the code that destructs the array elements if the parse fails because exceptions.
