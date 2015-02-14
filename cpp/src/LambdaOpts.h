@@ -1559,6 +1559,37 @@ LambdaOpts<Char>::FormatConfig::FormatConfig ()
 //////////////////////////////////////////////////////////////////////////
 
 
+template <typename Char>
+LambdaOpts<Char>::SubKeyword::SubKeyword () {}
+
+
+template <typename Char>
+LambdaOpts<Char>::SubKeyword::SubKeyword (Char shortName)
+{
+	names.emplace_back(1, '-');
+	names.back().push_back(shortName);
+}
+
+
+template <typename Char>
+LambdaOpts<Char>::SubKeyword::SubKeyword (String const & longName)
+{
+	names.emplace_back(longName);
+}
+
+
+template <typename Char>
+LambdaOpts<Char>::SubKeyword::SubKeyword (String const & longName, Char shortName)
+{
+	names.emplace_back(longName);
+	names.emplace_back(1, '-');
+	names.back().push_back(shortName);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
 
 template <typename Char>
 LambdaOpts<Char>::Keyword::Keyword ()
