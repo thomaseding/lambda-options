@@ -1472,6 +1472,12 @@ void LambdaOpts<Char>::Keyword::Validate () const
 		if (subKeyword->names.empty()) {
 			throw lambda_opts::Exception("Sub-keywords cannot have empty names.");
 		}
+		if (!subKeyword->help.empty()) {
+			throw lambda_opts::Exception("Sub-keywords cannot have help messages.");
+		}
+		if (!subKeyword->group.empty()) {
+			throw lambda_opts::Exception("Sub-keywords cannot be in groups.");
+		}
 	}
 }
 
