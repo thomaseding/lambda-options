@@ -1472,6 +1472,28 @@ public:
 			FAIL;
 		}
 	}
+
+
+	static void TestHelpDescription ()
+	{
+		auto nop = [] () {};
+
+		Opts opts;
+
+		opts.AddOption(Keyword(Q("foo"), Q("Foo does shtuff.")), nop);
+		opts.AddOption(Keyword(Q("bar"), 'b', Q("Bar does even moare shtuff!!!")), nop);
+		opts.AddOption(Keyword(Q("foflcopter"), Q("0123456789 01234567890123456789 012345678901234567890123456789 0123456789012345678901234567890123456789")), nop);
+
+		Opts::FormatConfig config;
+		config.maxWidth = 0;
+		String desc = opts.HelpDescription(config);
+
+		std::cout << "\n<HELP>\n";
+		for (Char c : desc) {
+			std::cout << c;
+		}
+		std::cout << "\n</HELP>\n";
+	}
 };
 
 
@@ -1505,6 +1527,7 @@ static bool RunCharTests ()
 		Tests<Char>::TestMaybeLifetime<TestMaybeLifetimeHelper>,
 		Tests<Char>::TestMaybeLifetime<TestMaybeLifetimeHelperSuperAligned>,
 		Tests<Char>::TestSubKeywords1,
+		Tests<Char>::TestHelpDescription,
 	};
 
 	try {

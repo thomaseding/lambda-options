@@ -29,11 +29,13 @@
 
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cctype>
 #include <cstdio>
 #include <exception>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <new>
 #include <stdexcept>
@@ -181,6 +183,17 @@ namespace lambda_opts
 				sprintf(msg, "ASSERT failed in '%s' on line %u.", __FILE__, line);
 				throw std::logic_error(msg);
 			}
+		}
+
+		template <typename K, typename V>
+		static V const * Lookup (std::vector<std::pair<K, V>> const & assocs, K const & key)
+		{
+			for (auto const & assoc : assocs) {
+				if (assoc.first == key) {
+					return &assoc.second;
+				}
+			}
+			return nullptr;
 		}
 
 		inline void DeleteCharArray (void * p)
@@ -487,9 +500,13 @@ namespace lambda_opts
 
 template <typename Char = char>
 class LambdaOpts {
+public:
 	typedef std::basic_string<Char> String;
+private:
 	typedef std::vector<String> Args;
 	typedef lambda_opts::ParseResult ParseResult;
+	typedef int Priority;
+
 	class LambdaOptsImpl;
 	class ParseEnvImpl;
 
@@ -498,25 +515,31 @@ public:
 
 	class ParseEnv;
 
+	class FormatConfig {
+	public:
+		FormatConfig ();
+	public:
+		size_t maxWidth;
+	};
+
 	class Keyword {
 	public:
 		Keyword ();
-		explicit Keyword (char shortName);
+		explicit Keyword (Char shortName);
 		explicit Keyword (String const & longName);
-		Keyword (String const & longName, char shortName);
-		Keyword (char shortName, String const & help);
+		Keyword (String const & longName, Char shortName);
+		Keyword (Char shortName, String const & help);
 		Keyword (String const & longName, String const & help);
-		Keyword (String const & longName, char shortName, String const & help);
+		Keyword (String const & longName, Char shortName, String const & help);
 		Keyword (String const & longName, String const & group, String const & help);
-		Keyword (char shortName, String const & group, String const & help);
-		Keyword (String const & longName, char shortName, String const & group, String const & help);
+		Keyword (Char shortName, String const & group, String const & help);
+		Keyword (String const & longName, Char shortName, String const & group, String const & help);
 
 		void AddSubKeyword (Keyword const & subKeyword);
 		std::vector<std::shared_ptr<Keyword const>> const & SubKeywords () const;
 
 	private:
-		void Init (String const * longName, String const * group, String const * help);
-		void Init (String const * longName, char shortName, String const * group, String const * help);
+		void Init (String const * longName, Char * shortName, String const * group, String const * help);
 
 		void Validate () const;
 
@@ -541,6 +564,11 @@ public:
 	void AddOption (Keyword const & keyword, Func const & f)
 	{
 		impl->AddOption<Func>(keyword, f);
+	}
+
+	String HelpDescription (FormatConfig const & config) const
+	{
+		return impl->HelpDescription(config);
 	}
 
 	template <typename StringIter>
@@ -579,7 +607,8 @@ public:
 private:
 	static void ASSERT (unsigned int line, bool truth)
 	{
-		lambda_opts::unstable_dont_use::ASSERT(line, truth);
+		namespace my = ::lambda_opts::unstable_dont_use;
+		my::ASSERT(line, truth);
 	}
 
 
@@ -809,6 +838,12 @@ private:
 
 
 	struct LambdaOptsImpl {
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
+		String HelpDescription (FormatConfig const & config) const;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -1061,22 +1096,12 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 
-		template <typename K, typename V>
-		static V const * Lookup (std::vector<std::pair<K, V>> const & assocs, K const & key)
-		{
-			for (auto const & assoc : assocs) {
-				if (assoc.first == key) {
-					return &assoc.second;
-				}
-			}
-			return nullptr;
-		}
-
 		template <typename T>
 		void AddDynamicParser ()
 		{
+			namespace my = ::lambda_opts::unstable_dont_use;
 			TypeKind typeKind = TypeKind::Get<T>();
-			if (Lookup(dynamicParserMap, typeKind) == nullptr) {
+			if (my::Lookup(dynamicParserMap, typeKind) == nullptr) {
 				OpaqueParser parser = OpaqueParse<T>;
 				dynamicParserMap.emplace_back(std::move(typeKind), parser);
 			}
@@ -1084,7 +1109,8 @@ private:
 
 		OpaqueParser LookupDynamicParser (TypeKind const & k) const
 		{
-			OpaqueParser const * pParser = Lookup(dynamicParserMap, k);
+			namespace my = ::lambda_opts::unstable_dont_use;
+			OpaqueParser const * pParser = my::Lookup(dynamicParserMap, k);
 			ASSERT(__LINE__, pParser != nullptr);
 			return *pParser;
 		}
@@ -1126,6 +1152,7 @@ private:
 
 	public:
 		DynamicParserMap dynamicParserMap;
+		std::vector<std::pair<String, Priority>> groupPriorities;
 		std::vector<OptInfo<ParseResult()>> infos0;
 		std::vector<OptInfo<ParseResult(V)>> infos1;
 		std::vector<OptInfo<ParseResult(V,V)>> infos2;
@@ -1314,6 +1341,154 @@ private:
 ///////////////////////////////////////////////////////////////////////////
 
 
+	class Formatter {
+		enum Phase { EmitName, EmitDesc };
+
+	public:
+		Formatter (FormatConfig const & config)
+			: config(config)
+		{
+			this->config.maxWidth = std::max<size_t>(config.maxWidth, 30);
+		}
+
+		void FormatKeyword (Keyword const & keyword)
+		{
+			width = 0;
+			ChangeIndentation(0);
+			NewLine();
+			FormatKeywordNames(keyword);
+			FormatKeywordHelp(keyword);
+			FlushWord();
+		}
+
+		String ToString () const
+		{
+			return String(emittedChars.begin(), emittedChars.end());
+		}
+
+	private:
+		void FormatKeywordNames (Keyword const & keyword)
+		{
+			std::vector<String> names = keyword.names;
+			std::sort(names.begin(), names.end());
+
+			if (!names.empty()) {
+				size_t idx = 0;
+				if (IsShort(names[idx])) {
+					ChangeIndentation(1);
+					Emit(names[idx]);
+					++idx;
+				}
+				for ( ; idx < names.size(); ++idx) {
+					if (idx > 0) {
+						Emit(',');
+					}
+					ChangeIndentation(5);
+					Emit(names[idx]);
+				}
+			}
+		}
+
+		void FormatKeywordHelp (Keyword const & keyword)
+		{
+			ChangeIndentation(29);
+			Emit(keyword.help);
+		}
+
+		static bool IsShort (String const & name)
+		{
+			return name.size() == 2 && name.front() == '-';
+		}
+
+		bool FlushWord ()
+		{
+			if (word.empty()) {
+				return false;
+			}
+			if (!(width == indentation || word.size() + width <= config.maxWidth)) {
+				NewLine(false);
+			}
+			emittedChars.insert(emittedChars.end(), word.begin(), word.end());
+			width += word.size();
+			word.clear();
+			return true;
+		}
+
+		void ChangeIndentation (size_t newAmount)
+		{
+			indentation = newAmount;
+			Indent();
+		}
+
+		void Indent (bool flushWord = true)
+		{
+			if (flushWord) {
+				FlushWord();
+			}
+			if (width >= indentation) {
+				return;
+			}
+			size_t amount = indentation - width;
+			emittedChars.insert(emittedChars.end(), amount, ' ');
+			width = indentation;
+		}
+
+		void NewLine (bool flushWord = true)
+		{
+			if (!emittedChars.empty()) {
+				emittedChars.push_back('\n');
+			}
+			width = 0;
+			Indent(flushWord);
+		}
+
+		void Emit (Char c)
+		{
+			switch (c) {
+				case ' ': {
+					if (FlushWord()) {
+						if (width < config.maxWidth) {
+							emittedChars.push_back(' ');
+						}
+						else {
+							NewLine();
+						}
+					}
+				} break;
+				default: {
+					word.push_back(c);
+				}
+			}
+		}
+
+		void Emit (String const & str)
+		{
+			for (Char c : str) {
+				Emit(c);
+			}
+		}
+
+		template <typename C>
+		void Emit (C const * str)
+		{
+			while (*str) {
+				Emit(*str++);
+			}
+		}
+
+	private:
+		FormatConfig config;
+		std::vector<Char> emittedChars;
+		std::vector<Char> word;
+		Phase phase;
+		size_t width;
+		size_t indentation;
+	};
+
+
+///////////////////////////////////////////////////////////////////////////
+
+
 private:
 	std::shared_ptr<LambdaOptsImpl> impl;
 };
@@ -1342,14 +1517,24 @@ typename LambdaOpts<Char>::ParseEnv LambdaOpts<Char>::CreateParseEnv (StringIter
 
 
 template <typename Char>
+LambdaOpts<Char>::FormatConfig::FormatConfig ()
+	: maxWidth(80)
+{}
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
+
+template <typename Char>
 LambdaOpts<Char>::Keyword::Keyword ()
 {
-	Init(nullptr, nullptr, nullptr);
+	Init(nullptr, nullptr, nullptr, nullptr);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (char shortName)
+LambdaOpts<Char>::Keyword::Keyword (Char shortName)
 {
 	Init(nullptr, &shortName, nullptr, nullptr);
 }
@@ -1358,33 +1543,33 @@ LambdaOpts<Char>::Keyword::Keyword (char shortName)
 template <typename Char>
 LambdaOpts<Char>::Keyword::Keyword (String const & longName)
 {
-	Init(&longName, nullptr, nullptr);
+	Init(&longName, nullptr, nullptr, nullptr);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (String const & longName, char shortName)
+LambdaOpts<Char>::Keyword::Keyword (String const & longName, Char shortName)
 {
 	Init(&longName, &shortName, nullptr, nullptr);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (char shortName, String const & help)
+LambdaOpts<Char>::Keyword::Keyword (Char shortName, String const & help)
 {
-	Init(nullptr, shortName, nullptr, &help);
+	Init(nullptr, &shortName, nullptr, &help);
 }
 
 
 template <typename Char>
 LambdaOpts<Char>::Keyword::Keyword (String const & longName, String const & help)
 {
-	Init(&longName, nullptr, &help);
+	Init(&longName, nullptr, nullptr, &help);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (String const & longName, char shortName, String const & help)
+LambdaOpts<Char>::Keyword::Keyword (String const & longName, Char shortName, String const & help)
 {
 	Init(&longName, &shortName, nullptr, &help);
 }
@@ -1393,27 +1578,33 @@ LambdaOpts<Char>::Keyword::Keyword (String const & longName, char shortName, Str
 template <typename Char>
 LambdaOpts<Char>::Keyword::Keyword (String const & longName, String const & group, String const & help)
 {
-	Init(&longName, shortName, &group, &help);
+	Init(&longName, &shortName, &group, &help);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (char shortName, String const & group, String const & help)
+LambdaOpts<Char>::Keyword::Keyword (Char shortName, String const & group, String const & help)
 {
-	Init(nullptr, shortName, &group, &help);
+	Init(nullptr, &shortName, &group, &help);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (String const & longName, char shortName, String const & group, String const & help)
+LambdaOpts<Char>::Keyword::Keyword (String const & longName, Char shortName, String const & group, String const & help)
 {
-	Init(&longName, shortName, &group, &help);
+	Init(&longName, &shortName, &group, &help);
 }
 
 
 template <typename Char>
-void LambdaOpts<Char>::Keyword::Init (String const * longName, String const * group, String const * help)
+void LambdaOpts<Char>::Keyword::Init (String const * longName, Char * shortName, String const * group, String const * help)
 {
+	if (shortName != nullptr) {
+		std::basic_string<Char> shortNameStr;
+		shortNameStr.push_back('-');
+		shortNameStr.push_back(*shortName);
+		names.push_back(shortNameStr);
+	}
 	if (longName != nullptr) {
 		names.push_back(*longName);
 	}
@@ -1423,18 +1614,7 @@ void LambdaOpts<Char>::Keyword::Init (String const * longName, String const * gr
 	if (help != nullptr) {
 		this->help = *help;
 	}
-}
-
-
-template <typename Char>
-void LambdaOpts<Char>::Keyword::Init (String const * longName, char shortName, String const * group, String const * help)
-{
-	Init(longName, group, help);
-
-	std::basic_string<Char> shortNameStr;
-	shortNameStr.push_back('-');
-	shortNameStr.push_back(shortName);
-	names.push_back(shortNameStr);
+	Validate();
 }
 
 
@@ -1502,6 +1682,63 @@ typename LambdaOpts<Char>::ParseEnv & LambdaOpts<Char>::ParseEnv::operator= (Par
 {
 	impl = std::move(other.impl);
 }
+
+
+template <typename Char>
+auto LambdaOpts<Char>::LambdaOptsImpl::HelpDescription (FormatConfig const & config) const -> String
+{
+	namespace my = ::lambda_opts::unstable_dont_use;
+
+	std::vector<Keyword const *> keywords;
+	for (auto const & info : infos0) {
+		keywords.push_back(&info.keyword);
+	};
+	for (auto const & info : infos1) {
+		keywords.push_back(&info.keyword);
+	};
+	for (auto const & info : infos2) {
+		keywords.push_back(&info.keyword);
+	};
+	for (auto const & info : infos3) {
+		keywords.push_back(&info.keyword);
+	};
+	for (auto const & info : infos4) {
+		keywords.push_back(&info.keyword);
+	};
+	for (auto const & info : infos5) {
+		keywords.push_back(&info.keyword);
+	};
+
+	auto getPriority = [&] (String const & group) {
+		Priority const * pPriority = my::Lookup(groupPriorities, group);
+		if (pPriority) {
+			return *pPriority;
+		}
+		return std::numeric_limits<Priority>::max();
+	};
+
+	std::sort(keywords.begin(), keywords.end(), [&] (Keyword const * kw1, Keyword const * kw2) {
+		String const & g1 = kw1->group;
+		String const & g2 = kw2->group;
+		Priority const p1 = getPriority(g1);
+		Priority const p2 = getPriority(g2);
+		if (p1 < p2) {
+			return true;
+		}
+		if (p1 > p2) {
+			return false;
+		}
+		return g1 < g2;
+	});
+
+	Formatter formatter(config);
+	for (Keyword const * keyword : keywords) {
+		formatter.FormatKeyword(*keyword);
+	}
+	return formatter.ToString();
+}
+
+
 
 
 
