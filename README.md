@@ -21,7 +21,7 @@ Basic example:
 
 int main (int argc, char ** argv)
 {
-	typedef LambdaOpts<char> opts;
+	LambdaOpts<char> opts;
 
 	opts.AddOption("--help", [] () {
 		std::cout << "--user NAME [AGE]" << std::endl;
