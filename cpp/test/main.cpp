@@ -156,6 +156,7 @@ private:
 	typedef LambdaOpts<Char> Opts;
 	typedef typename lambda_opts::ParseResult PR;
 	typedef typename Opts::Keyword Keyword;
+	typedef typename Opts::SubKeyword SubKeyword;
 
 
 	static std::wstring L (std::string const & str)
@@ -1408,15 +1409,15 @@ public:
 		}
 		{
 			Keyword foo(Q("foo"));
-			foo.AddSubKeyword(Keyword(Q("bar")));
+			foo.AddSubKeyword(SubKeyword(Q("bar")));
 			opts.AddOption(foo, [&] (Char x) {
 				Dump(ss, x);
 			});
 		}
 		{
 			Keyword foo(Q("foo"));
-			foo.AddSubKeyword(Keyword(Q("baz")));
-			foo.AddSubKeyword(Keyword(Q("baaz")));
+			foo.AddSubKeyword(SubKeyword(Q("baz")));
+			foo.AddSubKeyword(SubKeyword(Q("baaz")));
 			opts.AddOption(foo, [&] (bool x) {
 				Dump(ss, x);
 			});

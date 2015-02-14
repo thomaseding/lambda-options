@@ -502,6 +502,9 @@ template <typename Char = char>
 class LambdaOpts {
 public:
 	typedef std::basic_string<Char> String;
+
+	class SubKeyword;
+
 private:
 	typedef std::vector<String> Args;
 	typedef lambda_opts::ParseResult ParseResult;
@@ -509,6 +512,15 @@ private:
 
 	class LambdaOptsImpl;
 	class ParseEnvImpl;
+
+	class KeywordBase {
+	public:
+		virtual ~KeywordBase () {}
+		virtual std::vector<std::shared_ptr<SubKeyword const>> const & SubKeywords () const = 0;
+
+	public:
+		std::vector<String> names;
+	};
 
 public:
 	typedef Char char_type;
@@ -522,7 +534,29 @@ public:
 		size_t maxWidth;
 	};
 
-	class Keyword {
+	class SubKeyword : private KeywordBase {
+		friend class ParseEnvImpl;
+
+	private:
+		virtual std::vector<std::shared_ptr<SubKeyword const>> const & SubKeywords () const override
+		{
+			static std::vector<std::shared_ptr<SubKeyword const>> const subs;
+			return subs;
+		}
+
+	public:
+		SubKeyword ();
+		explicit SubKeyword (Char shortName);
+		explicit SubKeyword (String const & longName);
+		SubKeyword (String const & longName, Char shortName);
+
+	public:
+		using KeywordBase::names;
+	};
+
+	class Keyword : private KeywordBase {
+		friend class ParseEnvImpl;
+
 	public:
 		Keyword ();
 		explicit Keyword (Char shortName);
@@ -535,8 +569,8 @@ public:
 		Keyword (Char shortName, String const & group, String const & help);
 		Keyword (String const & longName, Char shortName, String const & group, String const & help);
 
-		void AddSubKeyword (Keyword const & subKeyword);
-		std::vector<std::shared_ptr<Keyword const>> const & SubKeywords () const;
+		void AddSubKeyword (SubKeyword const & subKeyword);
+		virtual std::vector<std::shared_ptr<SubKeyword const>> const & SubKeywords () const override;
 
 	private:
 		void Init (String const * longName, Char * shortName, String const * group, String const * help);
@@ -544,9 +578,9 @@ public:
 		void Validate () const;
 
 	private:
-		std::vector<std::shared_ptr<Keyword const>> subKeywords;
+		std::vector<std::shared_ptr<SubKeyword const>> subKeywords;
 	public:
-		std::vector<String> names;
+		using KeywordBase::names;
 		String help;
 		String group;
 	};
@@ -1215,7 +1249,7 @@ private:
 			return std::move(parsedArgs);
 		}
 
-		bool MatchKeyword (Keyword const & keyword)
+		bool MatchKeyword (KeywordBase const & keyword)
 		{
 			if (keyword.names.empty()) {
 				return true;
@@ -1619,9 +1653,9 @@ void LambdaOpts<Char>::Keyword::Init (String const * longName, Char * shortName,
 
 
 template <typename Char>
-void LambdaOpts<Char>::Keyword::AddSubKeyword (Keyword const & subKeyword)
+void LambdaOpts<Char>::Keyword::AddSubKeyword (SubKeyword const & subKeyword)
 {
-	subKeywords.push_back(std::shared_ptr<Keyword>(new Keyword(subKeyword)));
+	subKeywords.push_back(std::shared_ptr<SubKeyword>(new SubKeyword(subKeyword)));
 	try {
 		Validate();
 	}
@@ -1633,7 +1667,7 @@ void LambdaOpts<Char>::Keyword::AddSubKeyword (Keyword const & subKeyword)
 
 
 template <typename Char>
-auto LambdaOpts<Char>::Keyword::SubKeywords () const -> std::vector<std::shared_ptr<Keyword const>> const &
+auto LambdaOpts<Char>::Keyword::SubKeywords () const -> std::vector<std::shared_ptr<SubKeyword const>> const &
 {
 	return subKeywords;
 }
@@ -1644,20 +1678,6 @@ void LambdaOpts<Char>::Keyword::Validate () const
 {
 	if (names.empty() && !subKeywords.empty()) {
 		throw lambda_opts::Exception("Empty keyword cannot have sub-keywords.");
-	}
-	for (auto const & subKeyword : subKeywords) {
-		if (!subKeyword) {
-			throw lambda_opts::Exception("Sub-keywords cannot be null.");
-		}
-		if (subKeyword->names.empty()) {
-			throw lambda_opts::Exception("Sub-keywords cannot have empty names.");
-		}
-		if (!subKeyword->help.empty()) {
-			throw lambda_opts::Exception("Sub-keywords cannot have help messages.");
-		}
-		if (!subKeyword->group.empty()) {
-			throw lambda_opts::Exception("Sub-keywords cannot be in groups.");
-		}
 	}
 }
 
