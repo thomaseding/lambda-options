@@ -6,3 +6,4 @@
 * On `AddOption`, detect conflicting options and throw if any exist.
 * `Keyword::group`
 * `Keyword::help`
+* `Keyword::subKeywords`
