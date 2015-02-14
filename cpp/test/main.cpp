@@ -368,6 +368,22 @@ public:
 		opts.AddOption(Q("x"), [] (String) {
 			return PR::Accept;
 		});
+		opts.AddOption(Q("x"), [] (String const) {
+			return PR::Accept;
+		});
+		opts.AddOption(Q("x"), [] (String &&) {
+			return PR::Accept;
+		});
+		opts.AddOption(Q("x"), [] (String const &&) {
+			return PR::Accept;
+		});
+		opts.AddOption(Q("x"), [] (String &) {
+			return PR::Accept;
+		});
+		opts.AddOption(Q("x"), [] (String const &) {
+			return PR::Accept;
+		});
+		
 	
 		std::vector<String> args;
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
