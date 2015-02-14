@@ -116,6 +116,26 @@ namespace lambda_opts
 //////////////////////////////////////////////////////////////////////////
 
 
+__declspec(align(8192)) class TestMaybeLifetimeHelperSuperAligned : public TestMaybeLifetimeHelper {};
+
+
+namespace lambda_opts
+{
+	template <typename Char>
+	struct RawParser<Char, TestMaybeLifetimeHelperSuperAligned> {
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
+		{
+			new (rawMemory) TestMaybeLifetimeHelperSuperAligned();
+			++parseState.iter;
+			return true;
+		}
+	};
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
 template <typename T, size_t N>
 static bool Equal (std::vector<T> const & xs, T const (&ys)[N])
 {
@@ -1289,18 +1309,19 @@ public:
 	}
 
 
+	template <typename Helper>
 	static void TestMaybeLifetime ()
 	{
-		int const & P1 = TestMaybeLifetimeHelper::P1;
-		int const & P2 = TestMaybeLifetimeHelper::P2;
-		int & value = TestMaybeLifetimeHelper::value;
+		int const & P1 = Helper::P1;
+		int const & P2 = Helper::P2;
+		int & value = Helper::value;
 
 		value = 0;
 
 		Opts opts;
 		opts.AddOption(empty, [&] (lambda_opts::ParseState<Char> parseState) {
 			{
-				lambda_opts::Maybe<TestMaybeLifetimeHelper> mObject;
+				lambda_opts::Maybe<Helper> mObject;
 				if (value != 0) {
 					FAIL;
 				}
@@ -1309,8 +1330,8 @@ public:
 				FAIL;
 			}
 			{
-				lambda_opts::Maybe<TestMaybeLifetimeHelper> mObject;
-				if (!lambda_opts::Parse<Char, TestMaybeLifetimeHelper>(parseState, mObject)) {
+				lambda_opts::Maybe<Helper> mObject;
+				if (!lambda_opts::Parse<Char, Helper>(parseState, mObject)) {
 					FAIL;
 				}
 				if (value != P1) {
@@ -1322,7 +1343,7 @@ public:
 			}
 			value = 0;
 			{
-				typedef std::array<TestMaybeLifetimeHelper, 5> Array;
+				typedef std::array<Helper, 5> Array;
 				lambda_opts::Maybe<Array> mObject;
 				if (lambda_opts::Parse<Char, Array>(parseState, mObject)) {
 					FAIL;
@@ -1336,7 +1357,7 @@ public:
 			}
 			value = 0;
 			{
-				typedef std::array<TestMaybeLifetimeHelper, 3> Array;
+				typedef std::array<Helper, 3> Array;
 				lambda_opts::Maybe<Array> mObject;
 				if (!lambda_opts::Parse<Char, Array>(parseState, mObject)) {
 					FAIL;
@@ -1481,7 +1502,8 @@ static bool RunCharTests ()
 		Tests<Char>::TestArrays,
 		Tests<Char>::TestCustomParser,
 		Tests<Char>::TestParseState,
-		Tests<Char>::TestMaybeLifetime,
+		Tests<Char>::TestMaybeLifetime<TestMaybeLifetimeHelper>,
+		Tests<Char>::TestMaybeLifetime<TestMaybeLifetimeHelperSuperAligned>,
 		Tests<Char>::TestSubKeywords1,
 	};
 

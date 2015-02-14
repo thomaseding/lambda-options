@@ -183,6 +183,11 @@ namespace lambda_opts
 			}
 		}
 
+		inline void DeleteCharArray (void * p)
+		{
+			delete [] static_cast<char *>(p);
+		}
+
 		template <typename Char>
 		inline size_t StrLen (Char const * str)
 		{
@@ -258,13 +263,10 @@ namespace lambda_opts
 	template <typename Char, typename T>
 	inline bool Parse (ParseState<Char> & parseState, Maybe<T> & out)
 	{
-		if (out.objectExists) {
-			out.Get().~T();
-			out.objectExists = false;
-		}
+		out.ReleaseObjectIfValid();
 		ArgsIter<Char> const startIter = parseState.iter;
-		if (RawParse<Char, T>(parseState, out.RawMemory())) {
-			out.objectExists = true;
+		if (RawParse<Char, T>(parseState, out.ObjectAddress())) {
+			out.alive = true;
 			return true;
 		}
 		parseState.iter = startIter;
@@ -365,10 +367,9 @@ namespace lambda_opts
 	public:
 		~RawParser ()
 		{
-			Array & array = *pArray;
 			if (!success) {
 				while (currIndex-- > 0) {
-					array[currIndex].~T();
+					(*pArray)[currIndex].~T();
 				}
 			}
 		}
@@ -407,34 +408,27 @@ namespace lambda_opts
 
 	public:
 		Maybe ()
-			: alignedPtr(buffer)
-			, objectExists(false)
+			: outsidePtr(static_cast<char *>(nullptr), free)
+			, alignedPtr(innerBuffer)
+			, alive(false)
 		{
-			size_t space = sizeof(buffer);
+			size_t space = sizeof(innerBuffer);
 			alignedPtr = std::align(std::alignment_of<T>::value, sizeof(T), alignedPtr, space);
-			if (alignedPtr == nullptr) {
-				throw Exception("Could not create memory aligned for T in Maybe<T>.");
-			}
 		}
 
 		~Maybe ()
 		{
-			if (objectExists) {
-				Get().~T();
-			}
+			ReleaseObjectIfValid();
 		}
 
 		bool HasValidObject () const
 		{
-			return objectExists;
+			return alive;
 		}
 
 		T & Get ()
 		{
-			if (!objectExists) {
-				throw Exception("lambda_opts::Maybe<T>::Get: Object is not valid.");
-			}
-			return *RawMemory();
+			return *ObjectAddress();
 		}
 
 		T & operator* ()
@@ -448,9 +442,23 @@ namespace lambda_opts
 		}
 
 	private:
-		T * RawMemory ()
+		T * ObjectAddress ()
 		{
-			return reinterpret_cast<T *>(alignedPtr);
+			if (alignedPtr != nullptr) {
+				return reinterpret_cast<T *>(alignedPtr);
+			}
+			unstable_dont_use::ASSERT(__LINE__, !outsidePtr);
+			outsidePtr = std::unique_ptr<char, void(*)(void *)>(new char[sizeof(T)], unstable_dont_use::DeleteCharArray);
+			alignedPtr = outsidePtr.get();
+			return ObjectAddress();
+		}
+
+		void ReleaseObjectIfValid ()
+		{
+			if (alive) {
+				Get().~T();
+				alive = false;
+			}
 		}
 
 	private:
@@ -460,9 +468,10 @@ namespace lambda_opts
 		void operator= (Maybe const &); // disable
 
 	private:
-		char buffer[2 * sizeof(T) + 64];
+		char innerBuffer[2 * sizeof(T) + 64];	// Normally a type would sit within 2x its size. Add in 64 for typical cache alignment.
+		std::unique_ptr<char, void(*)(void*)> outsidePtr;
 		void * alignedPtr;
-		bool objectExists;
+		bool alive;
 	};
 
 	enum class ParseResult {
