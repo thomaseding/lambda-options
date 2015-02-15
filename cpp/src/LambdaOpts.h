@@ -600,6 +600,11 @@ public:
 		impl->AddOption<Func>(keyword, f);
 	}
 
+	String HelpDescription () const
+	{
+		return impl->HelpDescription(FormatConfig());
+	}
+
 	String HelpDescription (FormatConfig const & config) const
 	{
 		return impl->HelpDescription(config);
