@@ -602,6 +602,7 @@ public:
 	public:
 		using KeywordBase::names;
 		String help;
+		String args;
 		String group;
 	};
 
@@ -1413,6 +1414,7 @@ private:
 			ChangeIndentation(0);
 			NewLine();
 			FormatKeywordNames(keyword);
+			FormatKeywordArgs(keyword);
 			FormatKeywordHelp(keyword);
 			FlushWord();
 		}
@@ -1450,6 +1452,15 @@ private:
 					ChangeIndentation(5);
 					Emit(names[idx]);
 				}
+			}
+		}
+
+		void FormatKeywordArgs (Keyword const & keyword)
+		{
+			if (!keyword.args.empty()) {
+				FlushWord();
+				ChangeIndentation(width + 1);
+				Emit(keyword.args);
 			}
 		}
 
