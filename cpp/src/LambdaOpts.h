@@ -1455,6 +1455,7 @@ private:
 
 		void ChangeIndentation (size_t newAmount)
 		{
+			FlushWord();
 			indentation = newAmount;
 			Indent();
 		}
@@ -1488,6 +1489,7 @@ private:
 					if (FlushWord()) {
 						if (width < config.maxWidth) {
 							emittedChars.push_back(' ');
+							++width;
 						}
 						else {
 							NewLine();
