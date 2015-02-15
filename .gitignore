@@ -10,3 +10,5 @@
 *.lastbuildstate
 *.ilk
 *.out
+*.vcxproj.filters
+*.vcxproj.user
