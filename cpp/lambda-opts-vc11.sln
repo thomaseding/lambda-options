@@ -1,7 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lambda-opts-vc11", "lambda-opts-vc11.vcxproj", "{8FAA0CF6-3399-41AC-8BC2-A7CE5A788D56}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "example-vc11", "projects\example-vc11.vcxproj", "{4D411C12-0E7E-432C-9052-5385A2AD731A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test-vc11", "projects\test-vc11.vcxproj", "{70E4E74F-F0B8-4948-A603-3B26CF44264A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -9,10 +11,14 @@ Global
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{8FAA0CF6-3399-41AC-8BC2-A7CE5A788D56}.Debug|Win32.ActiveCfg = Debug|Win32
-		{8FAA0CF6-3399-41AC-8BC2-A7CE5A788D56}.Debug|Win32.Build.0 = Debug|Win32
-		{8FAA0CF6-3399-41AC-8BC2-A7CE5A788D56}.Release|Win32.ActiveCfg = Release|Win32
-		{8FAA0CF6-3399-41AC-8BC2-A7CE5A788D56}.Release|Win32.Build.0 = Release|Win32
+		{4D411C12-0E7E-432C-9052-5385A2AD731A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4D411C12-0E7E-432C-9052-5385A2AD731A}.Debug|Win32.Build.0 = Debug|Win32
+		{4D411C12-0E7E-432C-9052-5385A2AD731A}.Release|Win32.ActiveCfg = Release|Win32
+		{4D411C12-0E7E-432C-9052-5385A2AD731A}.Release|Win32.Build.0 = Release|Win32
+		{70E4E74F-F0B8-4948-A603-3B26CF44264A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{70E4E74F-F0B8-4948-A603-3B26CF44264A}.Debug|Win32.Build.0 = Debug|Win32
+		{70E4E74F-F0B8-4948-A603-3B26CF44264A}.Release|Win32.ActiveCfg = Release|Win32
+		{70E4E74F-F0B8-4948-A603-3B26CF44264A}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
