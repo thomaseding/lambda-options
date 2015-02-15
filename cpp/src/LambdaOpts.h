@@ -1426,7 +1426,15 @@ private:
 		void FormatKeywordNames (Keyword const & keyword)
 		{
 			std::vector<String> names = keyword.names;
-			std::sort(names.begin(), names.end());
+			std::sort(names.begin(), names.end(), [] (String const & n1, String const & n2) {
+				if (n1.size() < n2.size()) {
+					return true;
+				}
+				if (n1.size() > n2.size()) {
+					return false;
+				}
+				return n1 < n2;
+			});
 
 			if (!names.empty()) {
 				size_t idx = 0;
@@ -1482,7 +1490,8 @@ private:
 			if (flushWord) {
 				FlushWord();
 			}
-			if (width >= indentation) {
+			if (width > indentation) {
+				NewLine();
 				return;
 			}
 			size_t amount = indentation - width;
@@ -1499,19 +1508,24 @@ private:
 			Indent(flushWord);
 		}
 
+		void EmitSpace ()
+		{
+			if (FlushWord()) {
+				if (width < config.maxWidth) {
+					emittedChars.push_back(' ');
+					++width;
+				}
+				else {
+					NewLine();
+				}
+			}
+		}
+
 		void Emit (Char c)
 		{
 			switch (c) {
 				case ' ': {
-					if (FlushWord()) {
-						if (width < config.maxWidth) {
-							emittedChars.push_back(' ');
-							++width;
-						}
-						else {
-							NewLine();
-						}
-					}
+					EmitSpace();
 				} break;
 				default: {
 					word.push_back(c);
