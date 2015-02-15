@@ -68,6 +68,30 @@ namespace lambda_opts
 		std::string message;
 	};
 
+	class ParseFailedException : public Exception {
+	public:
+		ParseFailedException (size_t beginIndex, size_t endIndex)
+			: Exception("")
+			, beginIndex(beginIndex)
+			, endIndex(endIndex)
+		{
+			sprintf(message, "Parse failed in argument range [%u, %u].",
+				static_cast<unsigned int>(beginIndex),
+				static_cast<unsigned int>(endIndex));
+		}
+
+		virtual char const * what () const throw() override
+		{
+			return message;
+		}
+
+	public:
+		size_t beginIndex;
+		size_t endIndex;
+	private:
+		char message[128];
+	};
+
 	template <typename Char>
 	class ArgsIter {
 	public:
@@ -80,14 +104,9 @@ namespace lambda_opts
 		typedef typename Args::const_iterator Iter;
 
 	public:
-		ArgsIter & operator++ ()
-		{
-			if (iter == end) {
-				throw Exception("lambda_opts::ArgsIter<Char>::operator++: Cannot increment past end iterator.");
-			}
-			++iter;
-			return *this;
-		}
+		size_t Index () const;
+
+		ArgsIter & operator++ ();
 
 		ArgsIter operator++ (int)
 		{
@@ -139,9 +158,10 @@ namespace lambda_opts
 		}
 
 	private:
-		ArgsIter (Iter iter, Iter end)
+		ArgsIter (Iter iter, Iter end, void * opaqueParseEnv)
 			: iter(iter)
 			, end(end)
+			, opaqueParseEnv(opaqueParseEnv)
 		{}
 
 		void EnsureSameBacking (ArgsIter const & other) const
@@ -154,6 +174,7 @@ namespace lambda_opts
 	private:
 		Iter iter;
 		Iter end;
+		void * opaqueParseEnv;
 	};
 
 	template <typename Char = char>
@@ -506,6 +527,8 @@ public:
 	class SubKeyword;
 
 private:
+	friend class lambda_opts::ArgsIter<Char>;
+
 	typedef std::vector<String> Args;
 	typedef lambda_opts::ParseResult ParseResult;
 	typedef int Priority;
@@ -617,15 +640,9 @@ public:
 		ParseEnv (ParseEnv && other);
 		ParseEnv & operator= (ParseEnv && other);
 
-		bool Run ()
+		void Run ()
 		{
-			int dummy;
-			return Run(dummy);
-		}
-
-		bool Run (int & outParseFailureIndex)
-		{
-			return impl->Run(outParseFailureIndex);
+			impl->Run();
 		}
 
 	private:
@@ -1202,28 +1219,30 @@ private:
 
 
 	class ParseEnvImpl {
+		friend class lambda_opts::ArgsIter<Char>;
+
 	public:
 		ParseEnvImpl (std::shared_ptr<LambdaOptsImpl const> opts, Args && args)
 			: opts(opts)
 			, args(std::move(args))
-			, begin(this->args.begin(), this->args.end())
-			, end(this->args.end(), this->args.end())
+			, begin(this->args.begin(), this->args.end(), this)
+			, end(this->args.end(), this->args.end(), this)
 			, iter(begin)
 			, parseState(iter, end)
+			, highestArgIndex(0)
 		{}
 
-		bool Run (int & outParseFailureIndex)
+		void Run ()
 		{
 			iter = begin;
 			while (TryParse()) {
 				continue;
 			}
 			if (iter == end) {
-				outParseFailureIndex = -1;
-				return true;
+				return;
 			}
-			outParseFailureIndex = static_cast<int>(iter.iter - begin.iter);
-			return false;
+			size_t currArgIndex = static_cast<size_t>(iter.iter - begin.iter);
+			throw lambda_opts::ParseFailedException(currArgIndex, highestArgIndex);
 		}
 
 	private:
@@ -1371,6 +1390,7 @@ private:
 		lambda_opts::ArgsIter<Char> const end;
 		lambda_opts::ArgsIter<Char> iter;
 		lambda_opts::ParseState<Char> parseState;
+		size_t highestArgIndex;
 	};
 
 
@@ -1534,6 +1554,33 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+
+namespace lambda_opts
+{
+	template <typename Char>
+	size_t ArgsIter<Char>::Index () const
+	{
+		auto const & parseEnv = *static_cast<LambdaOpts<Char>::ParseEnvImpl const *>(opaqueParseEnv);
+		return std::distance(parseEnv.begin.iter, iter);
+	}
+
+
+	template <typename Char>
+	ArgsIter<Char> & ArgsIter<Char>::operator++ ()
+	{
+		if (iter == end) {
+			throw Exception("lambda_opts::ArgsIter<Char>::operator++: Cannot increment past end iterator.");
+		}
+		++iter;
+		auto & parseEnv = *static_cast<LambdaOpts<Char>::ParseEnvImpl *>(opaqueParseEnv);
+		parseEnv.highestArgIndex = std::max(parseEnv.highestArgIndex, Index());
+		return *this;
+	}
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 
 

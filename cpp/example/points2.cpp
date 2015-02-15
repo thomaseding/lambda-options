@@ -65,7 +65,10 @@ public:
 		results.points.clear();
 
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		if (!parseEnv.Run()) {
+		try {
+			parseEnv.Run();
+		}
+		catch (lambda_opts::ParseFailedException const &) {
 			results.failed = true;
 		}
 		if (results.points.empty()) {

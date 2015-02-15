@@ -388,11 +388,7 @@ public:
 	
 		std::vector<String> args;
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		parseEnv.Run(failIdx);
-		if (failIdx != -1) {
-			FAIL;
-		}
+		parseEnv.Run();
 	}
 	
 	
@@ -430,11 +426,7 @@ public:
 	
 		std::vector<String> args;
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		parseEnv.Run(failIdx);
-		if (failIdx != -1) {
-			FAIL;
-		}
+		parseEnv.Run();
 	}
 	
 	
@@ -481,13 +473,7 @@ public:
 		auto parseCount = [&] (size_t n) {
 			std::vector<String> args(n);
 			auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-			int failIdx;
-			if (!parseEnv.Run(failIdx)) {
-				FAIL;
-			}
-			if (failIdx != -1) {
-				FAIL;
-			}
+			parseEnv.Run();
 		};
 		parseCount(0);
 		parseCount(1);
@@ -538,13 +524,7 @@ public:
 			std::vector<String> args(n + 1);
 			args.front() = Q("x");
 			auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-			int failIdx;
-			if (!parseEnv.Run(failIdx)) {
-				FAIL;
-			}
-			if (failIdx != -1) {
-				FAIL;
-			}
+			parseEnv.Run();
 		};
 		parseCount(0);
 		parseCount(1);
@@ -587,13 +567,7 @@ public:
 	
 	
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		if (!parseEnv.Run(failIdx)) {
-			FAIL;
-		}
-		if (failIdx != -1) {
-			FAIL;
-		}
+		parseEnv.Run();
 	
 		int const expectedCalls[] = { 0,2,1 };
 		if (!Equal(calls, expectedCalls)) {
@@ -628,13 +602,7 @@ public:
 		args.push_back(Q("x"));
 	
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		if (!parseEnv.Run(failIdx)) {
-			FAIL;
-		}
-		if (failIdx != -1) {
-			FAIL;
-		}
+		parseEnv.Run();
 	
 		int const expectedCalls[] = { 2,0,1 };
 		if (!Equal(calls, expectedCalls)) {
@@ -792,13 +760,7 @@ public:
 		Dump(expected, weird);
 	
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		if (!parseEnv.Run(failIdx)) {
-			FAIL;
-		}
-		if (failIdx != -1) {
-			FAIL;
-		}
+		parseEnv.Run();
 	
 		if (ss.str() != expected.str()) {
 			FAIL;
@@ -835,13 +797,7 @@ public:
 		Dump(expected, L"2");
 	
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		if (!parseEnv.Run(failIdx)) {
-			FAIL;
-		}
-		if (failIdx != -1) {
-			FAIL;
-		}
+		parseEnv.Run();
 	
 		if (ss.str() != expected.str()) {
 			FAIL;
@@ -879,12 +835,14 @@ public:
 		args.push_back(Q("3"));
 	
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		if (parseEnv.Run(failIdx)) {
+		try {
+			parseEnv.Run();
 			FAIL;
 		}
-		if (failIdx != 2) {
-			FAIL;
+		catch (lambda_opts::ParseFailedException const & e) {
+			if (e.endIndex != 3) {
+				FAIL;
+			}
 		}
 	
 		if (ss.str() != expected.str()) {
@@ -910,14 +868,16 @@ public:
 		Dump(expected, L"x");
 	
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		if (parseEnv.Run(failIdx)) {
+		try {
+			parseEnv.Run();
 			FAIL;
 		}
-		if (failIdx != 0) {
-			FAIL;
+		catch (lambda_opts::ParseFailedException const & e) {
+			if (e.endIndex != 1) {
+				FAIL;
+			}
 		}
-	
+		
 		if (ss.str() != expected.str()) {
 			FAIL;
 		}
@@ -949,12 +909,14 @@ public:
 		Dump(expected, 1);
 
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		if (parseEnv.Run(failIdx)) {
+		try {
+			parseEnv.Run();
 			FAIL;
 		}
-		if (failIdx != 1) {
-			FAIL;
+		catch (lambda_opts::ParseFailedException const & e) {
+			if (e.endIndex != 2) {
+				FAIL;
+			}
 		}
 
 		if (ss.str() != expected.str()) {
@@ -981,12 +943,14 @@ public:
 		args.push_back(Q("z"));
 	
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		if (parseEnv.Run(failIdx)) {
+		try {
+			parseEnv.Run();
 			FAIL;
 		}
-		if (failIdx != 3) {
-			FAIL;
+		catch (lambda_opts::ParseFailedException const & e) {
+			if (e.endIndex != 3) {
+				FAIL;
+			}
 		}
 	}
 	
@@ -1088,13 +1052,7 @@ public:
 		Dump(expected, L"ww");
 	
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		if (!parseEnv.Run(failIdx)) {
-			FAIL;
-		}
-		if (failIdx != -1) {
-			FAIL;
-		}
+		parseEnv.Run();
 	
 		if (ss.str() != expected.str()) {
 			FAIL;
@@ -1190,13 +1148,8 @@ public:
 		Dump(expected, 9);
 
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		if (!parseEnv.Run(failIdx)) {
-			FAIL;
-		}
-		if (failIdx != -1) {
-			FAIL;
-		}
+		parseEnv.Run();
+
 		if (ss.str() != expected.str()) {
 			FAIL;
 		}
@@ -1234,13 +1187,8 @@ public:
 		Dump(expected, 2);
 
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		if (!parseEnv.Run(failIdx)) {
-			FAIL;
-		}
-		if (failIdx != -1) {
-			FAIL;
-		}
+		parseEnv.Run();
+
 		if (ss.str() != expected.str()) {
 			FAIL;
 		}
@@ -1313,13 +1261,8 @@ public:
 		Dump(expected, 3);
 
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		int failIdx;
-		if (!parseEnv.Run(failIdx)) {
-			FAIL;
-		}
-		if (failIdx != -1) {
-			FAIL;
-		}
+		parseEnv.Run();
+
 		if (ss.str() != expected.str()) {
 			FAIL;
 		}
@@ -1391,9 +1334,7 @@ public:
 		std::vector<String> args(4);
 
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		if (!parseEnv.Run()) {
-			FAIL;
-		}
+		parseEnv.Run();
 	}
 
 
@@ -1482,9 +1423,7 @@ public:
 		Dump(expected, L"miss4");
 
 		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
-		if (!parseEnv.Run()) {
-			FAIL;
-		}
+		parseEnv.Run();
 		if (ss.str() != expected.str()) {
 			FAIL;
 		}
@@ -1507,7 +1446,7 @@ public:
 
 		std::cout << "\n<HELP>\n";
 		for (Char c : desc) {
-			std::cout << c;
+			std::cout << static_cast<char>(c);
 		}
 		std::cout << "\n</HELP>\n";
 	}
