@@ -35,7 +35,11 @@ int main (int argc, char ** argv)
 
 	auto parseEnv = opts.CreateParseEnv(argv + 1, argv + argc);
 
-	if (!parseEnv.Run()) {
+	try {
+		parseEnv.Run()
+	}
+	catch (lambda_opts::ParseFailedException const &) {
+		std::cout << "Bad arguments.";
 		return 1;
 	}
 
