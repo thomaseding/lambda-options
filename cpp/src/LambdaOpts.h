@@ -443,11 +443,17 @@ namespace lambda_opts
 	public:
 		Maybe ()
 			: outsidePtr(static_cast<char *>(nullptr), free)
+#if _MSC_VER
 			, alignedPtr(innerBuffer)
+#else
+			, alignedPtr(u.rawView)
+#endif
 			, alive(false)
 		{
+#if _MSC_VER
 			size_t space = sizeof(innerBuffer);
 			alignedPtr = std::align(std::alignment_of<T>::value, sizeof(T), alignedPtr, space);
+#endif
 		}
 
 		~Maybe ()
@@ -502,7 +508,16 @@ namespace lambda_opts
 		void operator= (Maybe const &); // disable
 
 	private:
+#if _MSC_VER
 		char innerBuffer[2 * sizeof(T) + 64];	// Normally a type would sit within 2x its size. Add in 64 for typical cache alignment.
+#else
+		union U {
+			char rawView[sizeof(T)];
+			T objectView;
+			U () : rawView() {}
+			~U () {}
+		} u;
+#endif
 		std::unique_ptr<char, void(*)(void*)> outsidePtr;
 		void * alignedPtr;
 		bool alive;
@@ -1587,7 +1602,8 @@ namespace lambda_opts
 	template <typename Char>
 	size_t ArgsIter<Char>::Index () const
 	{
-		auto const & parseEnv = *static_cast<LambdaOpts<Char>::ParseEnvImpl const *>(opaqueParseEnv);
+		typedef typename LambdaOpts<Char>::ParseEnvImpl PEI;
+		auto const & parseEnv = *static_cast<PEI const *>(opaqueParseEnv);
 		return std::distance(parseEnv.begin.iter, iter);
 	}
 
@@ -1595,11 +1611,12 @@ namespace lambda_opts
 	template <typename Char>
 	ArgsIter<Char> & ArgsIter<Char>::operator++ ()
 	{
+		typedef typename LambdaOpts<Char>::ParseEnvImpl PEI;
 		if (iter == end) {
 			throw Exception("lambda_opts::ArgsIter<Char>::operator++: Cannot increment past end iterator.");
 		}
 		++iter;
-		auto & parseEnv = *static_cast<LambdaOpts<Char>::ParseEnvImpl *>(opaqueParseEnv);
+		auto & parseEnv = *static_cast<PEI *>(opaqueParseEnv);
 		parseEnv.highestArgIndex = std::max(parseEnv.highestArgIndex, Index());
 		return *this;
 	}
@@ -1698,7 +1715,7 @@ LambdaOpts<Char>::Keyword::Keyword (String const & longName, Char shortName, Str
 template <typename Char>
 LambdaOpts<Char>::Keyword::Keyword (String const & longName, String const & group, String const & help)
 {
-	Init(&longName, &shortName, &group, &help);
+	Init(&longName, nullptr, &group, &help);
 }
 
 
