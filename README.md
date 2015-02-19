@@ -8,7 +8,7 @@ A declarative command-line parser for C++.
 
 This library is designed to be an intuitive alternative to other C++ command-line libraries such as: Boost.Program_Options, GNU Getopt, TCLAP, and others.
 
-Permissive licensing allows you download, use, and modify for your own use... commercial or otherwise.
+Permissive licensing (BSD) allows you download, use, and modify for your own use... commercial, proprietary or otherwise.
 
 Quick installation: Download the required header here: [cpp/src/LambdaOptions.h](cpp/src/LambdaOptions.h?ts=4)
 
