@@ -1,4 +1,4 @@
-#include "../src/LambdaOpts.h"
+#include "../src/LambdaOptions.h"
 
 #include <algorithm>
 #include <clocale>
@@ -42,7 +42,7 @@ namespace
 
 class Bit {
 private:
-	Bit ();	// Intentionally disable to ensure LambdaOpts can handle values it cannot default instantiate.
+	Bit ();	// Intentionally disable to ensure LambdaOptions can handle values it cannot default instantiate.
 
 public:
 	Bit (bool value)
@@ -54,7 +54,7 @@ public:
 };
 
 
-namespace lambda_opts
+namespace lambda_options
 {
 	template <typename Char>
 	struct RawParser<Char, Bit> {
@@ -99,7 +99,7 @@ public:
 int TestMaybeLifetimeHelper::value = 666;
 
 
-namespace lambda_opts
+namespace lambda_options
 {
 	template <typename Char>
 	struct RawParser<Char, TestMaybeLifetimeHelper> {
@@ -119,7 +119,7 @@ namespace lambda_opts
 __declspec(align(8192)) class TestMaybeLifetimeHelperSuperAligned : public TestMaybeLifetimeHelper {};
 
 
-namespace lambda_opts
+namespace lambda_options
 {
 	template <typename Char>
 	struct RawParser<Char, TestMaybeLifetimeHelperSuperAligned> {
@@ -153,8 +153,8 @@ template <typename Char>
 class Tests {
 private:
 	typedef std::basic_string<Char> String;
-	typedef LambdaOpts<Char> Opts;
-	typedef typename lambda_opts::ParseResult PR;
+	typedef LambdaOptions<Char> Opts;
+	typedef typename lambda_options::ParseResult PR;
 	typedef typename Opts::Keyword Keyword;
 	typedef typename Opts::SubKeyword SubKeyword;
 
@@ -436,7 +436,7 @@ public:
 			Opts opts;
 			opts.AddOption(empty, [] () { return PR::Accept; });
 		}
-		catch (lambda_opts::Exception const &) {
+		catch (lambda_options::Exception const &) {
 			return;
 		}
 		FAIL;
@@ -839,7 +839,7 @@ public:
 			parseEnv.Run();
 			FAIL;
 		}
-		catch (lambda_opts::ParseFailedException const & e) {
+		catch (lambda_options::ParseFailedException const & e) {
 			if (e.endIndex != 3) {
 				FAIL;
 			}
@@ -872,7 +872,7 @@ public:
 			parseEnv.Run();
 			FAIL;
 		}
-		catch (lambda_opts::ParseFailedException const & e) {
+		catch (lambda_options::ParseFailedException const & e) {
 			if (e.endIndex != 1) {
 				FAIL;
 			}
@@ -913,7 +913,7 @@ public:
 			parseEnv.Run();
 			FAIL;
 		}
-		catch (lambda_opts::ParseFailedException const & e) {
+		catch (lambda_options::ParseFailedException const & e) {
 			if (e.endIndex != 2) {
 				FAIL;
 			}
@@ -947,7 +947,7 @@ public:
 			parseEnv.Run();
 			FAIL;
 		}
-		catch (lambda_opts::ParseFailedException const & e) {
+		catch (lambda_options::ParseFailedException const & e) {
 			if (e.endIndex != 3) {
 				FAIL;
 			}
@@ -1203,8 +1203,8 @@ public:
 		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
 		});
-		opts.AddOption(empty, [&] (lambda_opts::ParseState<Char> parseState) {
-			using namespace lambda_opts;
+		opts.AddOption(empty, [&] (lambda_options::ParseState<Char> parseState) {
+			using namespace lambda_options;
 
 			DumpMemo(ss, L"<parse-state>");
 
@@ -1214,11 +1214,11 @@ public:
 			Dump(ss, *parseState.iter);
 			++parseState.iter;
 
-			lambda_opts::Maybe<unsigned int> mUint;
+			lambda_options::Maybe<unsigned int> mUint;
 			if (Parse<Char, unsigned int>(parseState, mUint)) {
 				FAIL;
 			}
-			lambda_opts::Maybe<int> mInt;
+			lambda_options::Maybe<int> mInt;
 			if (!Parse<Char, int>(parseState, mInt)) {
 				FAIL;
 			}
@@ -1279,9 +1279,9 @@ public:
 		value = 0;
 
 		Opts opts;
-		opts.AddOption(empty, [&] (lambda_opts::ParseState<Char> parseState) {
+		opts.AddOption(empty, [&] (lambda_options::ParseState<Char> parseState) {
 			{
-				lambda_opts::Maybe<Helper> mObject;
+				lambda_options::Maybe<Helper> mObject;
 				if (value != 0) {
 					FAIL;
 				}
@@ -1290,8 +1290,8 @@ public:
 				FAIL;
 			}
 			{
-				lambda_opts::Maybe<Helper> mObject;
-				if (!lambda_opts::Parse<Char, Helper>(parseState, mObject)) {
+				lambda_options::Maybe<Helper> mObject;
+				if (!lambda_options::Parse<Char, Helper>(parseState, mObject)) {
 					FAIL;
 				}
 				if (value != P1) {
@@ -1304,8 +1304,8 @@ public:
 			value = 0;
 			{
 				typedef std::array<Helper, 5> Array;
-				lambda_opts::Maybe<Array> mObject;
-				if (lambda_opts::Parse<Char, Array>(parseState, mObject)) {
+				lambda_options::Maybe<Array> mObject;
+				if (lambda_options::Parse<Char, Array>(parseState, mObject)) {
 					FAIL;
 				}
 				if (value != 3 * P1 + 3 * P2) {
@@ -1318,8 +1318,8 @@ public:
 			value = 0;
 			{
 				typedef std::array<Helper, 3> Array;
-				lambda_opts::Maybe<Array> mObject;
-				if (!lambda_opts::Parse<Char, Array>(parseState, mObject)) {
+				lambda_options::Maybe<Array> mObject;
+				if (!lambda_options::Parse<Char, Array>(parseState, mObject)) {
 					FAIL;
 				}
 				if (value != 3 * P1) {
@@ -1454,7 +1454,7 @@ public:
 
 
 template <typename Char>
-typename LambdaOpts<Char>::Keyword const Tests<Char>::empty;
+typename LambdaOptions<Char>::Keyword const Tests<Char>::empty;
 
 
 template <typename Char>
@@ -1502,7 +1502,7 @@ static bool RunCharTests ()
 
 static bool RunTests ()
 {
-	static_assert(std::is_same<LambdaOpts<>::char_type, LambdaOpts<char>::char_type>::value, "Default [Char] type is not [char].");
+	static_assert(std::is_same<LambdaOptions<>::char_type, LambdaOptions<char>::char_type>::value, "Default [Char] type is not [char].");
 
 	if (!RunCharTests<char>()) {
 		return false;

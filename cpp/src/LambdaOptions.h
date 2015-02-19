@@ -48,10 +48,10 @@
 
 
 template <typename Char>
-class LambdaOpts;
+class LambdaOptions;
 
 
-namespace lambda_opts
+namespace lambda_options
 {
 	class Exception : public std::exception {
 	public:
@@ -98,7 +98,7 @@ namespace lambda_opts
 		typedef std::basic_string<Char> String;
 
 	private:
-		friend class LambdaOpts<Char>;
+		friend class LambdaOptions<Char>;
 
 		typedef std::vector<String> Args;
 		typedef typename Args::const_iterator Iter;
@@ -179,7 +179,7 @@ namespace lambda_opts
 
 	template <typename Char = char>
 	class ParseState {
-		friend class LambdaOpts<Char>;
+		friend class LambdaOptions<Char>;
 
 	private:
 		ParseState (ArgsIter<Char> & iter, ArgsIter<Char> end)
@@ -535,17 +535,17 @@ namespace lambda_opts
 
 
 template <typename Char = char>
-class LambdaOpts {
+class LambdaOptions {
 public:
 	typedef std::basic_string<Char> String;
 
 	class SubKeyword;
 
 private:
-	friend class lambda_opts::ArgsIter<Char>;
+	friend class lambda_options::ArgsIter<Char>;
 
 	typedef std::vector<String> Args;
-	typedef lambda_opts::ParseResult ParseResult;
+	typedef lambda_options::ParseResult ParseResult;
 	typedef int Priority;
 
 	class LambdaOptsImpl;
@@ -621,7 +621,7 @@ public:
 		String group;
 	};
 
-	LambdaOpts ();
+	LambdaOptions ();
 
 	template <typename Func>
 	void AddOption (String const & keyword, Func const & f)
@@ -650,7 +650,7 @@ public:
 	ParseEnv CreateParseEnv (StringIter begin, StringIter end) const;
 
 	class ParseEnv {
-		friend class LambdaOpts;
+		friend class LambdaOptions;
 
 	public:
 		ParseEnv (ParseEnv && other);
@@ -676,7 +676,7 @@ public:
 private:
 	static void ASSERT (unsigned int line, bool truth)
 	{
-		namespace my = ::lambda_opts::unstable_dont_use;
+		namespace my = ::lambda_options::unstable_dont_use;
 		my::ASSERT(line, truth);
 	}
 
@@ -705,7 +705,7 @@ private:
 
 	class TypeKind;
 
-	typedef UniqueOpaque (*OpaqueParser)(lambda_opts::ParseState<Char> &);
+	typedef UniqueOpaque (*OpaqueParser)(lambda_options::ParseState<Char> &);
 	typedef std::vector<std::pair<TypeKind, OpaqueParser>> DynamicParserMap;
 
 
@@ -893,10 +893,10 @@ private:
 	}
 
 	template <typename T>
-	static UniqueOpaque OpaqueParse (lambda_opts::ParseState<Char> & parseState)
+	static UniqueOpaque OpaqueParse (lambda_options::ParseState<Char> & parseState)
 	{
-		lambda_opts::Maybe<T> maybe;
-		if (lambda_opts::Parse<Char, T>(parseState, maybe)) {
+		lambda_options::Maybe<T> maybe;
+		if (lambda_options::Parse<Char, T>(parseState, maybe)) {
 			return UniqueOpaque(AllocateCopy(std::move(*maybe)).release(), Delete<T>);
 		}
 		return UniqueOpaque(static_cast<T *>(nullptr), Delete<T>);
@@ -1016,7 +1016,7 @@ private:
 		void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult()> const & func)
 		{
 			if (keyword.names.empty()) {
-				throw lambda_opts::Exception("Cannot add an empty rule.");
+				throw lambda_options::Exception("Cannot add an empty rule.");
 			}
 			infos0.emplace_back(keyword, func);
 		}
@@ -1168,7 +1168,7 @@ private:
 		template <typename T>
 		void AddDynamicParser ()
 		{
-			namespace my = ::lambda_opts::unstable_dont_use;
+			namespace my = ::lambda_options::unstable_dont_use;
 			TypeKind typeKind = TypeKind::Get<T>();
 			if (my::Lookup(dynamicParserMap, typeKind) == nullptr) {
 				OpaqueParser parser = OpaqueParse<T>;
@@ -1178,7 +1178,7 @@ private:
 
 		OpaqueParser LookupDynamicParser (TypeKind const & k) const
 		{
-			namespace my = ::lambda_opts::unstable_dont_use;
+			namespace my = ::lambda_options::unstable_dont_use;
 			OpaqueParser const * pParser = my::Lookup(dynamicParserMap, k);
 			ASSERT(__LINE__, pParser != nullptr);
 			return *pParser;
@@ -1235,7 +1235,7 @@ private:
 
 
 	class ParseEnvImpl {
-		friend class lambda_opts::ArgsIter<Char>;
+		friend class lambda_options::ArgsIter<Char>;
 
 	public:
 		ParseEnvImpl (std::shared_ptr<LambdaOptsImpl const> opts, Args && args)
@@ -1258,7 +1258,7 @@ private:
 				return;
 			}
 			size_t currArgIndex = static_cast<size_t>(iter.iter - begin.iter);
-			throw lambda_opts::ParseFailedException(currArgIndex, highestArgIndex);
+			throw lambda_options::ParseFailedException(currArgIndex, highestArgIndex);
 		}
 
 	private:
@@ -1402,10 +1402,10 @@ private:
 	public:
 		std::shared_ptr<LambdaOptsImpl const> opts;
 		Args args;
-		lambda_opts::ArgsIter<Char> const begin;
-		lambda_opts::ArgsIter<Char> const end;
-		lambda_opts::ArgsIter<Char> iter;
-		lambda_opts::ParseState<Char> parseState;
+		lambda_options::ArgsIter<Char> const begin;
+		lambda_options::ArgsIter<Char> const end;
+		lambda_options::ArgsIter<Char> iter;
+		lambda_options::ParseState<Char> parseState;
 		size_t highestArgIndex;
 	};
 
@@ -1597,12 +1597,12 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 
-namespace lambda_opts
+namespace lambda_options
 {
 	template <typename Char>
 	size_t ArgsIter<Char>::Index () const
 	{
-		typedef typename LambdaOpts<Char>::ParseEnvImpl PEI;
+		typedef typename LambdaOptions<Char>::ParseEnvImpl PEI;
 		auto const & parseEnv = *static_cast<PEI const *>(opaqueParseEnv);
 		return std::distance(parseEnv.begin.iter, iter);
 	}
@@ -1611,9 +1611,9 @@ namespace lambda_opts
 	template <typename Char>
 	ArgsIter<Char> & ArgsIter<Char>::operator++ ()
 	{
-		typedef typename LambdaOpts<Char>::ParseEnvImpl PEI;
+		typedef typename LambdaOptions<Char>::ParseEnvImpl PEI;
 		if (iter == end) {
-			throw Exception("lambda_opts::ArgsIter<Char>::operator++: Cannot increment past end iterator.");
+			throw Exception("lambda_options::ArgsIter<Char>::operator++: Cannot increment past end iterator.");
 		}
 		++iter;
 		auto & parseEnv = *static_cast<PEI *>(opaqueParseEnv);
@@ -1627,14 +1627,14 @@ namespace lambda_opts
 
 
 template <typename Char>
-LambdaOpts<Char>::LambdaOpts ()
+LambdaOptions<Char>::LambdaOptions ()
 	: impl(new LambdaOptsImpl())
 {}
 
 
 template <typename Char>
 template <typename StringIter>
-typename LambdaOpts<Char>::ParseEnv LambdaOpts<Char>::CreateParseEnv (StringIter begin, StringIter end) const
+typename LambdaOptions<Char>::ParseEnv LambdaOptions<Char>::CreateParseEnv (StringIter begin, StringIter end) const
 {
 	return ParseEnv(impl, Args(begin, end));
 }
@@ -1644,7 +1644,7 @@ typename LambdaOpts<Char>::ParseEnv LambdaOpts<Char>::CreateParseEnv (StringIter
 
 
 template <typename Char>
-LambdaOpts<Char>::FormatConfig::FormatConfig ()
+LambdaOptions<Char>::FormatConfig::FormatConfig ()
 	: maxWidth(80)
 {}
 
@@ -1653,7 +1653,7 @@ LambdaOpts<Char>::FormatConfig::FormatConfig ()
 
 
 template <typename Char>
-LambdaOpts<Char>::SubKeyword::SubKeyword (String const & longName)
+LambdaOptions<Char>::SubKeyword::SubKeyword (String const & longName)
 {
 	names.emplace_back(longName);
 }
@@ -1664,77 +1664,77 @@ LambdaOpts<Char>::SubKeyword::SubKeyword (String const & longName)
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword ()
+LambdaOptions<Char>::Keyword::Keyword ()
 {
 	Init(nullptr, nullptr, nullptr, nullptr);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (Char shortName)
+LambdaOptions<Char>::Keyword::Keyword (Char shortName)
 {
 	Init(nullptr, &shortName, nullptr, nullptr);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (String const & longName)
+LambdaOptions<Char>::Keyword::Keyword (String const & longName)
 {
 	Init(&longName, nullptr, nullptr, nullptr);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (String const & longName, Char shortName)
+LambdaOptions<Char>::Keyword::Keyword (String const & longName, Char shortName)
 {
 	Init(&longName, &shortName, nullptr, nullptr);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (Char shortName, String const & help)
+LambdaOptions<Char>::Keyword::Keyword (Char shortName, String const & help)
 {
 	Init(nullptr, &shortName, nullptr, &help);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (String const & longName, String const & help)
+LambdaOptions<Char>::Keyword::Keyword (String const & longName, String const & help)
 {
 	Init(&longName, nullptr, nullptr, &help);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (String const & longName, Char shortName, String const & help)
+LambdaOptions<Char>::Keyword::Keyword (String const & longName, Char shortName, String const & help)
 {
 	Init(&longName, &shortName, nullptr, &help);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (String const & longName, String const & group, String const & help)
+LambdaOptions<Char>::Keyword::Keyword (String const & longName, String const & group, String const & help)
 {
 	Init(&longName, nullptr, &group, &help);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (Char shortName, String const & group, String const & help)
+LambdaOptions<Char>::Keyword::Keyword (Char shortName, String const & group, String const & help)
 {
 	Init(nullptr, &shortName, &group, &help);
 }
 
 
 template <typename Char>
-LambdaOpts<Char>::Keyword::Keyword (String const & longName, Char shortName, String const & group, String const & help)
+LambdaOptions<Char>::Keyword::Keyword (String const & longName, Char shortName, String const & group, String const & help)
 {
 	Init(&longName, &shortName, &group, &help);
 }
 
 
 template <typename Char>
-void LambdaOpts<Char>::Keyword::Init (String const * longName, Char * shortName, String const * group, String const * help)
+void LambdaOptions<Char>::Keyword::Init (String const * longName, Char * shortName, String const * group, String const * help)
 {
 	if (shortName != nullptr) {
 		std::basic_string<Char> shortNameStr;
@@ -1756,13 +1756,13 @@ void LambdaOpts<Char>::Keyword::Init (String const * longName, Char * shortName,
 
 
 template <typename Char>
-void LambdaOpts<Char>::Keyword::AddSubKeyword (SubKeyword const & subKeyword)
+void LambdaOptions<Char>::Keyword::AddSubKeyword (SubKeyword const & subKeyword)
 {
 	subKeywords.push_back(std::shared_ptr<SubKeyword>(new SubKeyword(subKeyword)));
 	try {
 		Validate();
 	}
-	catch (lambda_opts::Exception const & e) {
+	catch (lambda_options::Exception const & e) {
 		subKeywords.pop_back();
 		throw e;
 	}
@@ -1770,17 +1770,17 @@ void LambdaOpts<Char>::Keyword::AddSubKeyword (SubKeyword const & subKeyword)
 
 
 template <typename Char>
-auto LambdaOpts<Char>::Keyword::SubKeywords () const -> std::vector<std::shared_ptr<SubKeyword const>> const &
+auto LambdaOptions<Char>::Keyword::SubKeywords () const -> std::vector<std::shared_ptr<SubKeyword const>> const &
 {
 	return subKeywords;
 }
 
 
 template <typename Char>
-void LambdaOpts<Char>::Keyword::Validate () const
+void LambdaOptions<Char>::Keyword::Validate () const
 {
 	if (names.empty() && !subKeywords.empty()) {
-		throw lambda_opts::Exception("Empty keyword cannot have sub-keywords.");
+		throw lambda_options::Exception("Empty keyword cannot have sub-keywords.");
 	}
 }
 
@@ -1789,28 +1789,28 @@ void LambdaOpts<Char>::Keyword::Validate () const
 
 
 template <typename Char>
-LambdaOpts<Char>::ParseEnv::ParseEnv (std::shared_ptr<LambdaOptsImpl const> opts, std::vector<String> && args)
+LambdaOptions<Char>::ParseEnv::ParseEnv (std::shared_ptr<LambdaOptsImpl const> opts, std::vector<String> && args)
 	: impl(new ParseEnvImpl(opts, std::move(args)))
 {}
 
 
 template <typename Char>
-LambdaOpts<Char>::ParseEnv::ParseEnv (ParseEnv && other)
+LambdaOptions<Char>::ParseEnv::ParseEnv (ParseEnv && other)
 	: impl(std::move(other.impl))
 {}
 
 
 template <typename Char>
-typename LambdaOpts<Char>::ParseEnv & LambdaOpts<Char>::ParseEnv::operator= (ParseEnv && other)
+typename LambdaOptions<Char>::ParseEnv & LambdaOptions<Char>::ParseEnv::operator= (ParseEnv && other)
 {
 	impl = std::move(other.impl);
 }
 
 
 template <typename Char>
-auto LambdaOpts<Char>::LambdaOptsImpl::HelpDescription (FormatConfig const & config) const -> String
+auto LambdaOptions<Char>::LambdaOptsImpl::HelpDescription (FormatConfig const & config) const -> String
 {
-	namespace my = ::lambda_opts::unstable_dont_use;
+	namespace my = ::lambda_options::unstable_dont_use;
 
 	std::vector<Keyword const *> keywords;
 	for (auto const & info : infos0) {

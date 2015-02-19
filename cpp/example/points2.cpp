@@ -1,4 +1,4 @@
-#include "../src/LambdaOpts.h"
+#include "../src/LambdaOptions.h"
 
 #include <iostream>
 
@@ -21,7 +21,7 @@ public:
 };
 
 
-namespace lambda_opts
+namespace lambda_options
 {
 	template <typename Char>
 	struct RawParser<Char, Point> {
@@ -68,7 +68,7 @@ public:
 		try {
 			parseEnv.Run();
 		}
-		catch (lambda_opts::ParseFailedException const &) {
+		catch (lambda_options::ParseFailedException const &) {
 			results.failed = true;
 		}
 		if (results.points.empty()) {
@@ -78,7 +78,7 @@ public:
 	}
 
 private:
-	LambdaOpts<char> opts;
+	LambdaOptions<char> opts;
 	ParseResults results;
 };
 

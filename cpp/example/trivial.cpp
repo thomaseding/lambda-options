@@ -1,4 +1,4 @@
-#include "../src/LambdaOpts.h"
+#include "../src/LambdaOptions.h"
 
 #include <iostream>
 
@@ -8,7 +8,7 @@
 
 int main (int argc, char ** argv)
 {
-	LambdaOpts<char> opts;
+	LambdaOptions<char> opts;
 
 	opts.AddOption("--help", [] () {
 		std::cout << "--user NAME [AGE]" << std::endl;
@@ -25,7 +25,7 @@ int main (int argc, char ** argv)
 	try {
 		parseEnv.Run();
 	}
-	catch (lambda_opts::ParseFailedException const &) {
+	catch (lambda_options::ParseFailedException const &) {
 		std::cout << "Bad arguments.";
 		return 1;
 	}

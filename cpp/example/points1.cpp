@@ -1,4 +1,4 @@
-#include "../src/LambdaOpts.h"
+#include "../src/LambdaOptions.h"
 
 #include <iostream>
 
@@ -43,7 +43,7 @@ class OptionsParser {
 public:
 	OptionsParser ()
 	{
-		typedef LambdaOpts<char>::Keyword Keyword;
+		typedef LambdaOptions<char>::Keyword Keyword;
 
 		Keyword kwHelp("--help", 'h');
 		kwHelp.help = "Display this help message.";
@@ -76,7 +76,7 @@ public:
 		try {
 			parseEnv.Run();
 		}
-		catch (lambda_opts::ParseFailedException const & e) {
+		catch (lambda_options::ParseFailedException const & e) {
 			PrintBadArgs(e, args);
 			return false;
 		}
@@ -108,7 +108,7 @@ public:
 	}
 
 
-	void PrintBadArgs (lambda_opts::ParseFailedException const & e, std::vector<std::string> const & args) const
+	void PrintBadArgs (lambda_options::ParseFailedException const & e, std::vector<std::string> const & args) const
 	{
 		if (e.beginIndex == e.endIndex) {
 			std::cout << "Unknown option at index " << e.beginIndex << ": " << args[e.beginIndex] << "\n";
@@ -124,7 +124,7 @@ public:
 
 
 private:
-	LambdaOpts<char> opts;
+	LambdaOptions<char> opts;
 	bool doHelp;
 	std::vector<Point> points;
 };

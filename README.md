@@ -1,12 +1,12 @@
-# lambda-opts
+# lambda-options
 
 A declarative command line parser for C++.
 
 * Easy to use. The API is expressive.
 * Easy to learn. The API is tiny and simple.
-* Easy to integrate. Contained in a single [header file](cpp/src/LambdaOpts.h?ts=4).
+* Easy to integrate. Contained in a single [header file](cpp/src/LambdaOptions.h?ts=4).
 
-Quick installation: Download the required header here: [cpp/src/LambdaOpts.h](cpp/src/LambdaOpts.h?ts=4)
+Quick installation: Download the required header here: [cpp/src/LambdaOptions.h](cpp/src/LambdaOptions.h?ts=4)
 
 Examples directory: [cpp/example](cpp/example)
 
@@ -16,12 +16,12 @@ Examples directory: [cpp/example](cpp/example)
 
 Basic example:
 ```cpp
-#include "LambdaOpts.h"
+#include "LambdaOptions.h"
 #include <iostream>
 
 int main (int argc, char ** argv)
 {
-	LambdaOpts<char> opts;
+	LambdaOptions<char> opts;
 
 	opts.AddOption("--help", [] () {
 		std::cout << "--user NAME [AGE]" << std::endl;
@@ -38,7 +38,7 @@ int main (int argc, char ** argv)
 	try {
 		parseEnv.Run();
 	}
-	catch (lambda_opts::ParseFailedException const &) {
+	catch (lambda_options::ParseFailedException const &) {
 		return 1;
 	}
 
