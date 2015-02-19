@@ -1,10 +1,14 @@
 # lambda-options
 
-A declarative command line parser for C++.
+A declarative command-line parser for C++.
 
 * Easy to use. The API is expressive.
 * Easy to learn. The API is tiny and simple.
 * Easy to integrate. Contained in a single [header file](cpp/src/LambdaOptions.h?ts=4).
+
+This library is designed to be an intuitive alternative to other C++ command-line libraries such as: Boost.Program_Options, GNU Getopt, TCLAP, and others.
+
+Permissive licensing allows you download, use, and modify for your own use... commercial or otherwise.
 
 Quick installation: Download the required header here: [cpp/src/LambdaOptions.h](cpp/src/LambdaOptions.h?ts=4)
 
