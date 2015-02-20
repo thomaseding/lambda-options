@@ -220,6 +220,12 @@ namespace lambda_options
 			}
 		}
 
+		template <typename Iter, typename T>
+		static bool Contains (Iter begin, Iter end, T const & val)
+		{
+			return std::find(begin, end, val) != end;
+		}
+
 		template <typename K, typename V>
 		static V const * Lookup (std::vector<std::pair<K, V>> const & assocs, K const & key)
 		{
@@ -590,6 +596,17 @@ public:
 		Keyword (Char shortName, String const & group, String const & help);
 		Keyword (String const & longName, Char shortName, String const & group, String const & help);
 
+		bool NamesCollide (Keyword const & other) const
+		{
+			for (String const & name : names) {
+				for (String const & otherName : other.names) {
+					if (name == otherName) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
 
 	private:
 		void Init (String const * longName, Char * shortName, String const * group, String const * help);
@@ -985,6 +1002,11 @@ private:
 			}
 		};
 
+		static char const * ConflictingOptionMessage ()
+		{
+			return "Cannot add an option that has the same keyword and function signature of another option.";
+		}
+
 		void AddImpl (Tag<void>, Keyword const & keyword, std::function<void()> const & func)
 		{
 			AddImpl(Tag<ParseResult>(), keyword, [=] () {
@@ -999,6 +1021,11 @@ private:
 				throw lambda_options::OptionException("Cannot add an empty option.");
 			}
 			infos0.emplace_back(keyword, func);
+			auto & info = infos0.back();
+			if (lambda_options::unstable_dont_use::Contains(infos0.begin(), infos0.end() - 1, info)) {
+				infos0.pop_back();
+				throw lambda_options::OptionException(ConflictingOptionMessage());
+			}
 		}
 
 		template <typename A>
@@ -1021,6 +1048,10 @@ private:
 			infos1.emplace_back(keyword, wrapper);
 			auto & info = infos1.back();
 			PushTypeKind<A2>(info.typeKinds);
+			if (lambda_options::unstable_dont_use::Contains(infos1.begin(), infos1.end() - 1, info)) {
+				infos1.pop_back();
+				throw lambda_options::OptionException(ConflictingOptionMessage());
+			}
 		}
 
 		template <typename A, typename B>
@@ -1046,6 +1077,10 @@ private:
 			auto & info = infos2.back();
 			PushTypeKind<A2>(info.typeKinds);
 			PushTypeKind<B2>(info.typeKinds);
+			if (lambda_options::unstable_dont_use::Contains(infos2.begin(), infos2.end() - 1, info)) {
+				infos2.pop_back();
+				throw lambda_options::OptionException(ConflictingOptionMessage());
+			}
 		}
 
 		template <typename A, typename B, typename C>
@@ -1074,6 +1109,10 @@ private:
 			PushTypeKind<A2>(info.typeKinds);
 			PushTypeKind<B2>(info.typeKinds);
 			PushTypeKind<C2>(info.typeKinds);
+			if (lambda_options::unstable_dont_use::Contains(infos3.begin(), infos3.end() - 1, info)) {
+				infos3.pop_back();
+				throw lambda_options::OptionException(ConflictingOptionMessage());
+			}
 		}
 
 		template <typename A, typename B, typename C, typename D>
@@ -1105,6 +1144,10 @@ private:
 			PushTypeKind<B2>(info.typeKinds);
 			PushTypeKind<C2>(info.typeKinds);
 			PushTypeKind<D2>(info.typeKinds);
+			if (lambda_options::unstable_dont_use::Contains(infos4.begin(), infos4.end() - 1, info)) {
+				infos4.pop_back();
+				throw lambda_options::OptionException(ConflictingOptionMessage());
+			}
 		}
 
 		template <typename A, typename B, typename C, typename D, typename E>
@@ -1139,6 +1182,10 @@ private:
 			PushTypeKind<C2>(info.typeKinds);
 			PushTypeKind<D2>(info.typeKinds);
 			PushTypeKind<E2>(info.typeKinds);
+			if (lambda_options::unstable_dont_use::Contains(infos5.begin(), infos5.end() - 1, info)) {
+				infos5.pop_back();
+				throw lambda_options::OptionException(ConflictingOptionMessage());
+			}
 		}
 
 
@@ -1188,6 +1235,11 @@ private:
 				, callback(std::move(other.callback))
 				, typeKinds(std::move(other.typeKinds))
 			{}
+
+			bool operator== (OptInfo const & other) const
+			{
+				return keyword.NamesCollide(other.keyword) && typeKinds == other.typeKinds;
+			}
 
 		public:
 			Keyword keyword;

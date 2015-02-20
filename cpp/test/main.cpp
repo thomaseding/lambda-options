@@ -368,19 +368,19 @@ public:
 		opts.AddOption(Q("x"), [] (String) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [] (String const) {
+		opts.AddOption(Q("xc"), [] (String const) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [] (String &&) {
+		opts.AddOption(Q("xr"), [] (String &&) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [] (String const &&) {
+		opts.AddOption(Q("xcr"), [] (String const &&) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [] (String &) {
+		opts.AddOption(Q("xl"), [] (String &) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [] (String const &) {
+		opts.AddOption(Q("xcl"), [] (String const &) {
 			return PR::Accept;
 		});
 		
@@ -404,22 +404,22 @@ public:
 		opts.AddOption(Q("x"), [] (I,I,I,I) {});
 		opts.AddOption(Q("x"), [] (I,I,I,I,I) {});
 	
-		opts.AddOption(Q("x"), [] () {
+		opts.AddOption(Q("xx"), [] () {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [] (I) {
+		opts.AddOption(Q("xx"), [] (I) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [] (I,I) {
+		opts.AddOption(Q("xx"), [] (I,I) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [] (I,I,I) {
+		opts.AddOption(Q("xx"), [] (I,I,I) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [] (I,I,I,I) {
+		opts.AddOption(Q("xx"), [] (I,I,I,I) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [] (I,I,I,I,I) {
+		opts.AddOption(Q("xx"), [] (I,I,I,I,I) {
 			return PR::Accept;
 		});
 	
