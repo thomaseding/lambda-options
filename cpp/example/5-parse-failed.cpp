@@ -61,10 +61,10 @@ int main (int argc, char ** argv)
 		helpRequested = true;
 	});
 
-	Keyword kwUser2("--user");
-	kwUser2.args = "NAME [AGE=0]";
-	kwUser2.help = "Prints user's name and age.";
-	opts.AddOption(kwUser2, [&] (User user) {
+	Keyword kwUser("--user");
+	kwUser.args = "NAME [AGE=0]";
+	kwUser.help = "Prints user's name and age.";
+	opts.AddOption(kwUser, [&] (User user) {
 		users.insert(user);
 	});
 
