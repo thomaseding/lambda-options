@@ -1,5 +1,4 @@
 #include "../src/LambdaOptions.h"
-
 #include <iostream>
 
 
@@ -11,13 +10,13 @@ int main (int argc, char ** argv)
 	LambdaOptions<char> opts;
 
 	opts.AddOption("--help", [] () {
-		std::cout << "--user NAME [AGE]" << std::endl;
+		std::cout << "--user NAME [AGE]\n";
 	});
 	opts.AddOption("--user", [] (std::string name) {
-		std::cout << "Name:" << name << std::endl;
+		std::cout << "Name:" << name << "\n";
 	});
 	opts.AddOption("--user", [] (std::string name, unsigned int age) {
-		std::cout << "Name:" << name << " Age:" << age << std::endl;
+		std::cout << "Name:" << name << " Age:" << age << "\n";
 	});
 
 	auto parseContext = opts.CreateParseContext(argv + 1, argv + argc);
