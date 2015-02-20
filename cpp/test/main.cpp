@@ -156,7 +156,6 @@ private:
 	typedef LambdaOptions<Char> Opts;
 	typedef typename lambda_options::ParseResult PR;
 	typedef typename Opts::Keyword Keyword;
-	typedef typename Opts::SubKeyword SubKeyword;
 
 
 	static std::wstring L (std::string const & str)
@@ -1338,98 +1337,6 @@ public:
 	}
 
 
-	static void TestSubKeywords1 ()
-	{
-		std::wostringstream ss;
-
-		Opts opts;
-		{
-			opts.AddOption(Q("foo"), [&] (int x) {
-				Dump(ss, x);
-			});
-		}
-		{
-			Keyword foo(Q("foo"));
-			foo.AddSubKeyword(SubKeyword(Q("bar")));
-			opts.AddOption(foo, [&] (Char x) {
-				Dump(ss, x);
-			});
-		}
-		{
-			Keyword foo(Q("foo"));
-			foo.AddSubKeyword(SubKeyword(Q("baz")));
-			foo.AddSubKeyword(SubKeyword(Q("baaz")));
-			opts.AddOption(foo, [&] (bool x) {
-				Dump(ss, x);
-			});
-		}
-		opts.AddOption(empty, [&] (String x) {
-			Dump(ss, x);
-		});
-
-		std::vector<String> args;
-		std::wostringstream expected;
-
-		args.push_back(Q("foo"));
-		args.push_back(Q("666"));
-		Dump(expected, 666);
-		
-		args.push_back(Q("foo"));
-		args.push_back(Q("miss1"));
-		Dump(expected, L"foo");
-		Dump(expected, L"miss1");
-
-		args.push_back(Q("foo"));
-		args.push_back(Q("bar"));
-		args.push_back(Q("@"));
-		Dump(expected, '@');
-
-		args.push_back(Q("foo"));
-		args.push_back(Q("bar"));
-		args.push_back(Q("miss2"));
-		Dump(expected, L"foo");
-		Dump(expected, L"bar");
-		Dump(expected, L"miss2");
-
-		args.push_back(Q("foo"));
-		args.push_back(Q("baz"));
-		args.push_back(Q("true"));
-		Dump(expected, true);
-
-		args.push_back(Q("foo"));
-		args.push_back(Q("baaz"));
-		args.push_back(Q("false"));
-		Dump(expected, false);
-
-		args.push_back(Q("foo"));
-		args.push_back(Q("baaaz"));
-		args.push_back(Q("false"));
-		Dump(expected, L"foo");
-		Dump(expected, L"baaaz");
-		Dump(expected, L"false");
-
-		args.push_back(Q("foo"));
-		args.push_back(Q("baz"));
-		args.push_back(Q("miss3"));
-		Dump(expected, L"foo");
-		Dump(expected, L"baz");
-		Dump(expected, L"miss3");
-
-		args.push_back(Q("foo"));
-		args.push_back(Q("baaz"));
-		args.push_back(Q("miss4"));
-		Dump(expected, L"foo");
-		Dump(expected, L"baaz");
-		Dump(expected, L"miss4");
-
-		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
-		parseContext.Run();
-		if (ss.str() != expected.str()) {
-			FAIL;
-		}
-	}
-
-
 	static void TestHelpDescription ()
 	{
 		auto nop = [] () {};
@@ -1482,7 +1389,6 @@ static bool RunCharTests ()
 		Tests<Char>::TestParseState,
 		Tests<Char>::TestMaybeLifetime<TestMaybeLifetimeHelper>,
 		Tests<Char>::TestMaybeLifetime<TestMaybeLifetimeHelperSuperAligned>,
-		Tests<Char>::TestSubKeywords1,
 		Tests<Char>::TestHelpDescription,
 	};
 

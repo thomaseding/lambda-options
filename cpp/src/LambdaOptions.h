@@ -553,8 +553,6 @@ class LambdaOptions {
 public:
 	typedef std::basic_string<Char> String;
 
-	class SubKeyword;
-
 private:
 	friend class lambda_options::ArgsIter<Char>;
 
@@ -564,15 +562,6 @@ private:
 
 	class LambdaOptsImpl;
 	class ParseContextImpl;
-
-	class KeywordBase {
-	public:
-		virtual ~KeywordBase () {}
-		virtual std::vector<std::shared_ptr<SubKeyword const>> const & SubKeywords () const = 0;
-
-	public:
-		std::vector<String> names;
-	};
 
 public:
 	typedef Char char_type;
@@ -586,24 +575,7 @@ public:
 		size_t maxWidth;
 	};
 
-	class SubKeyword : private KeywordBase {
-		friend class ParseContextImpl;
-
-	private:
-		virtual std::vector<std::shared_ptr<SubKeyword const>> const & SubKeywords () const override
-		{
-			static std::vector<std::shared_ptr<SubKeyword const>> const subs;
-			return subs;
-		}
-
-	public:
-		explicit SubKeyword (String const & longName);
-
-	public:
-		using KeywordBase::names;
-	};
-
-	class Keyword : private KeywordBase {
+	class Keyword {
 		friend class ParseContextImpl;
 
 	public:
@@ -618,18 +590,12 @@ public:
 		Keyword (Char shortName, String const & group, String const & help);
 		Keyword (String const & longName, Char shortName, String const & group, String const & help);
 
-		void AddSubKeyword (SubKeyword const & subKeyword);
-		virtual std::vector<std::shared_ptr<SubKeyword const>> const & SubKeywords () const override;
 
 	private:
 		void Init (String const * longName, Char * shortName, String const * group, String const * help);
 
-		void Validate () const;
-
-	private:
-		std::vector<std::shared_ptr<SubKeyword const>> subKeywords;
 	public:
-		using KeywordBase::names;
+		std::vector<String> names;
 		String help;
 		String args;
 		String group;
@@ -1300,29 +1266,15 @@ private:
 			return std::move(parsedArgs);
 		}
 
-		bool MatchKeyword (KeywordBase const & keyword)
+		bool MatchKeyword (Keyword const & keyword)
 		{
 			if (keyword.names.empty()) {
 				return true;
 			}
-
-			auto const startIter1 = iter;
-
 			for (String const & name : keyword.names) {
-				iter = startIter1;
 				if (*iter == name) {
 					++iter;
-					if (keyword.SubKeywords().empty()) {
-						return true;
-					}
-					auto const startIter2 = iter;
-					for (auto const & subKeyword : keyword.SubKeywords()) {
-						iter = startIter2;
-						if (MatchKeyword(*subKeyword)) {
-							return true;
-						}
-					}
-					return false;
+					return true;
 				}
 			}
 			return false;
@@ -1667,17 +1619,6 @@ LambdaOptions<Char>::FormatConfig::FormatConfig ()
 
 
 template <typename Char>
-LambdaOptions<Char>::SubKeyword::SubKeyword (String const & longName)
-{
-	names.emplace_back(longName);
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-
-
-
-template <typename Char>
 LambdaOptions<Char>::Keyword::Keyword ()
 {
 	Init(nullptr, nullptr, nullptr, nullptr);
@@ -1764,37 +1705,6 @@ void LambdaOptions<Char>::Keyword::Init (String const * longName, Char * shortNa
 	}
 	if (help != nullptr) {
 		this->help = *help;
-	}
-	Validate();
-}
-
-
-template <typename Char>
-void LambdaOptions<Char>::Keyword::AddSubKeyword (SubKeyword const & subKeyword)
-{
-	subKeywords.push_back(std::shared_ptr<SubKeyword>(new SubKeyword(subKeyword)));
-	try {
-		Validate();
-	}
-	catch (lambda_options::Exception const & e) {
-		subKeywords.pop_back();
-		throw e;
-	}
-}
-
-
-template <typename Char>
-auto LambdaOptions<Char>::Keyword::SubKeywords () const -> std::vector<std::shared_ptr<SubKeyword const>> const &
-{
-	return subKeywords;
-}
-
-
-template <typename Char>
-void LambdaOptions<Char>::Keyword::Validate () const
-{
-	if (names.empty() && !subKeywords.empty()) {
-		throw lambda_options::OptionException("Empty keyword cannot have sub-keywords.");
 	}
 }
 
