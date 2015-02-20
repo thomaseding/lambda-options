@@ -3,4 +3,4 @@
 * Add more examples.
 * Pretty-print help context given by Keyword inputs.
 * `Keyword::group`
-* `Keyword::help`
+* `Keyword::desc`
