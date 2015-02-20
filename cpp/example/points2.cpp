@@ -64,9 +64,9 @@ public:
 		results.help = false;
 		results.points.clear();
 
-		auto parseEnv = opts.CreateParseEnv(args.begin(), args.end());
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
 		try {
-			parseEnv.Run();
+			parseContext.Run();
 		}
 		catch (lambda_options::ParseFailedException const &) {
 			results.failed = true;

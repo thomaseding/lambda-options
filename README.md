@@ -37,10 +37,10 @@ int main (int argc, char ** argv)
 		std::cout << "Name:" << name << " Age:" << age << std::endl;
 	});
 
-	auto parseEnv = opts.CreateParseEnv(argv + 1, argv + argc);
+	auto parseContext = opts.CreateParseContext(argv + 1, argv + argc);
 
 	try {
-		parseEnv.Run();
+		parseContext.Run();
 	}
 	catch (lambda_options::ParseFailedException const &) {
 		return 1;

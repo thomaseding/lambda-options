@@ -158,10 +158,10 @@ namespace lambda_options
 		}
 
 	private:
-		ArgsIter (Iter iter, Iter end, void * opaqueParseEnv)
+		ArgsIter (Iter iter, Iter end, void * opaqueParseContext)
 			: iter(iter)
 			, end(end)
-			, opaqueParseEnv(opaqueParseEnv)
+			, opaqueParseContext(opaqueParseContext)
 		{}
 
 		void EnsureSameBacking (ArgsIter const & other) const
@@ -174,7 +174,7 @@ namespace lambda_options
 	private:
 		Iter iter;
 		Iter end;
-		void * opaqueParseEnv;
+		void * opaqueParseContext;
 	};
 
 	template <typename Char = char>
@@ -549,7 +549,7 @@ private:
 	typedef int Priority;
 
 	class LambdaOptsImpl;
-	class ParseEnvImpl;
+	class ParseContextImpl;
 
 	class KeywordBase {
 	public:
@@ -563,7 +563,7 @@ private:
 public:
 	typedef Char char_type;
 
-	class ParseEnv;
+	class ParseContext;
 
 	class FormatConfig {
 	public:
@@ -573,7 +573,7 @@ public:
 	};
 
 	class SubKeyword : private KeywordBase {
-		friend class ParseEnvImpl;
+		friend class ParseContextImpl;
 
 	private:
 		virtual std::vector<std::shared_ptr<SubKeyword const>> const & SubKeywords () const override
@@ -590,7 +590,7 @@ public:
 	};
 
 	class Keyword : private KeywordBase {
-		friend class ParseEnvImpl;
+		friend class ParseContextImpl;
 
 	public:
 		Keyword ();
@@ -647,14 +647,14 @@ public:
 	}
 
 	template <typename StringIter>
-	ParseEnv CreateParseEnv (StringIter begin, StringIter end) const;
+	ParseContext CreateParseContext (StringIter begin, StringIter end) const;
 
-	class ParseEnv {
+	class ParseContext {
 		friend class LambdaOptions;
 
 	public:
-		ParseEnv (ParseEnv && other);
-		ParseEnv & operator= (ParseEnv && other);
+		ParseContext (ParseContext && other);
+		ParseContext & operator= (ParseContext && other);
 
 		void Run ()
 		{
@@ -662,12 +662,12 @@ public:
 		}
 
 	private:
-		ParseEnv (std::shared_ptr<LambdaOptsImpl const> opts, Args && args);
-		ParseEnv (ParseEnv const & other);       // disable
-		void operator= (ParseEnv const & other); // disable
+		ParseContext (std::shared_ptr<LambdaOptsImpl const> opts, Args && args);
+		ParseContext (ParseContext const & other);       // disable
+		void operator= (ParseContext const & other); // disable
 
 	private:
-		std::unique_ptr<ParseEnvImpl> impl;
+		std::unique_ptr<ParseContextImpl> impl;
 	};
 
 
@@ -1234,11 +1234,11 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 
-	class ParseEnvImpl {
+	class ParseContextImpl {
 		friend class lambda_options::ArgsIter<Char>;
 
 	public:
-		ParseEnvImpl (std::shared_ptr<LambdaOptsImpl const> opts, Args && args)
+		ParseContextImpl (std::shared_ptr<LambdaOptsImpl const> opts, Args && args)
 			: opts(opts)
 			, args(std::move(args))
 			, begin(this->args.begin(), this->args.end(), this)
@@ -1602,22 +1602,22 @@ namespace lambda_options
 	template <typename Char>
 	size_t ArgsIter<Char>::Index () const
 	{
-		typedef typename LambdaOptions<Char>::ParseEnvImpl PEI;
-		auto const & parseEnv = *static_cast<PEI const *>(opaqueParseEnv);
-		return std::distance(parseEnv.begin.iter, iter);
+		typedef typename LambdaOptions<Char>::ParseContextImpl PEI;
+		auto const & parseContext = *static_cast<PEI const *>(opaqueParseContext);
+		return std::distance(parseContext.begin.iter, iter);
 	}
 
 
 	template <typename Char>
 	ArgsIter<Char> & ArgsIter<Char>::operator++ ()
 	{
-		typedef typename LambdaOptions<Char>::ParseEnvImpl PEI;
+		typedef typename LambdaOptions<Char>::ParseContextImpl PEI;
 		if (iter == end) {
 			throw Exception("lambda_options::ArgsIter<Char>::operator++: Cannot increment past end iterator.");
 		}
 		++iter;
-		auto & parseEnv = *static_cast<PEI *>(opaqueParseEnv);
-		parseEnv.highestArgIndex = std::max(parseEnv.highestArgIndex, Index());
+		auto & parseContext = *static_cast<PEI *>(opaqueParseContext);
+		parseContext.highestArgIndex = std::max(parseContext.highestArgIndex, Index());
 		return *this;
 	}
 }
@@ -1634,9 +1634,9 @@ LambdaOptions<Char>::LambdaOptions ()
 
 template <typename Char>
 template <typename StringIter>
-typename LambdaOptions<Char>::ParseEnv LambdaOptions<Char>::CreateParseEnv (StringIter begin, StringIter end) const
+typename LambdaOptions<Char>::ParseContext LambdaOptions<Char>::CreateParseContext (StringIter begin, StringIter end) const
 {
-	return ParseEnv(impl, Args(begin, end));
+	return ParseContext(impl, Args(begin, end));
 }
 
 
@@ -1789,19 +1789,19 @@ void LambdaOptions<Char>::Keyword::Validate () const
 
 
 template <typename Char>
-LambdaOptions<Char>::ParseEnv::ParseEnv (std::shared_ptr<LambdaOptsImpl const> opts, std::vector<String> && args)
-	: impl(new ParseEnvImpl(opts, std::move(args)))
+LambdaOptions<Char>::ParseContext::ParseContext (std::shared_ptr<LambdaOptsImpl const> opts, std::vector<String> && args)
+	: impl(new ParseContextImpl(opts, std::move(args)))
 {}
 
 
 template <typename Char>
-LambdaOptions<Char>::ParseEnv::ParseEnv (ParseEnv && other)
+LambdaOptions<Char>::ParseContext::ParseContext (ParseContext && other)
 	: impl(std::move(other.impl))
 {}
 
 
 template <typename Char>
-typename LambdaOptions<Char>::ParseEnv & LambdaOptions<Char>::ParseEnv::operator= (ParseEnv && other)
+typename LambdaOptions<Char>::ParseContext & LambdaOptions<Char>::ParseContext::operator= (ParseContext && other)
 {
 	impl = std::move(other.impl);
 }
