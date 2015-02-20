@@ -316,6 +316,9 @@ namespace lambda_options
 	template <typename Char, typename T>
 	inline bool Parse (ParseState<Char> & parseState, Maybe<T> & out)
 	{
+		if (parseState.iter == parseState.end) {
+			return false;
+		}
 		out.ReleaseObjectIfValid();
 		ArgsIter<Char> const startIter = parseState.iter;
 		if (RawParse<Char, T>(parseState, out.ObjectAddress())) {
