@@ -68,6 +68,20 @@ namespace lambda_options
 		std::string message;
 	};
 
+	class OptionException : public Exception {
+	public:
+		OptionException (std::string const & message)
+			: Exception(message)
+		{}
+	};
+
+	class IteratorException : public Exception {
+	public:
+		IteratorException (std::string const & message)
+			: Exception(message)
+		{}
+	};
+
 	class ParseFailedException : public Exception {
 	public:
 		ParseFailedException (size_t beginIndex, size_t endIndex)
@@ -167,7 +181,7 @@ namespace lambda_options
 		void EnsureSameBacking (ArgsIter const & other) const
 		{
 			if (end != other.end) {
-				throw Exception("Iterators do not correspond to the same data.");
+				throw IteratorException("Iterators do not correspond to the same data.");
 			}
 		}
 
@@ -1016,7 +1030,7 @@ private:
 		void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult()> const & func)
 		{
 			if (keyword.names.empty()) {
-				throw lambda_options::Exception("Cannot add an empty rule.");
+				throw lambda_options::OptionException("Cannot add an empty option.");
 			}
 			infos0.emplace_back(keyword, func);
 		}
@@ -1613,7 +1627,7 @@ namespace lambda_options
 	{
 		typedef typename LambdaOptions<Char>::ParseContextImpl PEI;
 		if (iter == end) {
-			throw Exception("lambda_options::ArgsIter<Char>::operator++: Cannot increment past end iterator.");
+			throw IteratorException("Cannot increment past 'end' iterator.");
 		}
 		++iter;
 		auto & parseContext = *static_cast<PEI *>(opaqueParseContext);
@@ -1780,7 +1794,7 @@ template <typename Char>
 void LambdaOptions<Char>::Keyword::Validate () const
 {
 	if (names.empty() && !subKeywords.empty()) {
-		throw lambda_options::Exception("Empty keyword cannot have sub-keywords.");
+		throw lambda_options::OptionException("Empty keyword cannot have sub-keywords.");
 	}
 }
 
