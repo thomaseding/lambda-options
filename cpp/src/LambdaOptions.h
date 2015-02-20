@@ -719,23 +719,7 @@ private:
 			return id == other.id;
 		}
 
-#ifdef RTTI_DISABLED
-	private:
-		TypeKind (void const * id)
-			: id(id)
-		{}
-
-	public:
-		template <typename T>
-		static TypeKind Get ()
-		{
-			static char const uniqueMemLoc = 0;
-			return TypeKind(&uniqueMemLoc);
-		}
-
-	private:
-		void const * id;
-#else
+#ifdef RTTI_ENABLED
 	private:
 		TypeKind (std::type_info const & id)
 			: id(id)
@@ -752,6 +736,22 @@ private:
 
 	private:
 		std::type_info const & id;
+#else
+	private:
+		TypeKind (void const * id)
+			: id(id)
+		{}
+
+	public:
+		template <typename T>
+		static TypeKind Get ()
+		{
+			static char const uniqueMemLoc = 0;
+			return TypeKind(&uniqueMemLoc);
+		}
+
+	private:
+		void const * id;
 #endif
 	};
 
