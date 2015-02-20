@@ -56,14 +56,14 @@ int main (int argc, char ** argv)
 	std::set<User> users;
 
 	Keyword kwHelp("--help", 'h');
-	kwHelp.help = "Display this help message.";
+	kwHelp.desc = "Display this help message.";
 	opts.AddOption(kwHelp, [&] () {
 		helpRequested = true;
 	});
 
 	Keyword kwUser("--user");
 	kwUser.args = "NAME [AGE=0]";
-	kwUser.help = "Prints user's name and age.";
+	kwUser.desc = "Prints user's name and age.";
 	opts.AddOption(kwUser, [&] (User user) {
 		users.insert(user);
 	});

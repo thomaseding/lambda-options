@@ -45,21 +45,21 @@ public:
 		typedef LambdaOptions<char>::Keyword Keyword;
 
 		Keyword kwHelp("--help", 'h');
-		kwHelp.help = "Display this help message.";
+		kwHelp.desc = "Display this help message.";
 		opts.AddOption(kwHelp, [&] () {
 			doHelp = true;
 		});
 
 		Keyword kwPoint("--point", 'p');
 		kwPoint.args = "x y z";
-		kwPoint.help = "Add a point to contribute to displayed point average.";
+		kwPoint.desc = "Add a point to contribute to displayed point average.";
 		opts.AddOption(kwPoint, [&] (float x, float y, float z) {
 			points.emplace_back(x, y, z);
 		});
 
 		Keyword kwWeightedPoint("--point", 'p');
 		kwWeightedPoint.args = "w x y z";
-		kwWeightedPoint.help = "Add a weighted point to contribute to displayed point average.";
+		kwWeightedPoint.desc = "Add a weighted point to contribute to displayed point average.";
 		opts.AddOption(kwWeightedPoint, [&] (float weight, float x, float y, float z) {
 			points.emplace_back(weight * x, weight * y, weight * z);
 		});
