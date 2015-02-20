@@ -1,5 +1,4 @@
 #include "../src/LambdaOptions.h"
-
 #include <iostream>
 
 
@@ -39,50 +38,6 @@ namespace lambda_options
 }
 
 
-struct ParseResults {
-	bool failed;
-	bool help;
-	std::vector<Point> points;
-};
-
-
-class Parser {
-public:
-	Parser ()
-	{
-		opts.AddOption("--help", [&] () {
-			results.help = true;
-		});
-		opts.AddOption("--point", [&] (Point p) {
-			results.points.push_back(p);
-		});
-	}
-
-	ParseResults Parse (std::vector<std::string> const & args)
-	{
-		results.failed = false;
-		results.help = false;
-		results.points.clear();
-
-		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
-		try {
-			parseContext.Run();
-		}
-		catch (lambda_options::ParseFailedException const &) {
-			results.failed = true;
-		}
-		if (results.points.empty()) {
-			results.failed = true;
-		}
-		return results;
-	}
-
-private:
-	LambdaOptions<char> opts;
-	ParseResults results;
-};
-
-
 Point ComputeAverage (std::vector<Point> const & points)
 {
 	Point average(0, 0, 0);
@@ -101,43 +56,105 @@ Point ComputeAverage (std::vector<Point> const & points)
 }
 
 
-void PrintAverage (std::vector<Point> const & points)
-{
-	Point p = ComputeAverage(points);
-	std::cout << "Point average is (" << p.x << "," << p.y << "," << p.z << ").\n";
-}
+class OptionsParser {
+public:
+	OptionsParser ()
+	{
+		typedef LambdaOptions<char>::Keyword Keyword;
+
+		Keyword kwHelp("--help", 'h');
+		kwHelp.help = "Display this help message.";
+		opts.AddOption(kwHelp, [&] () {
+			doHelp = true;
+		});
+
+		Keyword kwPoint("--point", 'p');
+		kwPoint.args = "x y z";
+		kwPoint.help = "Add a point to contribute to displayed point average.";
+		opts.AddOption(kwPoint, [&] (Point p) {
+			points.emplace_back(p.x, p.y, p.z);
+		});
+
+		Keyword kwWeightedPoint("--point", 'p');
+		kwWeightedPoint.args = "w x y z";
+		kwWeightedPoint.help = "Add a weighted point to contribute to displayed point average.";
+		opts.AddOption(kwWeightedPoint, [&] (float weight, Point p) {
+			points.emplace_back(weight * p.x, weight * p.y, weight * p.z);
+		});
+	}
 
 
-void PrintHelp ()
-{
-	std::cout << "USAGE\n";
-	std::cout << "Specify points via multiple '--point x y z'.\n";
-	std::cout << "Program returns their average.\n";
-}
+	bool Run (std::vector<std::string> const & args)
+	{
+		doHelp = false;
+		points.clear();
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		try {
+			parseContext.Run();
+		}
+		catch (lambda_options::ParseFailedException const & e) {
+			PrintBadArgs(e, args);
+			return false;
+		}
+		if (points.empty()) {
+			PrintHelp();
+			return false;
+		}
+		if (doHelp) {
+			PrintHelp();
+			return true;
+		}
+		PrintAverage();
+		return true;
+	}
 
 
-void PrintFailed ()
-{
-	std::cout << "Bad command line arguments.\n";
-	PrintHelp();
-}
+	void PrintAverage () const
+	{
+		Point p = ComputeAverage(points);
+		std::cout << "Point average is (" << p.x << "," << p.y << "," << p.z << ").\n";
+	}
+
+
+	void PrintHelp () const
+	{
+		std::cout << "Usage: prog [OPTION]\n";
+		std::cout << "Computes the average of supplied points.\n";
+		std::cout << opts.HelpDescription();
+	}
+
+
+	void PrintBadArgs (lambda_options::ParseFailedException const & e, std::vector<std::string> const & args) const
+	{
+		if (e.beginIndex == e.endIndex) {
+			std::cout << "Unknown option at index " << e.beginIndex << ": " << args[e.beginIndex] << "\n";
+		}
+		else if (e.endIndex < args.size()) {
+			std::cout << "Bad input for " << args[e.beginIndex] << " at index " << e.endIndex << ": " << args[e.endIndex] << "\n";
+		}
+		else {
+			std::cout << "Bad input for " << args[e.beginIndex] << " at index " << e.endIndex << ": End of input.\n";
+		}
+		PrintHelp();
+	}
+
+
+private:
+	LambdaOptions<char> opts;
+	bool doHelp;
+	std::vector<Point> points;
+};
 
 
 int main (int argc, char ** argv)
 {
 	std::vector<std::string> args(argv + 1, argv + argc);
-	Parser parser;
-	ParseResults results = parser.Parse(args);
-	if (results.failed) {
-		PrintFailed();
-		return 1;
-	}
-	if (results.help) {
-		PrintHelp();
+	OptionsParser parser;
+	if (parser.Run(args)) {
 		return 0;
 	}
-	PrintAverage(results.points);
-	return 0;
+	return 1;
 }
 
 
