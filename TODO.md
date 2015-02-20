@@ -7,3 +7,4 @@
 * Keyword match modes: Case-insensitive, relaxed dashes, relaxed underscores.
 * Keyword name styles: Exact (disable short), GNU (long "--" & short "-"), Windows (long "/" & short "/").
 * Optional short option cluster parsing.
+* Haskell port
