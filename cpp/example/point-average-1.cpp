@@ -1,5 +1,4 @@
 #include "../src/LambdaOptions.h"
-
 #include <iostream>
 
 
