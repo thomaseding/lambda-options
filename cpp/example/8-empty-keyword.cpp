@@ -33,11 +33,9 @@ namespace lambda_options
 		{
 			std::string name = *parseState.iter++;
 			unsigned int age = 0;
-			if (parseState.iter != parseState.end) {
-				Maybe<unsigned int> maybeAge;
-				if (Parse<Char, unsigned int>(parseState, maybeAge)) {
-					age = *maybeAge;
-				}
+			Maybe<unsigned int> maybeAge;
+			if (Parse<Char, unsigned int>(parseState, maybeAge)) {
+				age = *maybeAge;
 			}
 			new (rawMemory) User(name, age);
 			return true;
