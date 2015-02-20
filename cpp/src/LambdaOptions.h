@@ -114,8 +114,7 @@ namespace lambda_options
 	private:
 		friend class LambdaOptions<Char>;
 
-		typedef std::vector<String> Args;
-		typedef typename Args::const_iterator Iter;
+		typedef typename std::vector<String>::const_iterator Iter;
 
 	public:
 		size_t Index () const;
@@ -562,7 +561,6 @@ public:
 private:
 	friend class lambda_options::ArgsIter<Char>;
 
-	typedef std::vector<String> Args;
 	typedef lambda_options::ParseResult ParseResult;
 	typedef int Priority;
 
@@ -658,8 +656,13 @@ public:
 			impl->Run();
 		}
 
+		std::vector<String> const & Args () const
+		{
+			return impl->Args();
+		}
+
 	private:
-		ParseContext (std::shared_ptr<LambdaOptsImpl const> opts, Args && args);
+		ParseContext (std::shared_ptr<LambdaOptsImpl const> opts, std::vector<String> && args);
 		ParseContext (ParseContext const & other);       // disable
 		void operator= (ParseContext const & other); // disable
 
@@ -1270,7 +1273,7 @@ private:
 		friend class lambda_options::ArgsIter<Char>;
 
 	public:
-		ParseContextImpl (std::shared_ptr<LambdaOptsImpl const> opts, Args && args)
+		ParseContextImpl (std::shared_ptr<LambdaOptsImpl const> opts, std::vector<String> && args)
 			: opts(opts)
 			, args(std::move(args))
 			, begin(this->args.begin(), this->args.end(), this)
@@ -1279,6 +1282,11 @@ private:
 			, parseState(iter, end)
 			, highestArgIndex(0)
 		{}
+
+		std::vector<String> const & Args () const
+		{
+			return args;
+		}
 
 		void Run ()
 		{
@@ -1419,7 +1427,7 @@ private:
 
 	public:
 		std::shared_ptr<LambdaOptsImpl const> opts;
-		Args args;
+		std::vector<String> args;
 		lambda_options::ArgsIter<Char> const begin;
 		lambda_options::ArgsIter<Char> const end;
 		lambda_options::ArgsIter<Char> iter;
@@ -1654,7 +1662,7 @@ template <typename Char>
 template <typename StringIter>
 typename LambdaOptions<Char>::ParseContext LambdaOptions<Char>::CreateParseContext (StringIter begin, StringIter end) const
 {
-	return ParseContext(impl, Args(begin, end));
+	return ParseContext(impl, std::vector<String>(begin, end));
 }
 
 
