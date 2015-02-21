@@ -14,7 +14,9 @@ Quick installation: Download the required header here: [cpp/src/LambdaOptions.h]
 
 Examples directory: [cpp/example](cpp/example)
 
-###Docs as well as more examples coming soon!
+Documentation: [Wiki](../../wiki)
+
+###Complete docs as well as more examples coming soon!
 
 --------------
 
