@@ -629,16 +629,16 @@ public:
 	LambdaOptions ();
 
 	template <typename Func>
-	void AddOption (String const & keyword, Func const & f)
+	void AddOption (String const & keyword, Func const & func)
 	{
 		Keyword kw(keyword);
-		impl->AddOption<Func>(kw, f);
+		impl->AddOption<Func>(kw, func);
 	}
 
 	template <typename Func>
-	void AddOption (Keyword const & keyword, Func const & f)
+	void AddOption (Keyword const & keyword, Func const & func)
 	{
-		impl->AddOption<Func>(keyword, f);
+		impl->AddOption<Func>(keyword, func);
 	}
 
 	String HelpDescription () const
