@@ -1343,9 +1343,17 @@ public:
 
 		Opts opts;
 
-		opts.AddOption(Keyword(Q("foo"), Q("Foo does shtuff.")), nop);
-		opts.AddOption(Keyword(Q("bar"), 'b', Q("Bar does even moare shtuff!!!")), nop);
-		opts.AddOption(Keyword(Q("foflcopter"), Q("0123456789 01234567890123456789 012345678901234567890123456789 0123456789012345678901234567890123456789")), nop);
+		Keyword kwFoo(Q("foo"));
+		kwFoo.desc = Q("Foo does shtuff.");
+		opts.AddOption(kwFoo, nop);
+
+		Keyword kwBar(Q("bar"), 'b');
+		kwBar.desc = Q("Bar does even moare shtuff!!!");
+		opts.AddOption(kwBar, nop);
+
+		Keyword kwRofl(Q("foflcopter"));
+		kwRofl.desc = Q("0123456789 01234567890123456789 012345678901234567890123456789 0123456789012345678901234567890123456789");
+		opts.AddOption(kwRofl, nop);
 
 		Opts::FormatConfig config;
 		config.maxWidth = 0;

@@ -590,12 +590,6 @@ public:
 		explicit Keyword (Char shortName);
 		explicit Keyword (String const & longName);
 		Keyword (String const & longName, Char shortName);
-		Keyword (Char shortName, String const & desc);
-		Keyword (String const & longName, String const & desc);
-		Keyword (String const & longName, Char shortName, String const & desc);
-		Keyword (String const & longName, String const & group, String const & desc);
-		Keyword (Char shortName, String const & group, String const & desc);
-		Keyword (String const & longName, Char shortName, String const & group, String const & desc);
 
 		bool NamesCollide (Keyword const & other) const
 		{
@@ -610,7 +604,7 @@ public:
 		}
 
 	private:
-		void Init (String const * longName, Char * shortName, String const * group, String const * desc);
+		void Init (String const * longName, Char * shortName);
 
 	public:
 		std::vector<String> names;
@@ -1684,75 +1678,33 @@ LambdaOptions<Char>::FormatConfig::FormatConfig ()
 template <typename Char>
 LambdaOptions<Char>::Keyword::Keyword ()
 {
-	Init(nullptr, nullptr, nullptr, nullptr);
+	Init(nullptr, nullptr);
 }
 
 
 template <typename Char>
 LambdaOptions<Char>::Keyword::Keyword (Char shortName)
 {
-	Init(nullptr, &shortName, nullptr, nullptr);
+	Init(nullptr, &shortName);
 }
 
 
 template <typename Char>
 LambdaOptions<Char>::Keyword::Keyword (String const & longName)
 {
-	Init(&longName, nullptr, nullptr, nullptr);
+	Init(&longName, nullptr);
 }
 
 
 template <typename Char>
 LambdaOptions<Char>::Keyword::Keyword (String const & longName, Char shortName)
 {
-	Init(&longName, &shortName, nullptr, nullptr);
+	Init(&longName, &shortName);
 }
 
 
 template <typename Char>
-LambdaOptions<Char>::Keyword::Keyword (Char shortName, String const & desc)
-{
-	Init(nullptr, &shortName, nullptr, &desc);
-}
-
-
-template <typename Char>
-LambdaOptions<Char>::Keyword::Keyword (String const & longName, String const & desc)
-{
-	Init(&longName, nullptr, nullptr, &desc);
-}
-
-
-template <typename Char>
-LambdaOptions<Char>::Keyword::Keyword (String const & longName, Char shortName, String const & desc)
-{
-	Init(&longName, &shortName, nullptr, &desc);
-}
-
-
-template <typename Char>
-LambdaOptions<Char>::Keyword::Keyword (String const & longName, String const & group, String const & desc)
-{
-	Init(&longName, nullptr, &group, &desc);
-}
-
-
-template <typename Char>
-LambdaOptions<Char>::Keyword::Keyword (Char shortName, String const & group, String const & desc)
-{
-	Init(nullptr, &shortName, &group, &desc);
-}
-
-
-template <typename Char>
-LambdaOptions<Char>::Keyword::Keyword (String const & longName, Char shortName, String const & group, String const & desc)
-{
-	Init(&longName, &shortName, &group, &desc);
-}
-
-
-template <typename Char>
-void LambdaOptions<Char>::Keyword::Init (String const * longName, Char * shortName, String const * group, String const * desc)
+void LambdaOptions<Char>::Keyword::Init (String const * longName, Char * shortName)
 {
 	if (shortName != nullptr) {
 		std::basic_string<Char> shortNameStr;
@@ -1762,12 +1714,6 @@ void LambdaOptions<Char>::Keyword::Init (String const * longName, Char * shortNa
 	}
 	if (longName != nullptr) {
 		names.push_back(*longName);
-	}
-	if (group != nullptr) {
-		this->group = *group;
-	}
-	if (desc != nullptr) {
-		this->desc = *desc;
 	}
 }
 
