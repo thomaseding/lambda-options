@@ -106,7 +106,7 @@ namespace lambda_options
 		char message[128];
 	};
 
-	template <typename Char>
+	template <typename Char = char>
 	class ArgsIter {
 	public:
 		typedef std::basic_string<Char> String;
