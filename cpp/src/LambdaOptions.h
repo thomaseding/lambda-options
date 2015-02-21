@@ -1,7 +1,7 @@
 // Copyright (c) 2015, Thomas Eding
 // All rights reserved.
 // 
-// Homepage: https://github.com/thomaseding/lambda-opts
+// Homepage: https://github.com/thomaseding/lambda-options
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -223,6 +223,17 @@ namespace lambda_options
 		static bool Contains (Iter begin, Iter end, T const & val)
 		{
 			return std::find(begin, end, val) != end;
+		}
+
+		template <typename K, typename V>
+		static V * Lookup (std::vector<std::pair<K, V>> & assocs, K const & key)
+		{
+			for (auto & assoc : assocs) {
+				if (assoc.first == key) {
+					return &assoc.second;
+				}
+			}
+			return nullptr;
 		}
 
 		template <typename K, typename V>
@@ -638,6 +649,11 @@ public:
 		return impl->HelpDescription(config);
 	}
 
+	void SetGroupPriority (String const & group, int priority)
+	{
+		impl->SetGroupPriority(group, priority);
+	}
+
 	template <typename StringIter>
 	ParseContext CreateParseContext (StringIter begin, StringIter end) const;
 
@@ -910,6 +926,19 @@ private:
 
 
 		String HelpDescription (FormatConfig const & config) const;
+
+
+		void SetGroupPriority (String const & group, Priority priority)
+		{
+			namespace my = lambda_options::unstable_dont_use;
+			Priority * p = my::Lookup(groupPriorities, group);
+			if (p == nullptr) {
+				groupPriorities.emplace_back(group, priority);
+			}
+			else {
+				*p = priority;
+			}
+		}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -1778,13 +1807,7 @@ auto LambdaOptions<Char>::LambdaOptsImpl::HelpDescription (FormatConfig const & 
 		String const & g2 = kw2->group;
 		Priority const p1 = getPriority(g1);
 		Priority const p2 = getPriority(g2);
-		if (p1 < p2) {
-			return true;
-		}
-		if (p1 > p2) {
-			return false;
-		}
-		return g1 < g2;
+		return p1 < p2;
 	});
 
 	Formatter formatter(config);
