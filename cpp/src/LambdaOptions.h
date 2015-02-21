@@ -215,7 +215,7 @@ namespace lambda_options
 			if (!truth) {
 				char msg[1024];
 				sprintf(msg, "ASSERT failed in '%s' on line %u.", __FILE__, line);
-				throw std::logic_error(msg);
+				throw Exception(msg);
 			}
 		}
 
