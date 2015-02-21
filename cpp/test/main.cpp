@@ -1359,11 +1359,83 @@ public:
 		config.maxWidth = 0;
 		String desc = opts.HelpDescription(config);
 
-		std::cout << "\n<HELP>\n";
-		for (Char c : desc) {
-			std::cout << static_cast<char>(c);
+		auto printString = [] (String const & str) {
+			std::cout << "\n<String>\n";
+			for (Char c : str) {
+				std::cout << static_cast<char>(c);
+			}
+			std::cout << "\n</String>\n";
+		};
+
+		printString(desc);
+	}
+
+	static void TestHelpGroups ()
+	{
+		auto nop = [] () {};
+
+		Opts opts;
+
+		Keyword kwFoo(Q("foo"));
+		kwFoo.group = Q("cake");
+		opts.AddOption(kwFoo, nop);
+
+		Keyword kwBar(Q("bar"));
+		kwBar.group = Q("lie");
+		opts.AddOption(kwBar, nop);
+
+		Keyword kwBaz(Q("baz"));
+		kwBaz.group = Q("cake");
+		opts.AddOption(kwBaz, nop);
+
+		auto printString = [] (String const & str) {
+			std::cout << "\n<String>\n";
+			for (Char c : str) {
+				std::cout << static_cast<char>(c);
+			}
+			std::cout << "\n</String>\n";
+		};
+
+		{
+			String desc = opts.HelpDescription();
+			printString(desc);
 		}
-		std::cout << "\n</HELP>\n";
+		opts.SetGroupPriority(Q("cake"), 0);
+		opts.SetGroupPriority(Q("lie"), 1);
+		{
+			String desc = opts.HelpDescription();
+			printString(desc);
+		}
+		opts.SetGroupPriority(Q("cake"), 10);
+		opts.SetGroupPriority(Q("lie"), 5);
+		{
+			Opts::FormatConfig config;
+			config.groupFilter.push_back(Q("cake"));
+			String desc = opts.HelpDescription(config);
+			printString(desc);
+		}
+		{
+			Opts::FormatConfig config;
+			config.groupFilter.push_back(Q("cake"));
+			config.groupFilter.push_back(Q("lie"));
+			String desc = opts.HelpDescription(config);
+			printString(desc);
+		}
+		{
+			Opts::FormatConfig config;
+			config.groupFilter.push_back(Q("lie"));
+			config.groupFilter.push_back(Q("cake"));
+			String desc = opts.HelpDescription(config);
+			printString(desc);
+		}
+		{
+			Opts::FormatConfig config;
+			config.groupFilter.push_back(Q("where"));
+			config.groupFilter.push_back(Q("lie"));
+			config.groupFilter.push_back(Q("waldo"));
+			String desc = opts.HelpDescription(config);
+			printString(desc);
+		}
 	}
 };
 
@@ -1398,6 +1470,7 @@ static bool RunCharTests ()
 		Tests<Char>::TestMaybeLifetime<TestMaybeLifetimeHelper>,
 		Tests<Char>::TestMaybeLifetime<TestMaybeLifetimeHelperSuperAligned>,
 		Tests<Char>::TestHelpDescription,
+		Tests<Char>::TestHelpGroups,
 	};
 
 	try {
