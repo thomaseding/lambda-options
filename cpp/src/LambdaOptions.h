@@ -201,6 +201,7 @@ namespace lambda_options
 		{}
 
 	private:
+		void operator= (ParseState &&); // disable
 		void operator= (ParseState const &); // disable
 
 	public:
