@@ -591,6 +591,7 @@ public:
 		FormatConfig ();
 	public:
 		size_t maxWidth;
+		std::vector<String> groupFilter;
 	};
 
 	class Keyword {
@@ -1477,13 +1478,15 @@ private:
 
 		void FormatKeyword (Keyword const & keyword)
 		{
-			width = 0;
-			ChangeIndentation(0);
-			NewLine();
-			FormatKeywordNames(keyword);
-			FormatKeywordArgs(keyword);
-			FormatKeywordHelp(keyword);
-			FlushWord();
+			if (AllowGroup(keyword.group)) {
+				width = 0;
+				ChangeIndentation(0);
+				NewLine();
+				FormatKeywordNames(keyword);
+				FormatKeywordArgs(keyword);
+				FormatKeywordHelp(keyword);
+				FlushWord();
+			}
 		}
 
 		String ToString () const
@@ -1492,6 +1495,13 @@ private:
 		}
 
 	private:
+		bool AllowGroup (String const & group) const
+		{
+			namespace my = lambda_options::unstable_dont_use;
+			return config.groupFilter.empty() 
+				|| my::Contains(config.groupFilter.begin(), config.groupFilter.end(), group);
+		}
+
 		void FormatKeywordNames (Keyword const & keyword)
 		{
 			std::vector<String> names = keyword.names;
