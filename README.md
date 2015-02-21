@@ -12,11 +12,8 @@ Permissive licensing (BSD) allows you download, use, and modify for your own use
 
 Quick installation: Download the required header here: [cpp/src/LambdaOptions.h](cpp/src/LambdaOptions.h?ts=4)
 
-Examples directory: [cpp/example](cpp/example)
-
-Documentation: [Wiki](../../wiki)
-
-###Complete docs as well as more examples coming soon!
+* Examples: [cpp/example](cpp/example)
+* Documentation: [wiki/API-Index](../../wiki/API-Index)
 
 --------------
 
