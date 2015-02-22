@@ -1355,7 +1355,7 @@ public:
 		kwRofl.desc = Q("0123456789 01234567890123456789 012345678901234567890123456789 0123456789012345678901234567890123456789");
 		opts.AddOption(kwRofl, nop);
 
-		Opts::FormatConfig config;
+		Opts::FormattingConfig config;
 		config.maxWidth = 0;
 		String desc = opts.HelpDescription(config);
 
@@ -1409,27 +1409,27 @@ public:
 		opts.SetGroupPriority(Q("cake"), 10);
 		opts.SetGroupPriority(Q("lie"), 5);
 		{
-			Opts::FormatConfig config;
+			Opts::FormattingConfig config;
 			config.groupFilter.push_back(Q("cake"));
 			String desc = opts.HelpDescription(config);
 			printString(desc);
 		}
 		{
-			Opts::FormatConfig config;
+			Opts::FormattingConfig config;
 			config.groupFilter.push_back(Q("cake"));
 			config.groupFilter.push_back(Q("lie"));
 			String desc = opts.HelpDescription(config);
 			printString(desc);
 		}
 		{
-			Opts::FormatConfig config;
+			Opts::FormattingConfig config;
 			config.groupFilter.push_back(Q("lie"));
 			config.groupFilter.push_back(Q("cake"));
 			String desc = opts.HelpDescription(config);
 			printString(desc);
 		}
 		{
-			Opts::FormatConfig config;
+			Opts::FormattingConfig config;
 			config.groupFilter.push_back(Q("where"));
 			config.groupFilter.push_back(Q("lie"));
 			config.groupFilter.push_back(Q("waldo"));

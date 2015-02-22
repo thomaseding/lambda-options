@@ -587,9 +587,9 @@ public:
 
 	class ParseContext;
 
-	class FormatConfig {
+	class FormattingConfig {
 	public:
-		FormatConfig ();
+		FormattingConfig ();
 	public:
 		size_t maxWidth;
 		std::vector<String> groupFilter;
@@ -643,10 +643,10 @@ public:
 
 	String HelpDescription () const
 	{
-		return impl->HelpDescription(FormatConfig());
+		return impl->HelpDescription(FormattingConfig());
 	}
 
-	String HelpDescription (FormatConfig const & config) const
+	String HelpDescription (FormattingConfig const & config) const
 	{
 		return impl->HelpDescription(config);
 	}
@@ -927,7 +927,7 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 
-		String HelpDescription (FormatConfig const & config) const;
+		String HelpDescription (FormattingConfig const & config) const;
 
 
 		void SetGroupPriority (String const & group, Priority priority)
@@ -1471,7 +1471,7 @@ private:
 		enum Phase { EmitName, EmitDesc };
 
 	public:
-		Formatter (FormatConfig const & config)
+		Formatter (FormattingConfig const & config)
 			: config(config)
 		{
 			this->config.maxWidth = std::max<size_t>(config.maxWidth, 30);
@@ -1638,7 +1638,7 @@ private:
 		}
 
 	private:
-		FormatConfig config;
+		FormattingConfig config;
 		std::vector<Char> emittedChars;
 		std::vector<Char> word;
 		Phase phase;
@@ -1707,7 +1707,7 @@ typename LambdaOptions<Char>::ParseContext LambdaOptions<Char>::CreateParseConte
 
 
 template <typename Char>
-LambdaOptions<Char>::FormatConfig::FormatConfig ()
+LambdaOptions<Char>::FormattingConfig::FormattingConfig ()
 	: maxWidth(80)
 {}
 
@@ -1781,7 +1781,7 @@ typename LambdaOptions<Char>::ParseContext & LambdaOptions<Char>::ParseContext::
 
 
 template <typename Char>
-auto LambdaOptions<Char>::LambdaOptsImpl::HelpDescription (FormatConfig const & config) const -> String
+auto LambdaOptions<Char>::LambdaOptsImpl::HelpDescription (FormattingConfig const & config) const -> String
 {
 	namespace my = ::lambda_options::unstable_dont_use;
 
