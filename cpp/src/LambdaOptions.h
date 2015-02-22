@@ -562,6 +562,23 @@ namespace lambda_options
 		Reject,
 		Fatal,
 	};
+
+	enum class KeywordStyle {
+		Exact,
+		GnuNoShortGrouping,
+		Windows,
+
+		Default = GnuNoShortGrouping
+	};
+
+	enum class MatchFlags : size_t {
+		Empty              = 0,
+		CaseInsensitive    = 1 << 0,
+		RelaxedDashes      = 1 << 1,
+		RelaxedUnderscores = 1 << 2,
+
+		Default = Empty
+	};
 }
 
 
