@@ -7,7 +7,7 @@
 
 int main (int argc, char ** argv)
 {
-	LambdaOptions<char> opts;
+	lambda_options::Options<char> opts;
 
 	opts.AddOption("--help", [] () {
 		std::cout << "--user NAME [AGE]\n";

@@ -29,7 +29,7 @@ namespace lambda_options
 {
 	template <typename Char>
 	struct RawParser<Char, User> {
-		bool operator() (ParseState<Char> parseState, void * rawMemory)
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
 			std::string name = *parseState.iter++;
 			unsigned int age = 0;
@@ -46,9 +46,9 @@ namespace lambda_options
 
 int main (int argc, char ** argv)
 {
-	typedef LambdaOptions<char>::Keyword Keyword;
+	using namespace lambda_options::char_typedefs;
 
-	LambdaOptions<char> opts;
+	Options opts;
 
 	bool helpRequested = false;
 	std::set<User> users;

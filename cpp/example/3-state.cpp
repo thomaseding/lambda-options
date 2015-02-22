@@ -27,9 +27,9 @@ public:
 
 int main (int argc, char ** argv)
 {
-	typedef LambdaOptions<char>::Keyword Keyword;
+	using namespace lambda_options::char_typedefs;
 
-	LambdaOptions<char> opts;
+	Options opts;
 
 	bool helpRequested = false;
 	std::set<User> users;

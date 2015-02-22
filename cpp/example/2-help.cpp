@@ -7,9 +7,9 @@
 
 int main (int argc, char ** argv)
 {
-	typedef LambdaOptions<char>::Keyword Keyword;
+	using namespace lambda_options::char_typedefs;
 
-	LambdaOptions<char> opts;
+	Options opts;
 
 	auto printHelp = [&] () {
 		std::cout << "Usage: prog.exe [OPTIONS]\n\n";

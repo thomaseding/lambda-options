@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <clocale>
+#include <cwchar>
 #include <iostream>
 #include <sstream>
 
@@ -116,26 +117,6 @@ namespace lambda_options
 //////////////////////////////////////////////////////////////////////////
 
 
-__declspec(align(8192)) class TestMaybeLifetimeHelperSuperAligned : public TestMaybeLifetimeHelper {};
-
-
-namespace lambda_options
-{
-	template <typename Char>
-	struct RawParser<Char, TestMaybeLifetimeHelperSuperAligned> {
-		bool operator() (ParseState<Char> & parseState, void * rawMemory)
-		{
-			new (rawMemory) TestMaybeLifetimeHelperSuperAligned();
-			++parseState.iter;
-			return true;
-		}
-	};
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-
-
 template <typename T, size_t N>
 static bool Equal (std::vector<T> const & xs, T const (&ys)[N])
 {
@@ -153,9 +134,10 @@ template <typename Char>
 class Tests {
 private:
 	typedef std::basic_string<Char> String;
-	typedef LambdaOptions<Char> Opts;
-	typedef typename lambda_options::ParseResult PR;
-	typedef typename Opts::Keyword Keyword;
+	typedef lambda_options::Options<Char> Opts;
+	typedef lambda_options::ParseResult PR;
+	typedef lambda_options::Keyword<Char> Keyword;
+	typedef lambda_options::FormattingConfig<Char> FormattingConfig;
 
 
 	static std::wstring L (std::string const & str)
@@ -222,7 +204,7 @@ private:
 		}
 		else {
 			wchar_t buff[8];
-			swprintf(buff, L"\\x%x", c);
+			std::swprintf(buff, 8, L"\\x%x", c);
 			os << buff;
 		}
 	}
@@ -1268,11 +1250,12 @@ public:
 	}
 
 
-	template <typename Helper>
 	static void TestMaybeLifetime ()
 	{
-		int const & P1 = Helper::P1;
-		int const & P2 = Helper::P2;
+		typedef TestMaybeLifetimeHelper Helper;
+
+		int const P1 = Helper::P1;
+		int const P2 = Helper::P2;
 		int & value = Helper::value;
 
 		value = 0;
@@ -1355,7 +1338,7 @@ public:
 		kwRofl.desc = Q("0123456789 01234567890123456789 012345678901234567890123456789 0123456789012345678901234567890123456789");
 		opts.AddOption(kwRofl, nop);
 
-		Opts::FormattingConfig config;
+		FormattingConfig config;
 		config.maxWidth = 0;
 		String desc = opts.HelpDescription(config);
 
@@ -1409,27 +1392,27 @@ public:
 		opts.SetGroupPriority(Q("cake"), 10);
 		opts.SetGroupPriority(Q("lie"), 5);
 		{
-			Opts::FormattingConfig config;
+			FormattingConfig config;
 			config.groupFilter.push_back(Q("cake"));
 			String desc = opts.HelpDescription(config);
 			printString(desc);
 		}
 		{
-			Opts::FormattingConfig config;
+			FormattingConfig config;
 			config.groupFilter.push_back(Q("cake"));
 			config.groupFilter.push_back(Q("lie"));
 			String desc = opts.HelpDescription(config);
 			printString(desc);
 		}
 		{
-			Opts::FormattingConfig config;
+			FormattingConfig config;
 			config.groupFilter.push_back(Q("lie"));
 			config.groupFilter.push_back(Q("cake"));
 			String desc = opts.HelpDescription(config);
 			printString(desc);
 		}
 		{
-			Opts::FormattingConfig config;
+			FormattingConfig config;
 			config.groupFilter.push_back(Q("where"));
 			config.groupFilter.push_back(Q("lie"));
 			config.groupFilter.push_back(Q("waldo"));
@@ -1441,7 +1424,7 @@ public:
 
 
 template <typename Char>
-typename LambdaOptions<Char>::Keyword const Tests<Char>::empty;
+typename lambda_options::Keyword<Char> const Tests<Char>::empty;
 
 
 template <typename Char>
@@ -1467,8 +1450,7 @@ static bool RunCharTests ()
 		Tests<Char>::TestArrays,
 		Tests<Char>::TestCustomParser,
 		Tests<Char>::TestParseState,
-		Tests<Char>::TestMaybeLifetime<TestMaybeLifetimeHelper>,
-		Tests<Char>::TestMaybeLifetime<TestMaybeLifetimeHelperSuperAligned>,
+		Tests<Char>::TestMaybeLifetime,
 		Tests<Char>::TestHelpDescription,
 		Tests<Char>::TestHelpGroups,
 	};
@@ -1489,8 +1471,6 @@ static bool RunCharTests ()
 
 static bool RunTests ()
 {
-	static_assert(std::is_same<LambdaOptions<>::char_type, LambdaOptions<char>::char_type>::value, "Default [Char] type is not [char].");
-
 	if (!RunCharTests<char>()) {
 		return false;
 	}

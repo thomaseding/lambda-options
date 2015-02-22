@@ -24,7 +24,7 @@ namespace lambda_options
 {
 	template <typename Char>
 	struct RawParser<Char, Point> {
-		bool operator() (ParseState<Char> parseState, void * rawMemory)
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
 			Maybe<std::array<float, 3>> maybeVals;
 			if (Parse<Char, std::array<float, 3>>(parseState, maybeVals)) {
@@ -60,7 +60,7 @@ class OptionsParser {
 public:
 	OptionsParser ()
 	{
-		typedef LambdaOptions<char>::Keyword Keyword;
+		using namespace lambda_options::char_typedefs;
 
 		Keyword kwHelp("--help", 'h');
 		kwHelp.desc = "Display this help message.";
@@ -141,7 +141,7 @@ public:
 
 
 private:
-	LambdaOptions<char> opts;
+	lambda_options::Options<char> opts;
 	bool doHelp;
 	std::vector<Point> points;
 };
