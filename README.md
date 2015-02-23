@@ -23,7 +23,7 @@ Basic example:
 
 int main (int argc, char ** argv)
 {
-	lambda_options:::Options<char> opts;
+	lambda_options::Options<char> opts;
 
 	opts.AddOption("--help", [] () {
 		std::cout << "--user NAME [AGE]" << std::endl;
