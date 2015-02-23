@@ -58,7 +58,7 @@ namespace lambda_options
 		{
 			return message.c_str();
 		}
-		private:
+	private:
 		std::string message;
 	};
 
@@ -179,14 +179,10 @@ namespace lambda_options
 		};
 
 
-
-
-	typedef void * V;
-
-
-	typedef void (*OpaqueDeleter)(void *);
-	typedef std::unique_ptr<void, OpaqueDeleter> UniqueOpaque;
-	typedef std::vector<UniqueOpaque> OpaqueValues;
+		typedef void * V;
+		typedef void (*OpaqueDeleter)(void *);
+		typedef std::unique_ptr<void, OpaqueDeleter> UniqueOpaque;
+		typedef std::vector<UniqueOpaque> OpaqueValues;
 
 
 		inline ParseResult Apply (std::function<ParseResult()> const & func, OpaqueValues const &)
@@ -236,7 +232,6 @@ namespace lambda_options
 
 	template <typename Char, typename T>
 	bool Parse (ParseState<Char> & parseState, Maybe<T> & out);
-
 
 
 	template <typename T>
@@ -369,7 +364,6 @@ namespace lambda_options
 	};
 
 
-
 	namespace unstable_dont_use
 	{
 		template <typename Char>
@@ -461,11 +455,7 @@ namespace lambda_options
 		void * opaqueParseContext;
 	};
 
-}
 
-
-namespace lambda_options
-{
 	namespace unstable_dont_use
 	{
 		template <typename Char>
@@ -521,11 +511,8 @@ namespace lambda_options
 			return UniqueOpaque(static_cast<T *>(nullptr), Delete<T>);
 		}
 	}
-}
 
 
-namespace lambda_options
-{
 	template <typename Char = char>
 	class ParseState {
 		friend class unstable_dont_use::ParseContextImpl<Char>;
@@ -749,7 +736,6 @@ namespace lambda_options
 	};
 
 
-
 	template <typename Char>
 	class Keyword {
 		typedef std::basic_string<Char> String;
@@ -783,7 +769,6 @@ namespace lambda_options
 	};
 
 
-
 	namespace unstable_dont_use
 	{
 		template <typename Char>
@@ -792,7 +777,6 @@ namespace lambda_options
 		template <typename Char>
 		class ParseContextImpl;
 	}
-
 
 	
 	template <typename Char = char>
@@ -826,15 +810,9 @@ namespace lambda_options
 	private:
 		std::unique_ptr<ParseContextImpl> impl;
 	};
-	
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-namespace lambda_options
-{
-namespace unstable_dont_use
+	namespace unstable_dont_use
 	{
 		class TypeKind {
 		public:
@@ -904,7 +882,6 @@ namespace unstable_dont_use
 	};
 
 
-
 	template <typename Func>
 	struct FuncTraits : public FuncTraits<decltype(&Func::operator())> {};
 
@@ -958,11 +935,8 @@ namespace unstable_dont_use
 		struct Arg3 { typedef D type; };
 		struct Arg4 { typedef E type; };
 	};
-}
 
 
-namespace lambda_options
-{
 	namespace unstable_dont_use
 	{
 		class TypeKind;
@@ -1335,9 +1309,6 @@ namespace lambda_options
 			std::vector<OptInfo<Char, ParseResult(V,V,V,V)>> infos4;
 			std::vector<OptInfo<Char, ParseResult(V,V,V,V,V)>> infos5;
 		};
-		
-		
-
 
 
 		template <typename Char>
@@ -1510,20 +1481,8 @@ namespace lambda_options
 			size_t highestArgIndex;
 		};
 	}
-}
 
 
-
-
-
-
-
-
-
-
-
-namespace lambda_options
-{
 	template <typename Char = char>
 	class Options {
 	private:
@@ -1573,23 +1532,8 @@ namespace lambda_options
 	private:
 		std::shared_ptr<OptionsImpl> impl;
 	};
-}
 
 
-
-//////////////////////////////////////////////////////////////////////////
-
-
-
-
-//////////////////////////////////////////////////////////////////////////
-
-
-
-
-
-namespace lambda_options
-{
 	namespace unstable_dont_use
 	{
 		template <typename Char>
@@ -1773,11 +1717,8 @@ namespace lambda_options
 			size_t indentation;
 		};
 	}
-}
 
 
-namespace lambda_options
-{
 	template <typename Char>
 	size_t ArgsIter<Char>::Index () const
 	{
@@ -1799,14 +1740,8 @@ namespace lambda_options
 		parseContext.highestArgIndex = std::max(parseContext.highestArgIndex, Index());
 		return *this;
 	}
-}
 
 
-//////////////////////////////////////////////////////////////////////////
-
-
-namespace lambda_options
-{
 	template <typename Char>
 	Options<Char>::Options ()
 		: impl(new OptionsImpl())
@@ -1821,21 +1756,12 @@ namespace lambda_options
 	}
 
 
-	//////////////////////////////////////////////////////////////////////////
-
-
 	template <typename Char>
 	FormattingConfig<Char>::FormattingConfig ()
 		: maxWidth(80)
 	{}
-}
 
 
-//////////////////////////////////////////////////////////////////////////
-
-
-namespace lambda_options
-{
 	template <typename Char>
 	Keyword<Char>::Keyword ()
 	{
@@ -1877,14 +1803,8 @@ namespace lambda_options
 			names.push_back(*longName);
 		}
 	}
-}
 
 
-//////////////////////////////////////////////////////////////////////////
-
-
-namespace lambda_options
-{
 	template <typename Char>
 	ParseContext<Char>::ParseContext (std::shared_ptr<OptionsImpl const> opts, std::vector<String> && args)
 		: impl(new ParseContextImpl(opts, std::move(args)))
@@ -1954,11 +1874,8 @@ namespace lambda_options
 			return formatter.ToString();
 		}
 	}
-}
 
 
-namespace lambda_options
-{
 	namespace char_typedefs
 	{
 		typedef lambda_options::ArgsIter<char> ArgsIter;
