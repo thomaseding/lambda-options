@@ -138,6 +138,7 @@ private:
 	typedef lambda_options::ParseResult PR;
 	typedef lambda_options::Keyword<Char> Keyword;
 	typedef lambda_options::FormattingConfig<Char> FormattingConfig;
+	typedef lambda_options::OptionsConfig OptionsConfig;
 
 
 	static std::wstring L (std::string const & str)
@@ -324,10 +325,11 @@ private:
 
 public:
 	static Keyword const empty;
+	static OptionsConfig const testConfig;
 
 	static void TestCompileTypes ()
 	{
-		Opts opts;
+		Opts opts(testConfig);
 	
 		opts.AddOption(Q("x"), [] (bool) {
 			return PR::Accept;
@@ -377,7 +379,7 @@ public:
 	{
 		typedef int I;
 	
-		Opts opts;
+		Opts opts(testConfig);
 	
 		opts.AddOption(Q("x"), [] () {});
 		opts.AddOption(Q("x"), [] (I) {});
@@ -414,7 +416,7 @@ public:
 	static void TestRejectEmptyKeyword ()
 	{
 		try {
-			Opts opts;
+			Opts opts(testConfig);
 			opts.AddOption(empty, [] () { return PR::Accept; });
 		}
 		catch (lambda_options::Exception const &) {
@@ -429,7 +431,7 @@ public:
 		typedef String S;
 		std::vector<int> calls;
 	
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(empty, [&] (S) {
 			calls.push_back(1);
 			return PR::Accept;
@@ -475,7 +477,7 @@ public:
 		typedef String S;
 		std::vector<int> calls;
 	
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(Q("x"), [&] () {
 			calls.push_back(0);
 			return PR::Accept;
@@ -526,7 +528,7 @@ public:
 		typedef String S;
 		std::vector<int> calls;
 	
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(empty, [&] (S) {
 			calls.push_back(0);
 			return PR::Accept;
@@ -562,7 +564,7 @@ public:
 		typedef String S;
 		std::vector<int> calls;
 	
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(Q("x"), [&] (S) {
 			calls.push_back(0);
 			return PR::Accept;
@@ -596,7 +598,7 @@ public:
 	{
 		std::wstringstream ss;
 	
-		Opts opts;
+		Opts opts(testConfig);
 	
 		opts.AddOption(empty, [&] (bool x) {
 			Dump(ss, x);
@@ -753,7 +755,7 @@ public:
 	{
 		std::wstringstream ss;
 	
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
 			return PR::Reject;
@@ -790,7 +792,7 @@ public:
 	{
 		std::wstringstream ss;
 	
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
 			return PR::Reject;
@@ -836,7 +838,7 @@ public:
 	{
 		std::wstringstream ss;
 	
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(empty, [&] (String x) {
 			Dump(ss, x);
 			return PR::Fatal;
@@ -869,7 +871,7 @@ public:
 	{
 		std::wstringstream ss;
 
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
 			return PR::Fatal;
@@ -908,7 +910,7 @@ public:
 	
 	static void TestNoMatch ()
 	{
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(empty, [] (int) {
 			return PR::Accept;
 		});
@@ -940,7 +942,7 @@ public:
 	{
 		std::wstringstream ss;
 	
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(empty, [&] (int x) {
 			DumpMemo(ss, L"int");
 			Dump(ss, x);
@@ -1045,7 +1047,7 @@ public:
 	{
 		std::wstringstream ss;
 
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(empty, [&] (std::array<std::array<int, 2>, 2> xs) {
 			DumpMemo(ss, L"<array>");
 			Dump(ss, xs[0][0]);
@@ -1141,7 +1143,7 @@ public:
 	{
 		std::wstringstream ss;
 
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(empty, [&] (Bit x) {
 			DumpMemo(ss, L"bit");
 			Dump(ss, x.value);
@@ -1180,7 +1182,7 @@ public:
 	{
 		std::wstringstream ss;
 
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
 		});
@@ -1260,7 +1262,7 @@ public:
 
 		value = 0;
 
-		Opts opts;
+		Opts opts(testConfig);
 		opts.AddOption(empty, [&] (lambda_options::ParseState<Char> parseState) {
 			{
 				lambda_options::Maybe<Helper> mObject;
@@ -1324,7 +1326,7 @@ public:
 	{
 		auto nop = [] () {};
 
-		Opts opts;
+		Opts opts(testConfig);
 
 		Keyword kwFoo(Q("foo"));
 		kwFoo.desc = Q("Foo does shtuff.");
@@ -1357,7 +1359,7 @@ public:
 	{
 		auto nop = [] () {};
 
-		Opts opts;
+		Opts opts(testConfig);
 
 		Keyword kwFoo(Q("foo"));
 		kwFoo.group = Q("cake");
@@ -1425,6 +1427,14 @@ public:
 
 template <typename Char>
 typename lambda_options::Keyword<Char> const Tests<Char>::empty;
+
+
+template <typename Char>
+typename lambda_options::OptionsConfig const Tests<Char>::testConfig = ([] {
+	lambda_options::OptionsConfig config;
+	config.keywordStyle = lambda_options::KeywordStyle::Exact;
+	return config;
+})();
 
 
 template <typename Char>

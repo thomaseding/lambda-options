@@ -100,6 +100,25 @@ namespace lambda_options
 		};
 
 
+		template <typename Char>
+		inline bool IsPrefixOf (char const * prefix, std::basic_string<Char> const & str)
+		{
+			auto it = str.begin();
+			auto const end = str.end();
+			while (*prefix != '\0') {
+				if (it == end) {
+					return false;
+				}
+				if (*it != *prefix) {
+					return false;
+				}
+				++it;
+				++prefix;
+			}
+			return true;
+		}
+
+
 		template <typename Iter, typename T>
 		inline bool Contains (Iter begin, Iter end, T const & val)
 		{
@@ -713,10 +732,10 @@ namespace lambda_options
 
 	enum class KeywordStyle {
 		Exact,
-		GnuNoShortGrouping,
+		Gnu,
 		Windows,
 
-		Default = GnuNoShortGrouping
+		Default = Gnu
 	};
 
 
@@ -725,8 +744,20 @@ namespace lambda_options
 		CaseInsensitive    = 1 << 0,
 		RelaxedDashes      = 1 << 1,
 		RelaxedUnderscores = 1 << 2,
+		GnuShortGrouping   = 1 << 3,
 
 		Default = Empty
+	};
+
+
+	class OptionsConfig {
+	public:
+		OptionsConfig ()
+			: keywordStyle(KeywordStyle::Default)
+		{}
+
+	public:
+		KeywordStyle keywordStyle;
 	};
 
 
@@ -965,6 +996,11 @@ namespace lambda_options
 			typedef lambda_options::Keyword<Char> Keyword;
 
 
+			OptionsImpl (OptionsConfig const & config)
+				: config(config)
+			{}
+
+
 			String HelpDescription (FormattingConfig<Char> const & config) const;
 
 
@@ -1084,7 +1120,41 @@ namespace lambda_options
 			template <typename Func>
 			void AddOption (Keyword const & keyword, Func const & f)
 			{
-				Adder<Func, FuncTraits<Func>::arity>::Add(*this, keyword, f);
+				Keyword kw = ApplyKeywordStyle(keyword);
+				Adder<Func, FuncTraits<Func>::arity>::Add(*this, kw, f);
+			}
+
+
+			Keyword ApplyKeywordStyle (Keyword const & proto)
+			{
+				Keyword kw(proto);
+				for (String & name : kw.names) {
+					switch (config.keywordStyle) {
+						case KeywordStyle::Exact: {
+							continue;
+						} break;
+						case KeywordStyle::Gnu: {
+							if (name.size() == 1) {
+								name.insert(0, 1, '-');
+							}
+							else {
+								while (!_private::IsPrefixOf("--", name)) {
+									name.insert(0, 1, '-');
+								}
+							}
+						} break;
+						case KeywordStyle::Windows: {
+							if (name.size() >= 1 && name[0] == '/') {
+								continue;
+							}
+							name.insert(0, 1, '/');
+						} break;
+						default: {
+							ASSERT(__LINE__, false);
+						}
+					}
+				}
+				return kw;
 			}
 
 
@@ -1307,6 +1377,7 @@ namespace lambda_options
 		public:
 			typename DynamicParserMap<Char>::Type dynamicParserMap;
 			std::vector<std::pair<String, Priority>> groupPriorities;
+			OptionsConfig config;
 			std::vector<OptInfo<Char, ParseResult()>> infos0;
 			std::vector<OptInfo<Char, ParseResult(V)>> infos1;
 			std::vector<OptInfo<Char, ParseResult(V,V)>> infos2;
@@ -1500,7 +1571,14 @@ namespace lambda_options
 		typedef String StringType;
 
 
-		Options ();
+		Options ()
+			: impl(new OptionsImpl(OptionsConfig()))
+		{}
+
+		Options (OptionsConfig const & config)
+			: impl(new OptionsImpl(config))
+		{}
+
 
 		template <typename Func>
 		void AddOption (String const & keyword, Func const & func)
@@ -1748,12 +1826,6 @@ namespace lambda_options
 
 
 	template <typename Char>
-	Options<Char>::Options ()
-		: impl(new OptionsImpl())
-	{}
-
-
-	template <typename Char>
 	template <typename StringIter>
 	ParseContext<Char> Options<Char>::CreateParseContext (StringIter begin, StringIter end) const
 	{
@@ -1799,13 +1871,10 @@ namespace lambda_options
 	void Keyword<Char>::Init (String const * longName, Char * shortName)
 	{
 		if (shortName != nullptr) {
-			std::basic_string<Char> shortNameStr;
-			shortNameStr.push_back('-');
-			shortNameStr.push_back(*shortName);
-			names.push_back(shortNameStr);
+			names.emplace_back(1, *shortName);
 		}
 		if (longName != nullptr) {
-			names.push_back(*longName);
+			names.emplace_back(*longName);
 		}
 	}
 
