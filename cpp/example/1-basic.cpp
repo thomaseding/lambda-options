@@ -7,9 +7,11 @@
 
 int main (int argc, char ** argv)
 {
-	lambda_options::Options<char> opts;
+	using namespace lambda_options::char_typedefs;
 
-	opts.AddOption("--help", [] () {
+	Options opts;
+
+	opts.AddOption(Keyword("--help", 'h'), [] () {
 		std::cout << "--user NAME [AGE]\n";
 	});
 	opts.AddOption("--user", [] (std::string name) {
