@@ -60,7 +60,7 @@ class OptionsParser {
 public:
 	OptionsParser ()
 	{
-		using namespace lambda_options::char_typedefs;
+		using namespace lambda_options::with_char;
 
 		Keyword kwHelp("--help", 'h');
 		kwHelp.desc = "Display this help message.";

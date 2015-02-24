@@ -46,7 +46,7 @@ namespace lambda_options
 
 int main (int argc, char ** argv)
 {
-	using namespace lambda_options::char_typedefs;
+	using namespace lambda_options::with_char;
 
 	Options opts;
 

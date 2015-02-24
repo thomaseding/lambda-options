@@ -1950,7 +1950,7 @@ namespace lambda_options
 	}
 
 
-	namespace char_typedefs
+	namespace with_char
 	{
 		typedef lambda_options::ArgsIter<char> ArgsIter;
 		typedef lambda_options::FormattingConfig<char> FormattingConfig;
