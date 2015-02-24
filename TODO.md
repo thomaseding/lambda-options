@@ -8,5 +8,4 @@
 * Optional short option cluster parsing.
 * Create a Haskell port.
 * Store callback functions uniformly, such that the engine is not limited to hard coded arities. This will improve the design of the library and make the change to vararg template easy (when I ditch support for compilers that don't support vararg templates).
-* May want to augment lambda_options::char_typedefs. (With a template class where one can grab non-templated typedefs.)
-* Use template specializations onto std lib `strlen` and `wcslen` instead of `StrLen`.
+* May want to augment `lambda_options::char_typedefs`. (With a template class where one can grab non-templated typedefs.)

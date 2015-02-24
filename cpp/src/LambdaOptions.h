@@ -33,6 +33,8 @@
 #include <array>
 #include <cctype>
 #include <cstdio>
+#include <cstring>
+#include <cwchar>
 #include <exception>
 #include <functional>
 #include <limits>
@@ -135,12 +137,15 @@ namespace lambda_options
 		}
 
 
-		template <typename Char>
-		inline size_t StrLen (Char const * str)
+		inline size_t StrLen (char const * str)
 		{
-			size_t size = 0;
-			while (*str++) ++size;
-			return size;
+			return std::strlen(str);
+		}
+
+
+		inline size_t StrLen (wchar_t const * str)
+		{
+			return std::wcslen(str);
 		}
 
 
