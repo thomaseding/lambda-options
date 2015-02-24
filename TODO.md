@@ -9,4 +9,5 @@
 * Create a Haskell port.
 * Store callback functions uniformly, such that the engine is not limited to hard coded arities. This will improve the design of the library and make the change to vararg template easy (when I ditch support for compilers that don't support vararg templates).
 * Template alias in `lambda_options::char_typedefs` when I drop support of vc11.
+* Support `Maybe<T>` copy/move constructor/assignment.
 * Add `RawParser` specialization for `Maybe<T>`.
