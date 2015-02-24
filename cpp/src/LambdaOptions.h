@@ -74,7 +74,7 @@ namespace lambda_options
 	};
 
 
-	namespace unstable_dont_use
+	namespace _private
 	{
 		inline void ASSERT (unsigned int line, bool truth)
 		{
@@ -286,8 +286,8 @@ namespace lambda_options
 			if (alignedPtr != nullptr) {
 				return reinterpret_cast<T *>(alignedPtr);
 			}
-			unstable_dont_use::ASSERT(__LINE__, !outsidePtr);
-			outsidePtr = std::unique_ptr<char, void(*)(void *)>(new char[sizeof(T)], unstable_dont_use::DeleteCharArray);
+			_private::ASSERT(__LINE__, !outsidePtr);
+			outsidePtr = std::unique_ptr<char, void(*)(void *)>(new char[sizeof(T)], _private::DeleteCharArray);
 			alignedPtr = outsidePtr.get();
 			return ObjectAddress();
 		}
@@ -364,7 +364,7 @@ namespace lambda_options
 	};
 
 
-	namespace unstable_dont_use
+	namespace _private
 	{
 		template <typename Char>
 		class ParseContextImpl;
@@ -377,7 +377,7 @@ namespace lambda_options
 		typedef std::basic_string<Char> String;
 
 	private:
-		friend class unstable_dont_use::ParseContextImpl<Char>;
+		friend class _private::ParseContextImpl<Char>;
 
 		typedef typename std::vector<String>::const_iterator Iter;
 
@@ -456,7 +456,7 @@ namespace lambda_options
 	};
 
 
-	namespace unstable_dont_use
+	namespace _private
 	{
 		template <typename Char>
 		inline bool ScanNumber (
@@ -515,7 +515,7 @@ namespace lambda_options
 
 	template <typename Char = char>
 	class ParseState {
-		friend class unstable_dont_use::ParseContextImpl<Char>;
+		friend class _private::ParseContextImpl<Char>;
 
 	public:
 		ParseState (ParseState const & other)
@@ -600,7 +600,7 @@ namespace lambda_options
 	struct RawParser<Char, int> {
 		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
-			return unstable_dont_use::ScanNumber<Char>(parseState, rawMemory, "%d%c");
+			return _private::ScanNumber<Char>(parseState, rawMemory, "%d%c");
 		}
 	};
 
@@ -612,7 +612,7 @@ namespace lambda_options
 			if (!parseState.iter->empty() && parseState.iter->front() == '-') {
 				return false;
 			}
-			return unstable_dont_use::ScanNumber<Char>(parseState, rawMemory, "%u%c");
+			return _private::ScanNumber<Char>(parseState, rawMemory, "%u%c");
 		}
 	};
 
@@ -621,7 +621,7 @@ namespace lambda_options
 	struct RawParser<Char, float> {
 		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
-			return unstable_dont_use::ScanNumber<Char>(parseState, rawMemory, "%f%c");
+			return _private::ScanNumber<Char>(parseState, rawMemory, "%f%c");
 		}
 	};
 
@@ -630,7 +630,7 @@ namespace lambda_options
 	struct RawParser<Char, double> {
 		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
-			return unstable_dont_use::ScanNumber<Char>(parseState, rawMemory, "%lf%c");
+			return _private::ScanNumber<Char>(parseState, rawMemory, "%lf%c");
 		}
 	};
 
@@ -769,7 +769,7 @@ namespace lambda_options
 	};
 
 
-	namespace unstable_dont_use
+	namespace _private
 	{
 		template <typename Char>
 		class OptionsImpl;
@@ -784,8 +784,8 @@ namespace lambda_options
 		friend class Options<Char>;
 	
 		typedef std::basic_string<Char> String;
-		typedef unstable_dont_use::OptionsImpl<Char> OptionsImpl;
-		typedef unstable_dont_use::ParseContextImpl<Char> ParseContextImpl;
+		typedef _private::OptionsImpl<Char> OptionsImpl;
+		typedef _private::ParseContextImpl<Char> ParseContextImpl;
 	
 	public:
 		ParseContext (ParseContext && other);
@@ -812,7 +812,7 @@ namespace lambda_options
 	};
 
 
-	namespace unstable_dont_use
+	namespace _private
 	{
 		class TypeKind {
 		public:
@@ -878,7 +878,7 @@ namespace lambda_options
 	public:
 		Keyword<Char> keyword;
 		std::function<FuncSig> callback;
-		std::vector<unstable_dont_use::TypeKind> typeKinds;
+		std::vector<_private::TypeKind> typeKinds;
 	};
 
 
@@ -937,7 +937,7 @@ namespace lambda_options
 	};
 
 
-	namespace unstable_dont_use
+	namespace _private
 	{
 		class TypeKind;
 
@@ -965,7 +965,7 @@ namespace lambda_options
 
 			void SetGroupPriority (String const & group, Priority priority)
 			{
-				namespace my = lambda_options::unstable_dont_use;
+				namespace my = lambda_options::_private;
 				Priority * p = my::Lookup(groupPriorities, group);
 				if (p == nullptr) {
 					groupPriorities.emplace_back(group, priority);
@@ -1103,7 +1103,7 @@ namespace lambda_options
 				}
 				infos0.emplace_back(keyword, func);
 				auto & info = infos0.back();
-				if (lambda_options::unstable_dont_use::Contains(infos0.begin(), infos0.end() - 1, info)) {
+				if (lambda_options::_private::Contains(infos0.begin(), infos0.end() - 1, info)) {
 					infos0.pop_back();
 					throw lambda_options::OptionException(ConflictingOptionMessage());
 				}
@@ -1129,7 +1129,7 @@ namespace lambda_options
 				infos1.emplace_back(keyword, wrapper);
 				auto & info = infos1.back();
 				PushTypeKind<A2>(info.typeKinds);
-				if (lambda_options::unstable_dont_use::Contains(infos1.begin(), infos1.end() - 1, info)) {
+				if (lambda_options::_private::Contains(infos1.begin(), infos1.end() - 1, info)) {
 					infos1.pop_back();
 					throw lambda_options::OptionException(ConflictingOptionMessage());
 				}
@@ -1158,7 +1158,7 @@ namespace lambda_options
 				auto & info = infos2.back();
 				PushTypeKind<A2>(info.typeKinds);
 				PushTypeKind<B2>(info.typeKinds);
-				if (lambda_options::unstable_dont_use::Contains(infos2.begin(), infos2.end() - 1, info)) {
+				if (lambda_options::_private::Contains(infos2.begin(), infos2.end() - 1, info)) {
 					infos2.pop_back();
 					throw lambda_options::OptionException(ConflictingOptionMessage());
 				}
@@ -1190,7 +1190,7 @@ namespace lambda_options
 				PushTypeKind<A2>(info.typeKinds);
 				PushTypeKind<B2>(info.typeKinds);
 				PushTypeKind<C2>(info.typeKinds);
-				if (lambda_options::unstable_dont_use::Contains(infos3.begin(), infos3.end() - 1, info)) {
+				if (lambda_options::_private::Contains(infos3.begin(), infos3.end() - 1, info)) {
 					infos3.pop_back();
 					throw lambda_options::OptionException(ConflictingOptionMessage());
 				}
@@ -1225,7 +1225,7 @@ namespace lambda_options
 				PushTypeKind<B2>(info.typeKinds);
 				PushTypeKind<C2>(info.typeKinds);
 				PushTypeKind<D2>(info.typeKinds);
-				if (lambda_options::unstable_dont_use::Contains(infos4.begin(), infos4.end() - 1, info)) {
+				if (lambda_options::_private::Contains(infos4.begin(), infos4.end() - 1, info)) {
 					infos4.pop_back();
 					throw lambda_options::OptionException(ConflictingOptionMessage());
 				}
@@ -1263,7 +1263,7 @@ namespace lambda_options
 				PushTypeKind<C2>(info.typeKinds);
 				PushTypeKind<D2>(info.typeKinds);
 				PushTypeKind<E2>(info.typeKinds);
-				if (lambda_options::unstable_dont_use::Contains(infos5.begin(), infos5.end() - 1, info)) {
+				if (lambda_options::_private::Contains(infos5.begin(), infos5.end() - 1, info)) {
 					infos5.pop_back();
 					throw lambda_options::OptionException(ConflictingOptionMessage());
 				}
@@ -1273,7 +1273,7 @@ namespace lambda_options
 			template <typename T>
 			void AddDynamicParser ()
 			{
-				namespace my = ::lambda_options::unstable_dont_use;
+				namespace my = ::lambda_options::_private;
 				TypeKind typeKind = TypeKind::Get<T>();
 				if (my::Lookup(dynamicParserMap, typeKind) == nullptr) {
 					auto parser = OpaqueParse<Char, T>;
@@ -1284,7 +1284,7 @@ namespace lambda_options
 
 			typename OpaqueParser<Char>::Type LookupDynamicParser (TypeKind const & k) const
 			{
-				namespace my = ::lambda_options::unstable_dont_use;
+				namespace my = ::lambda_options::_private;
 				auto const * pParser = my::Lookup(dynamicParserMap, k);
 				ASSERT(__LINE__, pParser != nullptr);
 				return *pParser;
@@ -1315,7 +1315,7 @@ namespace lambda_options
 		class ParseContextImpl {
 			friend class lambda_options::ArgsIter<Char>;
 
-			typedef lambda_options::unstable_dont_use::OptionsImpl<Char> OptionsImpl;
+			typedef lambda_options::_private::OptionsImpl<Char> OptionsImpl;
 			typedef std::basic_string<Char> String;
 
 		public:
@@ -1486,7 +1486,7 @@ namespace lambda_options
 	template <typename Char = char>
 	class Options {
 	private:
-		typedef lambda_options::unstable_dont_use::OptionsImpl<Char> OptionsImpl;
+		typedef lambda_options::_private::OptionsImpl<Char> OptionsImpl;
 		friend class lambda_options::ArgsIter<Char>;
 		typedef std::basic_string<Char> String;
 
@@ -1534,7 +1534,7 @@ namespace lambda_options
 	};
 
 
-	namespace unstable_dont_use
+	namespace _private
 	{
 		template <typename Char>
 		class Formatter {
@@ -1569,7 +1569,7 @@ namespace lambda_options
 		private:
 			bool AllowGroup (String const & group) const
 			{
-				namespace my = lambda_options::unstable_dont_use;
+				namespace my = lambda_options::_private;
 				return config.groupFilter.empty() 
 					|| my::Contains(config.groupFilter.begin(), config.groupFilter.end(), group);
 			}
@@ -1722,7 +1722,7 @@ namespace lambda_options
 	template <typename Char>
 	size_t ArgsIter<Char>::Index () const
 	{
-		using namespace unstable_dont_use;
+		using namespace _private;
 		auto const & parseContext = *static_cast<ParseContextImpl<Char> const *>(opaqueParseContext);
 		return std::distance(parseContext.begin.iter, iter);
 	}
@@ -1731,7 +1731,7 @@ namespace lambda_options
 	template <typename Char>
 	ArgsIter<Char> & ArgsIter<Char>::operator++ ()
 	{
-		using namespace unstable_dont_use;
+		using namespace _private;
 		if (iter == end) {
 			throw IteratorException("Cannot increment past 'end' iterator.");
 		}
@@ -1824,12 +1824,12 @@ namespace lambda_options
 	}
 
 
-	namespace unstable_dont_use
+	namespace _private
 	{
 		template <typename Char>
 		auto OptionsImpl<Char>::HelpDescription (FormattingConfig<Char> const & config) const -> String
 		{
-			namespace my = ::lambda_options::unstable_dont_use;
+			namespace my = ::lambda_options::_private;
 
 			std::vector<Keyword const *> keywords;
 			for (auto const & info : infos0) {
