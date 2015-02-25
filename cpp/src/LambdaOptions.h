@@ -798,6 +798,7 @@ namespace lambda_options
 
 	public:
 		std::vector<String> names;
+		std::vector<String> exactNames;
 		String desc;
 		String args;
 		String group;
@@ -1161,6 +1162,10 @@ namespace lambda_options
 						}
 					}
 				}
+
+				std::vector<String> & exactNames = kw.exactNames;
+				names.insert(names.end(), exactNames.begin(), exactNames.end());
+				exactNames.clear();
 
 				std::sort(names.begin(), names.end());
 				auto it = std::unique(names.begin(), names.end());
