@@ -1123,15 +1123,16 @@ namespace lambda_options
 			template <typename Func>
 			void AddOption (Keyword const & keyword, Func const & f)
 			{
-				Keyword kw = ApplyKeywordStyle(keyword);
+				Keyword kw = MassageKeyword(keyword);
 				Adder<Func, FuncTraits<Func>::arity>::Add(*this, kw, f);
 			}
 
 
-			Keyword ApplyKeywordStyle (Keyword const & proto)
+			Keyword MassageKeyword (Keyword const & proto)
 			{
 				Keyword kw(proto);
-				for (String & name : kw.names) {
+				std::vector<String> & names = kw.names;
+				for (String & name : names) {
 					switch (config.keywordStyle) {
 						case KeywordStyle::Exact: {
 							continue;
@@ -1139,6 +1140,9 @@ namespace lambda_options
 						case KeywordStyle::Gnu: {
 							if (name.size() == 1) {
 								name.insert(0, 1, '-');
+							}
+							else if (name.size() == 2 && name[0] == '-') {
+								continue;
 							}
 							else {
 								while (!_private::IsPrefixOf("--", name)) {
@@ -1157,6 +1161,11 @@ namespace lambda_options
 						}
 					}
 				}
+
+				std::sort(names.begin(), names.end());
+				auto it = std::unique(names.begin(), names.end());
+				names.erase(it, names.end());
+
 				return kw;
 			}
 
@@ -1707,7 +1716,14 @@ namespace lambda_options
 
 			static bool IsShort (String const & name)
 			{
-				return name.size() == 2 && name.front() == '-';
+				if (name.size() <= 1) {
+					return true;
+				}
+				if (name.size() != 2) {
+					return false;
+				}
+				char const c = name.front();
+				return c == '-' || c == '/';
 			}
 
 			bool FlushWord ()
