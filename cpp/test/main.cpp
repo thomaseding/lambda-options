@@ -127,6 +127,9 @@ static bool Equal (std::vector<T> const & xs, T const (&ys)[N])
 }
 
 
+static auto nop = [] () {};
+
+
 //////////////////////////////////////////////////////////////////////////
 
 
@@ -154,6 +157,12 @@ private:
 	static std::wstring L (std::wstring const & wstr)
 	{
 		return wstr;
+	}
+
+
+	static String Q (char c)
+	{
+		return String(1, c);
 	}
 
 
@@ -1324,15 +1333,13 @@ public:
 
 	static void TestHelpDescription ()
 	{
-		auto nop = [] () {};
-
 		Opts opts(testConfig);
 
 		Keyword kwFoo(Q("foo"));
 		kwFoo.desc = Q("Foo does shtuff.");
 		opts.AddOption(kwFoo, nop);
 
-		Keyword kwBar(Q("bar"), 'b');
+		Keyword kwBar(Q("bar"), Q('b'));
 		kwBar.desc = Q("Bar does even moare shtuff!!!");
 		opts.AddOption(kwBar, nop);
 
@@ -1357,8 +1364,6 @@ public:
 
 	static void TestHelpGroups ()
 	{
-		auto nop = [] () {};
-
 		Opts opts(testConfig);
 
 		Keyword kwFoo(Q("foo"));

@@ -53,7 +53,7 @@ int main (int argc, char ** argv)
 	bool helpRequested = false;
 	std::set<User> users;
 
-	Keyword kwHelp("--help", 'h');
+	Keyword kwHelp("help", "h");
 	kwHelp.desc = "Display this help message.";
 	opts.AddOption(kwHelp, [&] () {
 		helpRequested = true;

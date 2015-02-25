@@ -11,13 +11,13 @@ int main (int argc, char ** argv)
 
 	Options opts;
 
-	opts.AddOption(Keyword("--help", 'h'), [] () {
+	opts.AddOption(Keyword("help", "h"), [] () {
 		std::cout << "--user NAME [AGE]\n";
 	});
-	opts.AddOption("--user", [] (std::string name) {
+	opts.AddOption("user", [] (std::string name) {
 		std::cout << "Name:" << name << "\n";
 	});
-	opts.AddOption("--user", [] (std::string name, unsigned int age) {
+	opts.AddOption("user", [] (std::string name, unsigned int age) {
 		std::cout << "Name:" << name << " Age:" << age << "\n";
 	});
 

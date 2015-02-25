@@ -34,20 +34,20 @@ int main (int argc, char ** argv)
 	bool helpRequested = false;
 	std::set<User> users;
 
-	Keyword kwHelp("--help", 'h');
+	Keyword kwHelp("help", "h");
 	kwHelp.desc = "Display this help message.";
 	opts.AddOption(kwHelp, [&] () {
 		helpRequested = true;
 	});
 
-	Keyword kwUser1("--user");
+	Keyword kwUser1("user");
 	kwUser1.args = "NAME";
 	kwUser1.desc = "Prints user's name with a default age of 0.";
 	opts.AddOption(kwUser1, [&] (std::string name) {
 		users.insert(User(name, 0));
 	});
 
-	Keyword kwUser2("--user");
+	Keyword kwUser2("user");
 	kwUser2.args = "NAME AGE";
 	kwUser2.desc = "Prints user's name and age.";
 	opts.AddOption(kwUser2, [&] (std::string name, unsigned int age) {

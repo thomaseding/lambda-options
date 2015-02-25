@@ -775,12 +775,14 @@ namespace lambda_options
 	template <typename Char>
 	class Keyword {
 		typedef std::basic_string<Char> String;
+		static String const nil;
 
 	public:
-		Keyword ();
-		explicit Keyword (Char shortName);
-		explicit Keyword (String const & longName);
-		Keyword (String const & longName, Char shortName);
+		explicit Keyword (
+			String const & name1 = nil,
+			String const & name2 = nil,
+			String const & name3 = nil,
+			String const & name4 = nil);
 
 		bool NamesCollide (Keyword const & other) const
 		{
@@ -794,15 +796,16 @@ namespace lambda_options
 			return false;
 		}
 
-	private:
-		void Init (String const * longName, Char * shortName);
-
 	public:
 		std::vector<String> names;
 		String desc;
 		String args;
 		String group;
 	};
+
+
+	template <typename Char>
+	typename Keyword<Char>::String const Keyword<Char>::nil;
 
 
 	namespace _private
@@ -1840,41 +1843,18 @@ namespace lambda_options
 
 
 	template <typename Char>
-	Keyword<Char>::Keyword ()
+	Keyword<Char>::Keyword (
+		String const & name1,
+		String const & name2,
+		String const & name3,
+		String const & name4)
 	{
-		Init(nullptr, nullptr);
-	}
-
-
-	template <typename Char>
-	Keyword<Char>::Keyword (Char shortName)
-	{
-		Init(nullptr, &shortName);
-	}
-
-
-	template <typename Char>
-	Keyword<Char>::Keyword (String const & longName)
-	{
-		Init(&longName, nullptr);
-	}
-
-
-	template <typename Char>
-	Keyword<Char>::Keyword (String const & longName, Char shortName)
-	{
-		Init(&longName, &shortName);
-	}
-
-
-	template <typename Char>
-	void Keyword<Char>::Init (String const * longName, Char * shortName)
-	{
-		if (shortName != nullptr) {
-			names.emplace_back(1, *shortName);
-		}
-		if (longName != nullptr) {
-			names.emplace_back(*longName);
+		String const * pNames[] = { &name1, &name2, &name3, &name4 };
+		for (String const * pName : pNames) {
+			if (pName == &nil) {
+				break;
+			}
+			names.push_back(*pName);
 		}
 	}
 
