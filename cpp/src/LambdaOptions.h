@@ -989,6 +989,22 @@ namespace lambda_options
 		};
 
 
+		template <typename T>
+		struct ReturnType {
+			static bool const allowed = false;
+		};
+
+		template <>
+		struct ReturnType<void> {
+			static bool const allowed = true;
+		};
+
+		template <>
+		struct ReturnType<ParseResult> {
+			static bool const allowed = true;
+		};
+
+
 		template <typename Char>
 		class OptionsImpl {
 		public:
@@ -1015,22 +1031,6 @@ namespace lambda_options
 					*p = priority;
 				}
 			}
-
-
-			template <typename T, typename Dummy=void>
-			struct ReturnType {
-				static bool const allowed = false;
-			};
-
-			template <typename Dummy>
-			struct ReturnType<void, Dummy> {
-				static bool const allowed = true;
-			};
-
-			template <typename Dummy>
-			struct ReturnType<ParseResult, Dummy> {
-				static bool const allowed = true;
-			};
 
 
 			template <typename Func, size_t N>
