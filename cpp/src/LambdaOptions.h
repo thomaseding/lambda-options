@@ -203,46 +203,9 @@ namespace lambda_options
 		};
 
 
-		typedef void * V;
 		typedef void (*OpaqueDeleter)(void *);
 		typedef std::unique_ptr<void, OpaqueDeleter> UniqueOpaque;
 		typedef std::vector<UniqueOpaque> OpaqueValues;
-
-
-		inline ParseResult Apply (std::function<ParseResult()> const & func, OpaqueValues const &)
-		{
-			return func();
-		}
-
-
-		inline ParseResult Apply (std::function<ParseResult(V)> const & func, OpaqueValues const & vals)
-		{
-			return func(vals[0].get());
-		}
-
-
-		inline ParseResult Apply (std::function<ParseResult(V,V)> const & func, OpaqueValues const & vals)
-		{
-			return func(vals[0].get(), vals[1].get());
-		}
-
-
-		inline ParseResult Apply (std::function<ParseResult(V,V,V)> const & func, OpaqueValues const & vals)
-		{
-			return func(vals[0].get(), vals[1].get(), vals[2].get());
-		}
-
-
-		inline ParseResult Apply (std::function<ParseResult(V,V,V,V)> const & func, OpaqueValues const & vals)
-		{
-			return func(vals[0].get(), vals[1].get(), vals[2].get(), vals[3].get());
-		}
-
-
-		inline ParseResult Apply (std::function<ParseResult(V,V,V,V,V)> const & func, OpaqueValues const & vals)
-		{
-			return func(vals[0].get(), vals[1].get(), vals[2].get(), vals[3].get(), vals[4].get());
-		}
 	}
 
 
@@ -512,6 +475,12 @@ namespace lambda_options
 		}
 
 		template <typename T>
+		static T && ReifyOpaque (UniqueOpaque & p)
+		{
+			return ReifyOpaque<T>(p.get());
+		}
+
+		template <typename T>
 		static void Delete (void * p)
 		{
 			delete static_cast<T *>(p);
@@ -526,10 +495,10 @@ namespace lambda_options
 		}
 
 		template <typename Char, typename T>
-		static UniqueOpaque OpaqueParse (lambda_options::ParseState<Char> & parseState)
+		static UniqueOpaque OpaqueParse (ParseState<Char> & parseState)
 		{
-			lambda_options::Maybe<T> maybe;
-			if (lambda_options::Parse<Char, T>(parseState, maybe)) {
+			Maybe<T> maybe;
+			if (Parse<Char, T>(parseState, maybe)) {
 				return UniqueOpaque(AllocateCopy(std::move(*maybe)).release(), Delete<T>);
 			}
 			return UniqueOpaque(static_cast<T *>(nullptr), Delete<T>);
@@ -899,25 +868,30 @@ namespace lambda_options
 	}
 
 
-	template <typename Char, typename FuncSig>
+	template <typename Char>
 	class OptInfo {
 	public:
-		OptInfo (Keyword<Char> const & keyword, std::function<FuncSig> const & callback)
+		typedef std::function<ParseResult(_private::OpaqueValues &)> Callback;
+
+		OptInfo (Keyword<Char> const & keyword, Callback const & callback)
 			: keyword(keyword)
 			, callback(callback)
 		{}
+
 		OptInfo (OptInfo && other)
 			: keyword(std::move(other.keyword))
 			, callback(std::move(other.callback))
 			, typeKinds(std::move(other.typeKinds))
 		{}
+
 		bool operator== (OptInfo const & other) const
 		{
 			return keyword.NamesCollide(other.keyword) && typeKinds == other.typeKinds;
 		}
+
 	public:
 		Keyword<Char> keyword;
-		std::function<FuncSig> callback;
+		Callback callback;
 		std::vector<_private::TypeKind> typeKinds;
 	};
 
@@ -932,47 +906,32 @@ namespace lambda_options
 	};
 
 	template <typename X, typename R, typename A>
-	struct FuncTraits<R(X::*)(A) const> {
+	struct FuncTraits<R(X::*)(A) const> : FuncTraits<R(X::*)() const> {
 		enum { arity = 1 };
-		struct Return { typedef R type; };
 		struct Arg0 { typedef A type; };
 	};
 
 	template <typename X, typename R, typename A, typename B>
-	struct FuncTraits<R(X::*)(A, B) const> {
+	struct FuncTraits<R(X::*)(A, B) const> : FuncTraits<R(X::*)(A) const> {
 		enum { arity = 2 };
-		struct Return { typedef R type; };
-		struct Arg0 { typedef A type; };
 		struct Arg1 { typedef B type; };
 	};
 
 	template <typename X, typename R, typename A, typename B, typename C>
-	struct FuncTraits<R(X::*)(A, B, C) const> {
+	struct FuncTraits<R(X::*)(A, B, C) const> : FuncTraits<R(X::*)(A, B) const> {
 		enum { arity = 3 };
-		struct Return { typedef R type; };
-		struct Arg0 { typedef A type; };
-		struct Arg1 { typedef B type; };
 		struct Arg2 { typedef C type; };
 	};
 
 	template <typename X, typename R, typename A, typename B, typename C, typename D>
-	struct FuncTraits<R(X::*)(A, B, C, D) const> {
+	struct FuncTraits<R(X::*)(A, B, C, D) const> : FuncTraits<R(X::*)(A, B, C) const> {
 		enum { arity = 4 };
-		struct Return { typedef R type; };
-		struct Arg0 { typedef A type; };
-		struct Arg1 { typedef B type; };
-		struct Arg2 { typedef C type; };
 		struct Arg3 { typedef D type; };
 	};
 
 	template <typename X, typename R, typename A, typename B, typename C, typename D, typename E>
-	struct FuncTraits<R(X::*)(A, B, C, D, E) const> {
+	struct FuncTraits<R(X::*)(A, B, C, D, E) const> : FuncTraits<R(X::*)(A, B, C, D) const> {
 		enum { arity = 5 };
-		struct Return { typedef R type; };
-		struct Arg0 { typedef A type; };
-		struct Arg1 { typedef B type; };
-		struct Arg2 { typedef C type; };
-		struct Arg3 { typedef D type; };
 		struct Arg4 { typedef E type; };
 	};
 
@@ -984,7 +943,7 @@ namespace lambda_options
 
 		template <typename Char>
 		struct OpaqueParser {
-			typedef UniqueOpaque (*Type)(lambda_options::ParseState<Char> &);
+			typedef UniqueOpaque (*Type)(ParseState<Char> &);
 		};
 
 		template <typename Char>
@@ -1026,8 +985,7 @@ namespace lambda_options
 
 			void SetGroupPriority (String const & group, Priority priority)
 			{
-				namespace my = lambda_options::_private;
-				Priority * p = my::Lookup(groupPriorities, group);
+				Priority * p = _private::Lookup(groupPriorities, group);
 				if (p == nullptr) {
 					groupPriorities.emplace_back(group, priority);
 				}
@@ -1180,6 +1138,14 @@ namespace lambda_options
 				return "Cannot add an option that has the same keyword and function signature of another option.";
 			}
 
+			std::vector<OptInfo<Char>> & InfosByArity (size_t arity)
+			{
+				if (infosByArity.size() <= arity) {
+					infosByArity.resize(arity + 1);
+				}
+				return infosByArity[arity];
+			}
+
 			void AddImpl (Tag<void>, Keyword const & keyword, std::function<void()> const & func)
 			{
 				AddImpl(Tag<ParseResult>(), keyword, [=] () {
@@ -1191,13 +1157,17 @@ namespace lambda_options
 			void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult()> const & func)
 			{
 				if (keyword.names.empty()) {
-					throw lambda_options::OptionException("Cannot add an empty option.");
+					throw OptionException("Cannot add an empty option.");
 				}
-				infos0.emplace_back(keyword, func);
-				auto & info = infos0.back();
-				if (lambda_options::_private::Contains(infos0.begin(), infos0.end() - 1, info)) {
-					infos0.pop_back();
-					throw lambda_options::OptionException(ConflictingOptionMessage());
+				auto wrapper = [=] (OpaqueValues &) {
+					return func();
+				};
+				auto & infos = InfosByArity(0);
+				infos.emplace_back(keyword, wrapper);
+				auto & info = infos.back();
+				if (_private::Contains(infos.begin(), infos.end() - 1, info)) {
+					infos.pop_back();
+					throw OptionException(ConflictingOptionMessage());
 				}
 			}
 
@@ -1214,16 +1184,17 @@ namespace lambda_options
 			void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult(A)> const & func)
 			{
 				typedef typename SimplifyType<A>::type A2;
-				auto wrapper = [=] (V va) {
-					A2 && a = ReifyOpaque<A2>(va);
+				auto wrapper = [=] (OpaqueValues & vals) {
+					A2 && a = ReifyOpaque<A2>(vals[0]);
 					return func(std::forward<A>(a));
 				};
-				infos1.emplace_back(keyword, wrapper);
-				auto & info = infos1.back();
+				auto & infos = InfosByArity(1);
+				infos.emplace_back(keyword, wrapper);
+				auto & info = infos.back();
 				PushTypeKind<A2>(info.typeKinds);
-				if (lambda_options::_private::Contains(infos1.begin(), infos1.end() - 1, info)) {
-					infos1.pop_back();
-					throw lambda_options::OptionException(ConflictingOptionMessage());
+				if (_private::Contains(infos.begin(), infos.end() - 1, info)) {
+					infos.pop_back();
+					throw OptionException(ConflictingOptionMessage());
 				}
 			}
 
@@ -1241,18 +1212,19 @@ namespace lambda_options
 			{
 				typedef typename SimplifyType<A>::type A2;
 				typedef typename SimplifyType<B>::type B2;
-				auto wrapper = [=] (V va, V vb) {
-					A2 && a = ReifyOpaque<A2>(va);
-					B2 && b = ReifyOpaque<B2>(vb);
+				auto wrapper = [=] (OpaqueValues & vals) {
+					A2 && a = ReifyOpaque<A2>(vals[0]);
+					B2 && b = ReifyOpaque<B2>(vals[1]);
 					return func(std::forward<A>(a), std::forward<B>(b));
 				};
-				infos2.emplace_back(keyword, wrapper);
-				auto & info = infos2.back();
+				auto & infos = InfosByArity(2);
+				infos.emplace_back(keyword, wrapper);
+				auto & info = infos.back();
 				PushTypeKind<A2>(info.typeKinds);
 				PushTypeKind<B2>(info.typeKinds);
-				if (lambda_options::_private::Contains(infos2.begin(), infos2.end() - 1, info)) {
-					infos2.pop_back();
-					throw lambda_options::OptionException(ConflictingOptionMessage());
+				if (_private::Contains(infos.begin(), infos.end() - 1, info)) {
+					infos.pop_back();
+					throw OptionException(ConflictingOptionMessage());
 				}
 			}
 
@@ -1271,20 +1243,21 @@ namespace lambda_options
 				typedef typename SimplifyType<A>::type A2;
 				typedef typename SimplifyType<B>::type B2;
 				typedef typename SimplifyType<C>::type C2;
-				auto wrapper = [=] (V va, V vb, V vc) {
-					A2 && a = ReifyOpaque<A2>(va);
-					B2 && b = ReifyOpaque<B2>(vb);
-					C2 && c = ReifyOpaque<C2>(vc);
+				auto wrapper = [=] (OpaqueValues & vals) {
+					A2 && a = ReifyOpaque<A2>(vals[0]);
+					B2 && b = ReifyOpaque<B2>(vals[1]);
+					C2 && c = ReifyOpaque<C2>(vals[2]);
 					return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c));
 				};
-				infos3.emplace_back(keyword, wrapper);
-				auto & info = infos3.back();
+				auto & infos = InfosByArity(3);
+				infos.emplace_back(keyword, wrapper);
+				auto & info = infos.back();
 				PushTypeKind<A2>(info.typeKinds);
 				PushTypeKind<B2>(info.typeKinds);
 				PushTypeKind<C2>(info.typeKinds);
-				if (lambda_options::_private::Contains(infos3.begin(), infos3.end() - 1, info)) {
-					infos3.pop_back();
-					throw lambda_options::OptionException(ConflictingOptionMessage());
+				if (_private::Contains(infos.begin(), infos.end() - 1, info)) {
+					infos.pop_back();
+					throw OptionException(ConflictingOptionMessage());
 				}
 			}
 
@@ -1304,22 +1277,23 @@ namespace lambda_options
 				typedef typename SimplifyType<B>::type B2;
 				typedef typename SimplifyType<C>::type C2;
 				typedef typename SimplifyType<D>::type D2;
-				auto wrapper = [=] (V va, V vb, V vc, V vd) {
-					A2 && a = ReifyOpaque<A2>(va);
-					B2 && b = ReifyOpaque<B2>(vb);
-					C2 && c = ReifyOpaque<C2>(vc);
-					D2 && d = ReifyOpaque<D2>(vd);
+				auto wrapper = [=] (OpaqueValues & vals) {
+					A2 && a = ReifyOpaque<A2>(vals[0]);
+					B2 && b = ReifyOpaque<B2>(vals[1]);
+					C2 && c = ReifyOpaque<C2>(vals[2]);
+					D2 && d = ReifyOpaque<D2>(vals[3]);
 					return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d));
 				};
-				infos4.emplace_back(keyword, wrapper);
-				auto & info = infos4.back();
+				auto & infos = InfosByArity(4);
+				infos.emplace_back(keyword, wrapper);
+				auto & info = infos.back();
 				PushTypeKind<A2>(info.typeKinds);
 				PushTypeKind<B2>(info.typeKinds);
 				PushTypeKind<C2>(info.typeKinds);
 				PushTypeKind<D2>(info.typeKinds);
-				if (lambda_options::_private::Contains(infos4.begin(), infos4.end() - 1, info)) {
-					infos4.pop_back();
-					throw lambda_options::OptionException(ConflictingOptionMessage());
+				if (_private::Contains(infos.begin(), infos.end() - 1, info)) {
+					infos.pop_back();
+					throw OptionException(ConflictingOptionMessage());
 				}
 			}
 
@@ -1340,24 +1314,25 @@ namespace lambda_options
 				typedef typename SimplifyType<C>::type C2;
 				typedef typename SimplifyType<D>::type D2;
 				typedef typename SimplifyType<E>::type E2;
-				auto wrapper = [=] (V va, V vb, V vc, V vd, V ve) {
-					A2 && a = ReifyOpaque<A2>(va);
-					B2 && b = ReifyOpaque<B2>(vb);
-					C2 && c = ReifyOpaque<C2>(vc);
-					D2 && d = ReifyOpaque<D2>(vd);
-					E2 && e = ReifyOpaque<E2>(ve);
+				auto wrapper = [=] (OpaqueValues & vals) {
+					A2 && a = ReifyOpaque<A2>(vals[0]);
+					B2 && b = ReifyOpaque<B2>(vals[1]);
+					C2 && c = ReifyOpaque<C2>(vals[2]);
+					D2 && d = ReifyOpaque<D2>(vals[3]);
+					E2 && e = ReifyOpaque<E2>(vals[4]);
 					return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e));
 				};
-				infos5.emplace_back(keyword, wrapper);
-				auto & info = infos5.back();
+				auto & infos = InfosByArity(5);
+				infos.emplace_back(keyword, wrapper);
+				auto & info = infos.back();
 				PushTypeKind<A2>(info.typeKinds);
 				PushTypeKind<B2>(info.typeKinds);
 				PushTypeKind<C2>(info.typeKinds);
 				PushTypeKind<D2>(info.typeKinds);
 				PushTypeKind<E2>(info.typeKinds);
-				if (lambda_options::_private::Contains(infos5.begin(), infos5.end() - 1, info)) {
-					infos5.pop_back();
-					throw lambda_options::OptionException(ConflictingOptionMessage());
+				if (_private::Contains(infos.begin(), infos.end() - 1, info)) {
+					infos.pop_back();
+					throw OptionException(ConflictingOptionMessage());
 				}
 			}
 
@@ -1365,9 +1340,8 @@ namespace lambda_options
 			template <typename T>
 			void AddDynamicParser ()
 			{
-				namespace my = ::lambda_options::_private;
 				TypeKind typeKind = TypeKind::Get<T>();
-				if (my::Lookup(dynamicParserMap, typeKind) == nullptr) {
+				if (_private::Lookup(dynamicParserMap, typeKind) == nullptr) {
 					auto parser = OpaqueParse<Char, T>;
 					dynamicParserMap.emplace_back(std::move(typeKind), parser);
 				}
@@ -1376,8 +1350,7 @@ namespace lambda_options
 
 			typename OpaqueParser<Char>::Type LookupDynamicParser (TypeKind const & k) const
 			{
-				namespace my = ::lambda_options::_private;
-				auto const * pParser = my::Lookup(dynamicParserMap, k);
+				auto const * pParser = _private::Lookup(dynamicParserMap, k);
 				ASSERT(__LINE__, pParser != nullptr);
 				return *pParser;
 			}
@@ -1395,18 +1368,13 @@ namespace lambda_options
 			typename DynamicParserMap<Char>::Type dynamicParserMap;
 			std::vector<std::pair<String, Priority>> groupPriorities;
 			OptionsConfig config;
-			std::vector<OptInfo<Char, ParseResult()>> infos0;
-			std::vector<OptInfo<Char, ParseResult(V)>> infos1;
-			std::vector<OptInfo<Char, ParseResult(V,V)>> infos2;
-			std::vector<OptInfo<Char, ParseResult(V,V,V)>> infos3;
-			std::vector<OptInfo<Char, ParseResult(V,V,V,V)>> infos4;
-			std::vector<OptInfo<Char, ParseResult(V,V,V,V,V)>> infos5;
+			std::vector<std::vector<OptInfo<Char>>> infosByArity;
 		};
 
 
 		template <typename Char>
 		class ParseContextImpl {
-			friend class lambda_options::ArgsIter<Char>;
+			friend class ArgsIter<Char>;
 
 			typedef lambda_options::_private::OptionsImpl<Char> OptionsImpl;
 			typedef std::basic_string<Char> String;
@@ -1437,7 +1405,7 @@ namespace lambda_options
 					return;
 				}
 				size_t currArgIndex = static_cast<size_t>(iter.iter - begin.iter);
-				throw lambda_options::ParseFailedException(currArgIndex, highestArgIndex);
+				throw ParseFailedException(currArgIndex, highestArgIndex);
 			}
 
 		private:
@@ -1479,17 +1447,16 @@ namespace lambda_options
 				return false;
 			}
 
-			template <typename GenericOptInfo>
-			ParseResult TryParse (bool useKeyword, std::vector<GenericOptInfo> const & infos)
+			ParseResult TryParse (bool useKeyword, std::vector<OptInfo<Char>> const & infos)
 			{
 				if (infos.empty()) {
 					return ParseResult::Reject;
 				}
-				size_t const arity = infos.front().typeKinds.size();
 
 				auto const startIter = iter;
 
 				for (auto const & info : infos) {
+					size_t const arity = info.typeKinds.size();
 					if (info.keyword.names.empty() == useKeyword) {
 						continue;
 					}
@@ -1499,7 +1466,7 @@ namespace lambda_options
 						ASSERT(__LINE__, typeKinds.size() == arity);
 						OpaqueValues parsedArgs = ParseArgs(typeKinds);
 						if (parsedArgs.size() == arity) {
-							ParseResult res = Apply(info.callback, parsedArgs);
+							ParseResult res = info.callback(parsedArgs);
 							switch (res) {
 								case ParseResult::Accept: {
 									return ParseResult::Accept;
@@ -1523,36 +1490,29 @@ namespace lambda_options
 				return ParseResult::Reject;
 			}
 
+			ParseResult TryParse (std::vector<std::vector<OptInfo<Char>>> const & infosByArity)
+			{
+				ParseResult res = ParseResult::Reject;
+				bool const useKeywordState[] = { true, false };
+				for (bool useKeyword : useKeywordState) {
+					auto const end = infosByArity.rend();
+					for (auto it = infosByArity.rbegin(); it != end; ++it) {
+						auto & infos = *it;
+						res = TryParse(useKeyword, infos);
+						if (res != ParseResult::Reject) {
+							return res;
+						}
+					}
+				}
+				return res;
+			}
+
 			bool TryParse ()
 			{
 				if (iter == end) {
 					return false;
 				}
-
-				ParseResult res = ParseResult::Reject;
-
-				bool const useKeywordState[] = { true, false };
-				for (bool useKeyword : useKeywordState) {
-					if (res == ParseResult::Reject) {
-						res = TryParse(useKeyword, opts->infos5);
-					}
-					if (res == ParseResult::Reject) {
-						res = TryParse(useKeyword, opts->infos4);
-					}
-					if (res == ParseResult::Reject) {
-						res = TryParse(useKeyword, opts->infos3);
-					}
-					if (res == ParseResult::Reject) {
-						res = TryParse(useKeyword, opts->infos2);
-					}
-					if (res == ParseResult::Reject) {
-						res = TryParse(useKeyword, opts->infos1);
-					}
-					if (res == ParseResult::Reject) {
-						res = TryParse(useKeyword, opts->infos0);
-					}
-				}
-
+				ParseResult res = TryParse(opts->infosByArity);
 				switch (res) {
 					case ParseResult::Accept: return true;
 					case ParseResult::Reject: return false;
@@ -1567,10 +1527,10 @@ namespace lambda_options
 		public:
 			std::shared_ptr<OptionsImpl const> opts;
 			std::vector<String> args;
-			lambda_options::ArgsIter<Char> const begin;
-			lambda_options::ArgsIter<Char> const end;
-			lambda_options::ArgsIter<Char> iter;
-			lambda_options::ParseState<Char> parseState;
+			ArgsIter<Char> const begin;
+			ArgsIter<Char> const end;
+			ArgsIter<Char> iter;
+			ParseState<Char> parseState;
 			size_t highestArgIndex;
 		};
 	}
@@ -1580,7 +1540,7 @@ namespace lambda_options
 	class Options {
 	private:
 		typedef lambda_options::_private::OptionsImpl<Char> OptionsImpl;
-		friend class lambda_options::ArgsIter<Char>;
+		friend class ArgsIter<Char>;
 		typedef std::basic_string<Char> String;
 
 	public:
@@ -1669,9 +1629,8 @@ namespace lambda_options
 		private:
 			bool AllowGroup (String const & group) const
 			{
-				namespace my = lambda_options::_private;
 				return config.groupFilter.empty() 
-					|| my::Contains(config.groupFilter.begin(), config.groupFilter.end(), group);
+					|| _private::Contains(config.groupFilter.begin(), config.groupFilter.end(), group);
 			}
 
 			void FormatKeywordNames (Keyword<Char> const & keyword)
@@ -1904,30 +1863,15 @@ namespace lambda_options
 		template <typename Char>
 		auto OptionsImpl<Char>::HelpDescription (FormattingConfig<Char> const & config) const -> String
 		{
-			namespace my = ::lambda_options::_private;
-
 			std::vector<Keyword const *> keywords;
-			for (auto const & info : infos0) {
-				keywords.push_back(&info.keyword);
-			};
-			for (auto const & info : infos1) {
-				keywords.push_back(&info.keyword);
-			};
-			for (auto const & info : infos2) {
-				keywords.push_back(&info.keyword);
-			};
-			for (auto const & info : infos3) {
-				keywords.push_back(&info.keyword);
-			};
-			for (auto const & info : infos4) {
-				keywords.push_back(&info.keyword);
-			};
-			for (auto const & info : infos5) {
-				keywords.push_back(&info.keyword);
-			};
+			for (auto const & infos : infosByArity) {
+				for (auto const & info : infos) {
+					keywords.push_back(&info.keyword);
+				}
+			}
 
 			auto getPriority = [&] (String const & group) {
-				Priority const * pPriority = my::Lookup(groupPriorities, group);
+				Priority const * pPriority = _private::Lookup(groupPriorities, group);
 				if (pPriority) {
 					return *pPriority;
 				}
