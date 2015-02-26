@@ -7,9 +7,7 @@
 * Test KeywordStyle.
 * Optional short option cluster parsing.
 * Create a Haskell port.
-* Store callback functions uniformly, such that the engine is not limited to hard coded arities. This will improve the design of the library and make the change to vararg template easy (when I ditch support for compilers that don't support vararg templates).
 * Template alias in `lambda_options::with_char` when I drop support of vc11.
 * Support `Maybe<T>` copy/move constructor/assignment.
 * Add `RawParser` specialization for `Maybe<T>`.
 * Make `NamesCollide` private.
-* Clean up internal namespace use.
