@@ -873,26 +873,22 @@ namespace lambda_options
 	public:
 		typedef std::function<ParseResult(_private::OpaqueValues &)> Callback;
 
-		OptInfo (Keyword<Char> const & keyword, Callback const & callback)
+		OptInfo (Keyword<Char> const & keyword, std::vector<_private::TypeKind> && typeKinds, Callback const & callback)
 			: keyword(keyword)
+			, typeKinds(std::move(typeKinds))
 			, callback(callback)
 		{}
 
 		OptInfo (OptInfo && other)
 			: keyword(std::move(other.keyword))
-			, callback(std::move(other.callback))
 			, typeKinds(std::move(other.typeKinds))
+			, callback(std::move(other.callback))
 		{}
-
-		bool operator== (OptInfo const & other) const
-		{
-			return keyword.NamesCollide(other.keyword) && typeKinds == other.typeKinds;
-		}
 
 	public:
 		Keyword<Char> keyword;
-		Callback callback;
 		std::vector<_private::TypeKind> typeKinds;
+		Callback callback;
 	};
 
 
@@ -1133,17 +1129,18 @@ namespace lambda_options
 			}
 
 
-			static char const * ConflictingOptionMessage ()
-			{
-				return "Cannot add an option that has the same keyword and function signature of another option.";
-			}
-
-			std::vector<OptInfo<Char>> & InfosByArity (size_t arity)
+			void NewInfo (Keyword const & keyword, std::vector<TypeKind> & typeKinds, typename OptInfo<Char>::Callback const & func, size_t arity)
 			{
 				if (infosByArity.size() <= arity) {
 					infosByArity.resize(arity + 1);
 				}
-				return infosByArity[arity];
+				auto & infos = infosByArity[arity];
+				for (auto & info : infos) {
+					if (info.keyword.NamesCollide(keyword) && info.typeKinds == typeKinds) {
+						throw OptionException("Cannot add an option that has the same keyword and function signature of another option.");
+					}
+				}
+				infos.emplace_back(keyword, std::move(typeKinds), func);
 			}
 
 			void AddImpl (Tag<void>, Keyword const & keyword, std::function<void()> const & func)
@@ -1162,13 +1159,8 @@ namespace lambda_options
 				auto wrapper = [=] (OpaqueValues &) {
 					return func();
 				};
-				auto & infos = InfosByArity(0);
-				infos.emplace_back(keyword, wrapper);
-				auto & info = infos.back();
-				if (_private::Contains(infos.begin(), infos.end() - 1, info)) {
-					infos.pop_back();
-					throw OptionException(ConflictingOptionMessage());
-				}
+				std::vector<TypeKind> typeKinds;
+				NewInfo(keyword, typeKinds, wrapper, 0);
 			}
 
 			template <typename A>
@@ -1188,14 +1180,9 @@ namespace lambda_options
 					A2 && a = ReifyOpaque<A2>(vals[0]);
 					return func(std::forward<A>(a));
 				};
-				auto & infos = InfosByArity(1);
-				infos.emplace_back(keyword, wrapper);
-				auto & info = infos.back();
-				PushTypeKind<A2>(info.typeKinds);
-				if (_private::Contains(infos.begin(), infos.end() - 1, info)) {
-					infos.pop_back();
-					throw OptionException(ConflictingOptionMessage());
-				}
+				std::vector<TypeKind> typeKinds;
+				PushTypeKind<A2>(typeKinds);
+				NewInfo(keyword, typeKinds, wrapper, 1);
 			}
 
 			template <typename A, typename B>
@@ -1217,15 +1204,10 @@ namespace lambda_options
 					B2 && b = ReifyOpaque<B2>(vals[1]);
 					return func(std::forward<A>(a), std::forward<B>(b));
 				};
-				auto & infos = InfosByArity(2);
-				infos.emplace_back(keyword, wrapper);
-				auto & info = infos.back();
-				PushTypeKind<A2>(info.typeKinds);
-				PushTypeKind<B2>(info.typeKinds);
-				if (_private::Contains(infos.begin(), infos.end() - 1, info)) {
-					infos.pop_back();
-					throw OptionException(ConflictingOptionMessage());
-				}
+				std::vector<TypeKind> typeKinds;
+				PushTypeKind<A2>(typeKinds);
+				PushTypeKind<B2>(typeKinds);
+				NewInfo(keyword, typeKinds, wrapper, 2);
 			}
 
 			template <typename A, typename B, typename C>
@@ -1249,16 +1231,11 @@ namespace lambda_options
 					C2 && c = ReifyOpaque<C2>(vals[2]);
 					return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c));
 				};
-				auto & infos = InfosByArity(3);
-				infos.emplace_back(keyword, wrapper);
-				auto & info = infos.back();
-				PushTypeKind<A2>(info.typeKinds);
-				PushTypeKind<B2>(info.typeKinds);
-				PushTypeKind<C2>(info.typeKinds);
-				if (_private::Contains(infos.begin(), infos.end() - 1, info)) {
-					infos.pop_back();
-					throw OptionException(ConflictingOptionMessage());
-				}
+				std::vector<TypeKind> typeKinds;
+				PushTypeKind<A2>(typeKinds);
+				PushTypeKind<B2>(typeKinds);
+				PushTypeKind<C2>(typeKinds);
+				NewInfo(keyword, typeKinds, wrapper, 3);
 			}
 
 			template <typename A, typename B, typename C, typename D>
@@ -1284,17 +1261,12 @@ namespace lambda_options
 					D2 && d = ReifyOpaque<D2>(vals[3]);
 					return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d));
 				};
-				auto & infos = InfosByArity(4);
-				infos.emplace_back(keyword, wrapper);
-				auto & info = infos.back();
-				PushTypeKind<A2>(info.typeKinds);
-				PushTypeKind<B2>(info.typeKinds);
-				PushTypeKind<C2>(info.typeKinds);
-				PushTypeKind<D2>(info.typeKinds);
-				if (_private::Contains(infos.begin(), infos.end() - 1, info)) {
-					infos.pop_back();
-					throw OptionException(ConflictingOptionMessage());
-				}
+				std::vector<TypeKind> typeKinds;
+				PushTypeKind<A2>(typeKinds);
+				PushTypeKind<B2>(typeKinds);
+				PushTypeKind<C2>(typeKinds);
+				PushTypeKind<D2>(typeKinds);
+				NewInfo(keyword, typeKinds, wrapper, 4);
 			}
 
 			template <typename A, typename B, typename C, typename D, typename E>
@@ -1322,18 +1294,13 @@ namespace lambda_options
 					E2 && e = ReifyOpaque<E2>(vals[4]);
 					return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e));
 				};
-				auto & infos = InfosByArity(5);
-				infos.emplace_back(keyword, wrapper);
-				auto & info = infos.back();
-				PushTypeKind<A2>(info.typeKinds);
-				PushTypeKind<B2>(info.typeKinds);
-				PushTypeKind<C2>(info.typeKinds);
-				PushTypeKind<D2>(info.typeKinds);
-				PushTypeKind<E2>(info.typeKinds);
-				if (_private::Contains(infos.begin(), infos.end() - 1, info)) {
-					infos.pop_back();
-					throw OptionException(ConflictingOptionMessage());
-				}
+				std::vector<TypeKind> typeKinds;
+				PushTypeKind<A2>(typeKinds);
+				PushTypeKind<B2>(typeKinds);
+				PushTypeKind<C2>(typeKinds);
+				PushTypeKind<D2>(typeKinds);
+				PushTypeKind<E2>(typeKinds);
+				NewInfo(keyword, typeKinds, wrapper, 5);
 			}
 
 
