@@ -142,6 +142,7 @@ private:
 	typedef lambda_options::Keyword<Char> Keyword;
 	typedef lambda_options::FormattingConfig<Char> FormattingConfig;
 	typedef lambda_options::OptionsConfig OptionsConfig;
+	typedef lambda_options::KeywordStyle KeywordStyle;
 
 
 	static std::wstring L (std::string const & str)
@@ -1427,6 +1428,97 @@ public:
 			printString(desc);
 		}
 	}
+
+
+	static void TestKeywordStyle ()
+	{
+		static_assert(KeywordStyle::Default == KeywordStyle::Gnu, "whoops");
+
+		auto testStyle = [&] (KeywordStyle style, String const & inputName, String const expectedName) {
+			std::wstringstream ss;
+
+			OptionsConfig config;
+			config.keywordStyle = style;
+			Opts opts(config);
+
+			opts.AddOption(inputName, [&] () {
+				DumpMemo(ss, L(inputName));
+			});
+			opts.AddOption(empty, [&] (String s) {
+				Dump(ss, s);
+			});
+
+			std::vector<String> args;
+			std::wstringstream expected;
+
+			auto pushArg = [&] (String const & arg) {
+				args.push_back(arg);
+				if (arg == expectedName) {
+					DumpMemo(expected, L(inputName));
+				}
+				else {
+					Dump(expected, arg);
+				}
+			};
+
+			pushArg(Q("foo"));
+			pushArg(Q("-foo"));
+			pushArg(Q("--foo"));
+			pushArg(Q("---foo"));
+			pushArg(Q("/foo"));
+			pushArg(Q("//foo"));
+			pushArg(Q(""));
+			pushArg(Q("f"));
+			pushArg(Q("-"));
+			pushArg(Q("/"));
+			pushArg(Q("-f"));
+			pushArg(Q("/f"));
+			pushArg(Q("--f"));
+			pushArg(Q("//f"));
+
+			auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+			parseContext.Run();
+		};
+
+		testStyle(KeywordStyle::Exact, Q(""), Q(""));
+		testStyle(KeywordStyle::Exact, Q("f"), Q("f"));
+		testStyle(KeywordStyle::Exact, Q("-f"), Q("-f"));
+		testStyle(KeywordStyle::Exact, Q("--f"), Q("--f"));
+		testStyle(KeywordStyle::Exact, Q("/f"), Q("/f"));
+		testStyle(KeywordStyle::Exact, Q("//f"), Q("//f"));
+		testStyle(KeywordStyle::Exact, Q("foo"), Q("foo"));
+		testStyle(KeywordStyle::Exact, Q("-foo"), Q("-foo"));
+		testStyle(KeywordStyle::Exact, Q("--foo"), Q("--foo"));
+		testStyle(KeywordStyle::Exact, Q("---foo"), Q("---foo"));
+		testStyle(KeywordStyle::Exact, Q("/foo"), Q("/foo"));
+		testStyle(KeywordStyle::Exact, Q("//foo"), Q("//foo"));
+
+		testStyle(KeywordStyle::Gnu, Q(""), Q(""));
+		testStyle(KeywordStyle::Gnu, Q("f"), Q("-f"));
+		testStyle(KeywordStyle::Gnu, Q("-f"), Q("-f"));
+		testStyle(KeywordStyle::Gnu, Q("--f"), Q("--f"));
+		testStyle(KeywordStyle::Gnu, Q("/f"), Q("--/f"));
+		testStyle(KeywordStyle::Gnu, Q("//f"), Q("--//f"));
+		testStyle(KeywordStyle::Gnu, Q("foo"), Q("--foo"));
+		testStyle(KeywordStyle::Gnu, Q("-foo"), Q("--foo"));
+		testStyle(KeywordStyle::Gnu, Q("--foo"), Q("--foo"));
+		testStyle(KeywordStyle::Gnu, Q("---foo"), Q("---foo"));
+		testStyle(KeywordStyle::Gnu, Q("/foo"), Q("--/foo"));
+		testStyle(KeywordStyle::Gnu, Q("//foo"), Q("--//foo"));
+
+		testStyle(KeywordStyle::Windows, Q(""), Q(""));
+		testStyle(KeywordStyle::Windows, Q("f"), Q("/f"));
+		testStyle(KeywordStyle::Windows, Q("-f"), Q("/-f"));
+		testStyle(KeywordStyle::Windows, Q("--f"), Q("/--f"));
+		testStyle(KeywordStyle::Windows, Q("/f"), Q("/f"));
+		testStyle(KeywordStyle::Windows, Q("//f"), Q("//f"));
+		testStyle(KeywordStyle::Windows, Q("foo"), Q("/foo"));
+		testStyle(KeywordStyle::Windows, Q("-foo"), Q("/-foo"));
+		testStyle(KeywordStyle::Windows, Q("--foo"), Q("/--foo"));
+		testStyle(KeywordStyle::Windows, Q("---foo"), Q("/---foo"));
+		testStyle(KeywordStyle::Windows, Q("/foo"), Q("/foo"));
+		testStyle(KeywordStyle::Windows, Q("//foo"), Q("//foo"));
+	}
 };
 
 
@@ -1468,6 +1560,7 @@ static bool RunCharTests ()
 		Tests<Char>::TestMaybeLifetime,
 		Tests<Char>::TestHelpDescription,
 		Tests<Char>::TestHelpGroups,
+		Tests<Char>::TestKeywordStyle,
 	};
 
 	try {

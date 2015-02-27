@@ -4,7 +4,6 @@
 * Add more examples.
 * Flesh out `Keyword::desc`/`Options<Char>::HelpDescription` a little more.
 * Keyword match modes: Case-insensitive, relaxed dashes, relaxed underscores.
-* Test KeywordStyle.
 * Optional short option cluster parsing.
 * Create a Haskell port.
 * Template alias in `lambda_options::with_char` when I drop support of vc11.
