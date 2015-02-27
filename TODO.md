@@ -9,4 +9,3 @@
 * Template alias in `lambda_options::with_char` when I drop support of vc11.
 * Support `Maybe<T>` copy/move constructor/assignment.
 * Add `RawParser` specialization for `Maybe<T>`.
-* Make `NamesCollide` private.

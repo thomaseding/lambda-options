@@ -753,18 +753,6 @@ namespace lambda_options
 			String const & name3 = nil,
 			String const & name4 = nil);
 
-		bool NamesCollide (Keyword const & other) const
-		{
-			for (String const & name : names) {
-				for (String const & otherName : other.names) {
-					if (name == otherName) {
-						return true;
-					}
-				}
-			}
-			return false;
-		}
-
 	public:
 		std::vector<String> names;
 		std::vector<String> exactNames;
@@ -1129,6 +1117,22 @@ namespace lambda_options
 			}
 
 
+			static bool Intersecting (Keyword const & kw1, Keyword const & kw2)
+			{
+				ASSERT(__LINE__, kw1.exactNames.empty());
+				ASSERT(__LINE__, kw2.exactNames.empty());
+
+				for (String const & name : kw1.names) {
+					for (String const & otherName : kw2.names) {
+						if (name == otherName) {
+							return true;
+						}
+					}
+				}
+				return false;
+			}
+
+
 			void NewInfo (Keyword const & keyword, std::vector<TypeKind> & typeKinds, typename OptInfo<Char>::Callback const & func, size_t arity)
 			{
 				if (infosByArity.size() <= arity) {
@@ -1136,7 +1140,7 @@ namespace lambda_options
 				}
 				auto & infos = infosByArity[arity];
 				for (auto & info : infos) {
-					if (info.keyword.NamesCollide(keyword) && info.typeKinds == typeKinds) {
+					if (Intersecting(keyword, info.keyword) && info.typeKinds == typeKinds) {
 						throw OptionException("Cannot add an option that has the same keyword and function signature of another option.");
 					}
 				}
