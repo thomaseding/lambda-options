@@ -3,8 +3,9 @@
 
 ### High Priority:
 * Write documentation.
-* Write tutorial (Beyond the existing iterative examples; e.g. Match name of cpp files but with *.md)
-* Keyword match modes: Case-insensitive, relaxed dashes, relaxed underscores.
+* Write tutorial (Beyond the existing iterative examples; e.g. Match name of `*.cpp` files but with ``*.md`)
+* Test keyword match flags
+* Match flags need to apply to detecting conflicting keywords.
 
 
 ### Medium Priority:
@@ -15,7 +16,7 @@
 
 
 ### LowPriority:
-* Optional short option cluster parsing.
+* Implement `MatchFlags::GnuShortGrouping`
 * Write a program that generates the repetitive code?
 * Create a Haskell port.
 * Template alias in `lambda_options::with_char` when I drop support of vc11.

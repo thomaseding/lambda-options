@@ -35,6 +35,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
+#include <cwctype>
 #include <exception>
 #include <functional>
 #include <limits>
@@ -710,7 +711,7 @@ namespace lambda_options
 
 	enum class MatchFlags : size_t {
 		Empty              = 0,
-		CaseInsensitive    = 1 << 0,
+		IgnoreAsciiCase    = 1 << 0,
 		RelaxedDashes      = 1 << 1,
 		RelaxedUnderscores = 1 << 2,
 		GnuShortGrouping   = 1 << 3,
@@ -718,15 +719,27 @@ namespace lambda_options
 		Default = Empty
 	};
 
+	inline MatchFlags operator& (MatchFlags a, MatchFlags b)
+	{
+		return static_cast<MatchFlags>(static_cast<size_t>(a) & static_cast<size_t>(b));
+	}
+
+	inline MatchFlags operator| (MatchFlags a, MatchFlags b)
+	{
+		return static_cast<MatchFlags>(static_cast<size_t>(a) | static_cast<size_t>(b));
+	}
+
 
 	class OptionsConfig {
 	public:
 		OptionsConfig ()
 			: keywordStyle(KeywordStyle::Default)
+			, matchFlags(MatchFlags::Default)
 		{}
 
 	public:
 		KeywordStyle keywordStyle;
+		MatchFlags matchFlags;
 	};
 
 
@@ -811,6 +824,20 @@ namespace lambda_options
 
 	namespace _private
 	{
+		template <typename Char>
+		inline bool IsShort (std::basic_string<Char> const & name)
+		{
+			if (name.size() <= 1) {
+				return true;
+			}
+			if (name.size() != 2) {
+				return false;
+			}
+			char const c = name.front();
+			return c == '-' || c == '/';
+		}
+
+
 		class TypeKind {
 		public:
 			bool operator== (TypeKind const & other) const
@@ -1349,6 +1376,7 @@ namespace lambda_options
 
 			typedef lambda_options::_private::OptionsImpl<Char> OptionsImpl;
 			typedef std::basic_string<Char> String;
+			typedef typename String::const_iterator StringIter;
 
 		public:
 			ParseContextImpl (std::shared_ptr<OptionsImpl const> opts, std::vector<String> && args)
@@ -1404,13 +1432,122 @@ namespace lambda_options
 				return std::move(parsedArgs);
 			}
 
+			static bool FitsAscii (wchar_t c)
+			{
+				return 0 <= c && c < 0x80;
+			}
+
+			static bool EqualsCI (char a, char b)
+			{
+				return std::tolower(a) == std::tolower(b);
+			}
+
+			static bool EqualsCI (wchar_t a, wchar_t b)
+			{
+				if (FitsAscii(a) && FitsAscii(b)) {
+					return std::towlower(a) == std::towlower(b);
+				}
+				return a == b;
+			}
+
+			static bool EqualsCI (String const & a, String const & b)
+			{
+				size_t const N = a.size();
+				if (N != b.size()) {
+					return false;
+				}
+				for (size_t i = 0; i < N; ++i) {
+					if (!EqualsCI(a, b)) {
+						return false;
+					}
+				}
+				return true;
+			}
+
+			static size_t SkipAll (StringIter & it, StringIter const & end, Char c)
+			{
+				size_t n = 0;
+				while (it != end && *it == c) {
+					++it;
+					++n;
+				}
+				return n;
+			}
+
+			bool MatchesName (String const & arg, String const & name) const
+			{
+				if (arg == name) {
+					return true;
+				}
+				if (arg.empty() || name.empty()) {
+					return false;
+				}
+
+				MatchFlags const flags = opts->config.matchFlags;
+				if (flags == MatchFlags::Empty) {
+					return false;
+				}
+				if (flags == MatchFlags::IgnoreAsciiCase) {
+					return EqualsCI(arg, name);
+				}
+
+				auto testFlags = [flags] (MatchFlags other) {
+					return (flags & other) == other;
+				};
+
+				bool const ci = testFlags(MatchFlags::IgnoreAsciiCase);
+				bool const rd = testFlags(MatchFlags::RelaxedDashes);
+				bool const ru = testFlags(MatchFlags::RelaxedUnderscores);
+
+				auto argIter = arg.begin();
+				auto nameIter = name.begin();
+
+				auto const argEnd = arg.end();
+				auto const nameEnd = name.end();
+
+				size_t const argDashes = SkipAll(argIter, argEnd, '-');
+				size_t const nameDashes = SkipAll(nameIter, nameEnd, '-');
+
+				if (argDashes != nameDashes) {
+					if (argDashes < 2 && nameDashes < 2) {
+						return false;
+					}
+				}
+
+				if (argDashes == 1) {
+					if (arg.size() <= 2 || name.size() <= 2) {
+						if (ci) {
+							return EqualsCI(arg, name);
+						}
+						return false;
+					}
+				}
+
+				while (argIter != argEnd && nameIter != nameEnd) {
+					if (rd) {
+						SkipAll(argIter, argEnd, '-');
+						SkipAll(nameIter, nameEnd, '-');
+					}
+					if (ru) {
+						SkipAll(argIter, argEnd, '_');
+						SkipAll(nameIter, nameEnd, '_');
+					}
+					if (argIter == argEnd && nameIter == nameEnd) {
+						return true;
+					}
+
+				}
+
+				return true;
+			}
+
 			bool MatchKeyword (Keyword<Char> const & keyword)
 			{
 				if (keyword.names.empty()) {
 					return true;
 				}
 				for (String const & name : keyword.names) {
-					if (*iter == name) {
+					if (MatchesName(*iter, name)) {
 						++iter;
 						return true;
 					}
@@ -1647,18 +1784,6 @@ namespace lambda_options
 			{
 				ChangeIndentation(29);
 				Emit(keyword.desc);
-			}
-
-			static bool IsShort (String const & name)
-			{
-				if (name.size() <= 1) {
-					return true;
-				}
-				if (name.size() != 2) {
-					return false;
-				}
-				char const c = name.front();
-				return c == '-' || c == '/';
 			}
 
 			bool FlushWord ()
