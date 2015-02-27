@@ -1519,6 +1519,32 @@ public:
 		testStyle(KeywordStyle::Windows, Q("/foo"), Q("/foo"));
 		testStyle(KeywordStyle::Windows, Q("//foo"), Q("//foo"));
 	}
+
+
+	static void Test_TEMPLATE ()
+	{
+		std::wstringstream ss;
+
+		Opts opts(testConfig);
+
+		Keyword kw(Q(""));
+		opts.AddOption(kw, nop);
+
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		args.push_back(Q(""));
+		DumpMemo(expected, L"");
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		parseContext.Run();
+
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
+
 };
 
 
