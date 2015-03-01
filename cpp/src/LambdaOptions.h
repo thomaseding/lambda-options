@@ -882,7 +882,7 @@ namespace lambda_options
 			size_t const nameDashes = SkipAll(nameIter, nameEnd, '-');
 
 			if (argDashes != nameDashes) {
-				if (argDashes < 2 && nameDashes < 2) {
+				if (argDashes < 2 || nameDashes < 2) {
 					return false;
 				}
 			}
@@ -896,7 +896,7 @@ namespace lambda_options
 				}
 			}
 
-			while (argIter != argEnd && nameIter != nameEnd) {
+			while (true) {
 				if (rd) {
 					SkipAll(argIter, argEnd, '-');
 					SkipAll(nameIter, nameEnd, '-');
@@ -905,13 +905,22 @@ namespace lambda_options
 					SkipAll(argIter, argEnd, '_');
 					SkipAll(nameIter, nameEnd, '_');
 				}
-				if (argIter == argEnd && nameIter == nameEnd) {
-					return true;
+				if (argIter == argEnd || nameIter == nameEnd) {
+					return argIter == argEnd && nameIter == nameEnd;
 				}
-
+				if (ci) {
+					if (!EqualsCI(*argIter, *nameIter)) {
+						return false;
+					}
+				}
+				else {
+					if (*argIter != *nameIter) {
+						return false;
+					}
+				}
+				++argIter;
+				++nameIter;
 			}
-
-			return true;
 		}
 
 		template <typename Char>
