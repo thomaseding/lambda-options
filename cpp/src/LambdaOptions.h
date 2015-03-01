@@ -711,7 +711,7 @@ namespace lambda_options
 		IgnoreAsciiCase    = 1 << 0,
 		RelaxedDashes      = 1 << 1,
 		RelaxedUnderscores = 1 << 2,
-		GnuShortGrouping   = 1 << 3,
+		//GnuShortGrouping   = 1 << 3,
 
 		Default = Empty
 	};
