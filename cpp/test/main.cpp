@@ -143,6 +143,7 @@ private:
 	typedef lambda_options::FormattingConfig<Char> FormattingConfig;
 	typedef lambda_options::OptionsConfig OptionsConfig;
 	typedef lambda_options::KeywordStyle KeywordStyle;
+	typedef lambda_options::MatchFlags MatchFlags;
 
 
 	static std::wstring L (std::string const & str)
@@ -1521,6 +1522,141 @@ public:
 	}
 
 
+	static void TestMatchFlags1 ()
+	{
+		std::wstringstream ss;
+		
+		OptionsConfig config;
+		config.keywordStyle = KeywordStyle::Exact;
+		config.matchFlags = MatchFlags::RelaxedDashes;
+		Opts opts(config);
+
+		opts.AddOption(empty, [&] (String str) {
+			Dump(ss, str);
+		});
+
+		auto addOption = [&] (char const * name) {
+			opts.AddOption(Q(name), [&, name] () {
+				DumpMemo(ss, L(name));
+			});
+		};
+
+		auto dupOption = [&] (char const * name, char const * existingName) {
+			try {
+				addOption(name);
+			}
+			catch (lambda_options::OptionConflictException<Char> const & e) {
+				if (e.conflictingNames.first != Q(name)) {
+					FAIL;
+				}
+				if (e.conflictingNames.second != Q(existingName)) {
+					FAIL;
+				}
+				return;
+			}
+			FAIL;
+		};
+		
+		addOption("a");
+		addOption("-a");
+		addOption("--a");
+		addOption("aa");
+		addOption("-aa");
+		addOption("--aa");
+		dupOption("a", "a");
+		dupOption("-a", "-a");
+		dupOption("--a", "--a");
+		dupOption("---a", "--a");
+		dupOption("---aa", "--aa");
+		dupOption("a-", "a");
+		dupOption("a--", "a");
+		dupOption("a---", "a");
+		dupOption("a-a", "aa");
+		dupOption("a--a", "aa");
+		dupOption("a---a", "aa");
+		dupOption("a-a-", "aa");
+		dupOption("-a-a", "-aa");
+		dupOption("-a-a-", "-aa");
+		dupOption("--a--a--", "--aa");
+		dupOption("---a---a---", "--aa");
+		
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		args.push_back(Q(""));
+		Dump(expected, "");
+
+		args.push_back(Q("A"));
+		Dump(expected, "A");
+
+		auto addArg = [&] (char const * cstrIn, char const * cstrExpected) {
+			args.push_back(Q(cstrIn));
+			DumpMemo(expected, L(cstrExpected));
+		};
+		
+		addArg("a", "a");
+		addArg("-a", "-a");
+		addArg("--a", "--a");
+		addArg("---a", "--a");
+		addArg("a-", "a");
+		addArg("a-a", "aa");
+		addArg("a--a", "aa");
+		addArg("a---a", "aa");
+		addArg("-a-", "-a");
+		addArg("-a--", "-a");
+		addArg("-a---", "-a");
+		addArg("--a-", "--a");
+		addArg("--a--", "--a");
+		addArg("--a---", "--a");
+		addArg("---a-", "--a");
+		addArg("---a--", "--a");
+		addArg("---a---", "--a");
+		addArg("-aa-", "-aa");
+		addArg("-aa--", "-aa");
+		addArg("-aa---", "-aa");
+		addArg("--aa-", "--aa");
+		addArg("--aa--", "--aa");
+		addArg("--aa---", "--aa");
+		addArg("---aa-", "--aa");
+		addArg("---aa--", "--aa");
+		addArg("---aa---", "--aa");
+		addArg("-a-a-", "-aa");
+		addArg("-a-a--", "-aa");
+		addArg("-a-a---", "-aa");
+		addArg("--a-a-", "--aa");
+		addArg("--a-a--", "--aa");
+		addArg("--a-a---", "--aa");
+		addArg("---a-a-", "--aa");
+		addArg("---a-a--", "--aa");
+		addArg("---a-a---", "--aa");
+		addArg("-a--a-", "-aa");
+		addArg("-a--a--", "-aa");
+		addArg("-a--a---", "-aa");
+		addArg("--a--a-", "--aa");
+		addArg("--a--a--", "--aa");
+		addArg("--a--a---", "--aa");
+		addArg("---a--a-", "--aa");
+		addArg("---a--a--", "--aa");
+		addArg("---a--a---", "--aa");
+		addArg("-a---a-", "-aa");
+		addArg("-a---a--", "-aa");
+		addArg("-a---a---", "-aa");
+		addArg("--a---a-", "--aa");
+		addArg("--a---a--", "--aa");
+		addArg("--a---a---", "--aa");
+		addArg("---a---a-", "--aa");
+		addArg("---a---a--", "--aa");
+		addArg("---a---a---", "--aa");
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		parseContext.Run();
+		
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
+
 	static void Test_TEMPLATE ()
 	{
 		std::wstringstream ss;
@@ -1587,6 +1723,7 @@ static bool RunCharTests ()
 		Tests<Char>::TestHelpDescription,
 		Tests<Char>::TestHelpGroups,
 		Tests<Char>::TestKeywordStyle,
+		Tests<Char>::TestMatchFlags1,
 	};
 
 	try {
