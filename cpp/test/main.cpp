@@ -423,13 +423,13 @@ public:
 	}
 	
 	
-	static void TestRejectEmptyKeyword ()
+	static void TestRejectEmptyOption ()
 	{
 		try {
 			Opts opts(testConfig);
 			opts.AddOption(empty, [] () { return PR::Accept; });
 		}
-		catch (lambda_options::Exception const &) {
+		catch (lambda_options::EmptyOptionException const &) {
 			return;
 		}
 		FAIL;
@@ -1568,7 +1568,7 @@ static bool RunCharTests ()
 	TestFunc tests[] = {
 		Tests<Char>::TestCompileTypes,
 		Tests<Char>::TestCompileArities,
-		Tests<Char>::TestRejectEmptyKeyword,
+		Tests<Char>::TestRejectEmptyOption,
 		Tests<Char>::TestArityPrecedence1,
 		Tests<Char>::TestArityPrecedence2,
 		Tests<Char>::TestEmptyPrecedence1,

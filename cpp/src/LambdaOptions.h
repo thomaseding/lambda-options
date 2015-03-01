@@ -316,6 +316,31 @@ namespace lambda_options
 	};
 
 
+	template <typename Char>
+	class OptionConflictException : public OptionException {
+	public:
+		typedef std::basic_string<Char> String;
+
+		OptionConflictException (String const & name1, String const & name2, size_t arity)
+			: OptionException("Cannot add an option that has the same keyword and function signature of another option.")
+			, conflictingNames(name1, name2)
+			, conflictingArity(arity)
+		{}
+
+	public:
+		std::pair<String, String> conflictingNames;
+		size_t conflictingArity;
+	};
+
+
+	class EmptyOptionException : public OptionException {
+	public:
+		EmptyOptionException ()
+			: OptionException("Cannot add an empty option.")
+		{}
+	};
+
+
 	class IteratorException : public Exception {
 	public:
 		IteratorException (std::string const & message)
@@ -1252,13 +1277,15 @@ namespace lambda_options
 			}
 
 
-			bool Intersecting (Keyword const & kw1, Keyword const & kw2) const
+			bool Intersecting (Keyword const & kw1, Keyword const & kw2, size_t & i, size_t & j) const
 			{
 				ASSERT(__LINE__, kw1.exactNames.empty());
 				ASSERT(__LINE__, kw2.exactNames.empty());
 
-				for (String const & name : kw1.names) {
-					for (String const & otherName : kw2.names) {
+				for (i = 0; i < kw1.names.size(); ++i) {
+					String const & name = kw1.names[i];
+					for (j = 0; j < kw2.names.size(); ++j) {
+						String const & otherName = kw2.names[j];
 						if (MatchesName(config.matchFlags, name, otherName)) {
 							return true;
 						}
@@ -1275,8 +1302,10 @@ namespace lambda_options
 				}
 				auto & infos = infosByArity[arity];
 				for (auto & info : infos) {
-					if (Intersecting(keyword, info.keyword) && info.typeKinds == typeKinds) {
-						throw OptionException("Cannot add an option that has the same keyword and function signature of another option.");
+					size_t i;
+					size_t j;
+					if (Intersecting(keyword, info.keyword, i, j) && info.typeKinds == typeKinds) {
+						throw OptionConflictException<Char>(keyword.names[i], info.keyword.names[j], arity);
 					}
 				}
 				infos.emplace_back(keyword, std::move(typeKinds), func);
@@ -1293,7 +1322,7 @@ namespace lambda_options
 			void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult()> const & func)
 			{
 				if (keyword.names.empty()) {
-					throw OptionException("Cannot add an empty option.");
+					throw EmptyOptionException();
 				}
 				auto wrapper = [=] (OpaqueValues &) {
 					return func();
