@@ -778,6 +778,117 @@ namespace lambda_options
 
 	namespace _private
 	{
+		static bool FitsAscii (wchar_t c)
+		{
+			return 0 <= c && c < 0x80;
+		}
+
+		static bool EqualsCI (char a, char b)
+		{
+			return std::tolower(a) == std::tolower(b);
+		}
+
+		static bool EqualsCI (wchar_t a, wchar_t b)
+		{
+			if (FitsAscii(a) && FitsAscii(b)) {
+				return std::towlower(a) == std::towlower(b);
+			}
+			return a == b;
+		}
+
+		template <typename String>
+		static bool EqualsCI (String const & a, String const & b)
+		{
+			size_t const N = a.size();
+			if (N != b.size()) {
+				return false;
+			}
+			for (size_t i = 0; i < N; ++i) {
+				if (!EqualsCI(a[i], b[i])) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		template <typename StringIter, typename Char>
+		static size_t SkipAll (StringIter & it, StringIter const & end, Char c)
+		{
+			size_t n = 0;
+			while (it != end && *it == c) {
+				++it;
+				++n;
+			}
+			return n;
+		}
+
+		template <typename String>
+		static bool MatchesName (MatchFlags flags, String const & arg, String const & name)
+		{
+			if (arg == name) {
+				return true;
+			}
+			if (arg.empty() || name.empty()) {
+				return false;
+			}
+
+			if (flags == MatchFlags::Empty) {
+				return false;
+			}
+			if (flags == MatchFlags::IgnoreAsciiCase) {
+				return EqualsCI(arg, name);
+			}
+
+			auto testFlags = [flags] (MatchFlags other) {
+				return (flags & other) == other;
+			};
+
+			bool const ci = testFlags(MatchFlags::IgnoreAsciiCase);
+			bool const rd = testFlags(MatchFlags::RelaxedDashes);
+			bool const ru = testFlags(MatchFlags::RelaxedUnderscores);
+
+			auto argIter = arg.begin();
+			auto nameIter = name.begin();
+
+			auto const argEnd = arg.end();
+			auto const nameEnd = name.end();
+
+			size_t const argDashes = SkipAll(argIter, argEnd, '-');
+			size_t const nameDashes = SkipAll(nameIter, nameEnd, '-');
+
+			if (argDashes != nameDashes) {
+				if (argDashes < 2 && nameDashes < 2) {
+					return false;
+				}
+			}
+
+			if (argDashes == 1) {
+				if (arg.size() <= 2 || name.size() <= 2) {
+					if (ci) {
+						return EqualsCI(arg, name);
+					}
+					return false;
+				}
+			}
+
+			while (argIter != argEnd && nameIter != nameEnd) {
+				if (rd) {
+					SkipAll(argIter, argEnd, '-');
+					SkipAll(nameIter, nameEnd, '-');
+				}
+				if (ru) {
+					SkipAll(argIter, argEnd, '_');
+					SkipAll(nameIter, nameEnd, '_');
+				}
+				if (argIter == argEnd && nameIter == nameEnd) {
+					return true;
+				}
+
+			}
+
+			return true;
+		}
+
 		template <typename Char>
 		class OptionsImpl;
 
@@ -830,7 +941,7 @@ namespace lambda_options
 			if (name.size() != 2) {
 				return false;
 			}
-			char const c = name.front();
+			Char const c = name.front();
 			return c == '-' || c == '/';
 		}
 
@@ -1141,14 +1252,14 @@ namespace lambda_options
 			}
 
 
-			static bool Intersecting (Keyword const & kw1, Keyword const & kw2)
+			bool Intersecting (Keyword const & kw1, Keyword const & kw2) const
 			{
 				ASSERT(__LINE__, kw1.exactNames.empty());
 				ASSERT(__LINE__, kw2.exactNames.empty());
 
 				for (String const & name : kw1.names) {
 					for (String const & otherName : kw2.names) {
-						if (name == otherName) {
+						if (MatchesName(config.matchFlags, name, otherName)) {
 							return true;
 						}
 					}
@@ -1375,6 +1486,10 @@ namespace lambda_options
 			typedef std::basic_string<Char> String;
 			typedef typename String::const_iterator StringIter;
 
+		private:
+			ParseContextImpl (ParseContextImpl const &); // disable
+			void operator= (ParseContextImpl const &);   // disable
+
 		public:
 			ParseContextImpl (std::shared_ptr<OptionsImpl const> opts, std::vector<String> && args)
 				: opts(opts)
@@ -1429,122 +1544,13 @@ namespace lambda_options
 				return std::move(parsedArgs);
 			}
 
-			static bool FitsAscii (wchar_t c)
-			{
-				return 0 <= c && c < 0x80;
-			}
-
-			static bool EqualsCI (char a, char b)
-			{
-				return std::tolower(a) == std::tolower(b);
-			}
-
-			static bool EqualsCI (wchar_t a, wchar_t b)
-			{
-				if (FitsAscii(a) && FitsAscii(b)) {
-					return std::towlower(a) == std::towlower(b);
-				}
-				return a == b;
-			}
-
-			static bool EqualsCI (String const & a, String const & b)
-			{
-				size_t const N = a.size();
-				if (N != b.size()) {
-					return false;
-				}
-				for (size_t i = 0; i < N; ++i) {
-					if (!EqualsCI(a, b)) {
-						return false;
-					}
-				}
-				return true;
-			}
-
-			static size_t SkipAll (StringIter & it, StringIter const & end, Char c)
-			{
-				size_t n = 0;
-				while (it != end && *it == c) {
-					++it;
-					++n;
-				}
-				return n;
-			}
-
-			bool MatchesName (String const & arg, String const & name) const
-			{
-				if (arg == name) {
-					return true;
-				}
-				if (arg.empty() || name.empty()) {
-					return false;
-				}
-
-				MatchFlags const flags = opts->config.matchFlags;
-				if (flags == MatchFlags::Empty) {
-					return false;
-				}
-				if (flags == MatchFlags::IgnoreAsciiCase) {
-					return EqualsCI(arg, name);
-				}
-
-				auto testFlags = [flags] (MatchFlags other) {
-					return (flags & other) == other;
-				};
-
-				bool const ci = testFlags(MatchFlags::IgnoreAsciiCase);
-				bool const rd = testFlags(MatchFlags::RelaxedDashes);
-				bool const ru = testFlags(MatchFlags::RelaxedUnderscores);
-
-				auto argIter = arg.begin();
-				auto nameIter = name.begin();
-
-				auto const argEnd = arg.end();
-				auto const nameEnd = name.end();
-
-				size_t const argDashes = SkipAll(argIter, argEnd, '-');
-				size_t const nameDashes = SkipAll(nameIter, nameEnd, '-');
-
-				if (argDashes != nameDashes) {
-					if (argDashes < 2 && nameDashes < 2) {
-						return false;
-					}
-				}
-
-				if (argDashes == 1) {
-					if (arg.size() <= 2 || name.size() <= 2) {
-						if (ci) {
-							return EqualsCI(arg, name);
-						}
-						return false;
-					}
-				}
-
-				while (argIter != argEnd && nameIter != nameEnd) {
-					if (rd) {
-						SkipAll(argIter, argEnd, '-');
-						SkipAll(nameIter, nameEnd, '-');
-					}
-					if (ru) {
-						SkipAll(argIter, argEnd, '_');
-						SkipAll(nameIter, nameEnd, '_');
-					}
-					if (argIter == argEnd && nameIter == nameEnd) {
-						return true;
-					}
-
-				}
-
-				return true;
-			}
-
 			bool MatchKeyword (Keyword<Char> const & keyword)
 			{
 				if (keyword.names.empty()) {
 					return true;
 				}
 				for (String const & name : keyword.names) {
-					if (MatchesName(*iter, name)) {
+					if (MatchesName(opts->config.matchFlags, *iter, name)) {
 						++iter;
 						return true;
 					}
