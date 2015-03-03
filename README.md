@@ -1,6 +1,6 @@
 # lambda-options
 
-A declarative command-line parser for C++.
+A modern command-line parser for C++.
 
 * Easy to use. The API is expressive.
 * Easy to learn. The API is tiny and simple.
