@@ -491,26 +491,26 @@ namespace lambda_options
 
 
 		template <typename T>
-		static T && ReifyOpaque (void * p)
+		T && ReifyOpaque (void * p)
 		{
 			T & val = *static_cast<T *>(p);
 			return std::move(val);
 		}
 
 		template <typename T>
-		static T && ReifyOpaque (UniqueOpaque & p)
+		T && ReifyOpaque (UniqueOpaque & p)
 		{
 			return ReifyOpaque<T>(p.get());
 		}
 
 		template <typename T>
-		static void Delete (void * p)
+		inline void Delete (void * p)
 		{
 			delete static_cast<T *>(p);
 		}
 
 		template <typename T>
-		static std::unique_ptr<typename std::remove_reference<T>::type> AllocateCopy (T && source)
+		std::unique_ptr<typename std::remove_reference<T>::type> AllocateCopy (T && source)
 		{
 			typedef typename std::remove_reference<T>::type T2;
 			T2 * p = new T2(std::forward<T>(source));
@@ -518,7 +518,7 @@ namespace lambda_options
 		}
 
 		template <typename Char, typename T>
-		static UniqueOpaque OpaqueParse (ParseState<Char> & parseState)
+		UniqueOpaque OpaqueParse (ParseState<Char> & parseState)
 		{
 			Maybe<T> maybe;
 			if (Parse<Char, T>(parseState, maybe)) {
@@ -803,17 +803,17 @@ namespace lambda_options
 
 	namespace _private
 	{
-		static bool FitsAscii (wchar_t c)
+		inline bool FitsAscii (wchar_t c)
 		{
 			return 0 <= c && c < 0x80;
 		}
 
-		static bool EqualsCI (char a, char b)
+		inline bool EqualsCI (char a, char b)
 		{
 			return std::tolower(a) == std::tolower(b);
 		}
 
-		static bool EqualsCI (wchar_t a, wchar_t b)
+		inline bool EqualsCI (wchar_t a, wchar_t b)
 		{
 			if (FitsAscii(a) && FitsAscii(b)) {
 				return std::towlower(a) == std::towlower(b);
@@ -822,7 +822,7 @@ namespace lambda_options
 		}
 
 		template <typename String>
-		static bool EqualsCI (String const & a, String const & b)
+		bool EqualsCI (String const & a, String const & b)
 		{
 			size_t const N = a.size();
 			if (N != b.size()) {
@@ -837,7 +837,7 @@ namespace lambda_options
 		}
 
 		template <typename StringIter, typename Char>
-		static size_t SkipAll (StringIter & it, StringIter const & end, Char c)
+		size_t SkipAll (StringIter & it, StringIter const & end, Char c)
 		{
 			size_t n = 0;
 			while (it != end && *it == c) {
@@ -848,7 +848,7 @@ namespace lambda_options
 		}
 
 		template <typename Char>
-		static bool MatchesName (MatchFlags flags, std::basic_string<Char> const & arg, std::basic_string<Char> const & name)
+		bool MatchesName (MatchFlags flags, std::basic_string<Char> const & arg, std::basic_string<Char> const & name)
 		{
 			if (arg == name) {
 				return true;
