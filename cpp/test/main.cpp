@@ -1524,6 +1524,50 @@ public:
 
 	static void TestMatchFlags1 ()
 	{
+		OptionsConfig config;
+		config.keywordStyle = KeywordStyle::Exact;
+		config.matchFlags = MatchFlags::IgnoreAsciiCase;
+		Opts opts(config);
+
+		auto addOption = [&] (char const * name) {
+			opts.AddOption(Q(name), nop);
+		};
+
+		auto dupOption = [&] (char const * name, char const * existingName) {
+			try {
+				addOption(name);
+			}
+			catch (lambda_options::OptionConflictException<Char> const & e) {
+				if (e.conflictingNames.first != Q(name)) {
+					FAIL;
+				}
+				if (e.conflictingNames.second != Q(existingName)) {
+					FAIL;
+				}
+				return;
+			}
+			FAIL;
+		};
+
+		addOption("abc");
+		dupOption("Abc", "abc");
+		dupOption("aBc", "abc");
+		dupOption("abC", "abc");
+		dupOption("aBC", "abc");
+		dupOption("AbC", "abc");
+		dupOption("ABc", "abc");
+		dupOption("ABC", "abc");
+
+		addOption("FOO");
+		dupOption("foo", "FOO");
+
+		addOption("BaR");
+		dupOption("bAr", "BaR");
+	}
+
+
+	static void TestMatchFlags2 ()
+	{
 		std::wstringstream ss;
 		
 		OptionsConfig config;
@@ -1560,17 +1604,21 @@ public:
 		addOption("a");
 		addOption("-a");
 		addOption("--a");
-		addOption("aa");
-		addOption("-aa");
-		addOption("--aa");
+		addOption("---a");
+
 		dupOption("a", "a");
-		dupOption("-a", "-a");
-		dupOption("--a", "--a");
-		dupOption("---a", "--a");
-		dupOption("---aa", "--aa");
 		dupOption("a-", "a");
 		dupOption("a--", "a");
 		dupOption("a---", "a");
+		dupOption("-a", "-a");
+		dupOption("--a", "--a");
+		dupOption("---a", "---a");
+
+		addOption("aa");
+		addOption("-aa");
+		addOption("--aa");
+		addOption("---aa");
+
 		dupOption("a-a", "aa");
 		dupOption("a--a", "aa");
 		dupOption("a---a", "aa");
@@ -1578,82 +1626,318 @@ public:
 		dupOption("-a-a", "-aa");
 		dupOption("-a-a-", "-aa");
 		dupOption("--a--a--", "--aa");
-		dupOption("---a---a---", "--aa");
+		dupOption("---a---a---", "---aa");
 		
 		std::wstringstream expected;
 		std::vector<String> args;
 
-		args.push_back(Q(""));
-		Dump(expected, "");
-
-		args.push_back(Q("A"));
-		Dump(expected, "A");
-
-		auto addArg = [&] (char const * cstrIn, char const * cstrExpected) {
+		auto yesArg = [&] (char const * cstrIn, char const * cstrExpected) {
 			args.push_back(Q(cstrIn));
 			DumpMemo(expected, L(cstrExpected));
 		};
-		
-		addArg("a", "a");
-		addArg("-a", "-a");
-		addArg("--a", "--a");
-		addArg("---a", "--a");
-		addArg("a-", "a");
-		addArg("a-a", "aa");
-		addArg("a--a", "aa");
-		addArg("a---a", "aa");
-		addArg("-a-", "-a");
-		addArg("-a--", "-a");
-		addArg("-a---", "-a");
-		addArg("--a-", "--a");
-		addArg("--a--", "--a");
-		addArg("--a---", "--a");
-		addArg("---a-", "--a");
-		addArg("---a--", "--a");
-		addArg("---a---", "--a");
-		addArg("-aa-", "-aa");
-		addArg("-aa--", "-aa");
-		addArg("-aa---", "-aa");
-		addArg("--aa-", "--aa");
-		addArg("--aa--", "--aa");
-		addArg("--aa---", "--aa");
-		addArg("---aa-", "--aa");
-		addArg("---aa--", "--aa");
-		addArg("---aa---", "--aa");
-		addArg("-a-a-", "-aa");
-		addArg("-a-a--", "-aa");
-		addArg("-a-a---", "-aa");
-		addArg("--a-a-", "--aa");
-		addArg("--a-a--", "--aa");
-		addArg("--a-a---", "--aa");
-		addArg("---a-a-", "--aa");
-		addArg("---a-a--", "--aa");
-		addArg("---a-a---", "--aa");
-		addArg("-a--a-", "-aa");
-		addArg("-a--a--", "-aa");
-		addArg("-a--a---", "-aa");
-		addArg("--a--a-", "--aa");
-		addArg("--a--a--", "--aa");
-		addArg("--a--a---", "--aa");
-		addArg("---a--a-", "--aa");
-		addArg("---a--a--", "--aa");
-		addArg("---a--a---", "--aa");
-		addArg("-a---a-", "-aa");
-		addArg("-a---a--", "-aa");
-		addArg("-a---a---", "-aa");
-		addArg("--a---a-", "--aa");
-		addArg("--a---a--", "--aa");
-		addArg("--a---a---", "--aa");
-		addArg("---a---a-", "--aa");
-		addArg("---a---a--", "--aa");
-		addArg("---a---a---", "--aa");
+
+		auto badArg = [&] (char const * arg) {
+			args.push_back(Q(arg));
+			Dump(expected, arg);
+		};
+
+		yesArg("a", "a");
+		yesArg("-a", "-a");
+		yesArg("--a", "--a");
+		yesArg("---a", "---a");
+		yesArg("a-", "a");
+		yesArg("a-a", "aa");
+		yesArg("a--a", "aa");
+		yesArg("a---a", "aa");
+		yesArg("-a-", "-a");
+		yesArg("-a--", "-a");
+		yesArg("-a---", "-a");
+		yesArg("--a-", "--a");
+		yesArg("--a--", "--a");
+		yesArg("--a---", "--a");
+		yesArg("---a-", "---a");
+		yesArg("---a--", "---a");
+		yesArg("---a---", "---a");
+		yesArg("-aa-", "-aa");
+		yesArg("-aa--", "-aa");
+		yesArg("-aa---", "-aa");
+		yesArg("-a-a-", "-aa");
+		yesArg("-a-a--", "-aa");
+		yesArg("-a-a---", "-aa");
+		yesArg("-a--a-", "-aa");
+		yesArg("-a--a--", "-aa");
+		yesArg("-a--a---", "-aa");
+		yesArg("--aa-", "--aa");
+		yesArg("--aa--", "--aa");
+		yesArg("--aa---", "--aa");
+		yesArg("---aa-", "---aa");
+		yesArg("---aa--", "---aa");
+		yesArg("---aa---", "---aa");
+		yesArg("--a-a-", "--aa");
+		yesArg("--a-a--", "--aa");
+		yesArg("--a-a---", "--aa");
+		yesArg("---a-a-", "---aa");
+		yesArg("---a-a--", "---aa");
+		yesArg("---a-a---", "---aa");
+		yesArg("--a--a-", "--aa");
+		yesArg("--a--a--", "--aa");
+		yesArg("--a--a---", "--aa");
+		yesArg("---a--a-", "---aa");
+		yesArg("---a--a--", "---aa");
+		yesArg("---a--a---", "---aa");
+		yesArg("-a---a-", "-aa");
+		yesArg("-a---a--", "-aa");
+		yesArg("-a---a---", "-aa");
+		yesArg("--a---a-", "--aa");
+		yesArg("--a---a--", "--aa");
+		yesArg("--a---a---", "--aa");
+		yesArg("---a---a-", "---aa");
+		yesArg("---a---a--", "---aa");
+		yesArg("---a---a---", "---aa");
+
+		badArg("");
+		badArg("A");
+		badArg("_a");
+		badArg("a_");
 
 		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
 		parseContext.Run();
 		
-		if (ss.str() != expected.str()) {
+		auto const ssStr = ss.str();
+		auto const expectedStr = expected.str();
+		if (ssStr != expectedStr) {
 			FAIL;
 		}
+	}
+
+
+	static void TestMatchFlags3 ()
+	{
+		std::wstringstream ss;
+		
+		OptionsConfig config;
+		config.keywordStyle = KeywordStyle::Exact;
+		config.matchFlags = MatchFlags::RelaxedUnderscores;
+		Opts opts(config);
+
+		opts.AddOption(empty, [&] (String str) {
+			Dump(ss, str);
+		});
+
+		auto addOption = [&] (char const * name) {
+			opts.AddOption(Q(name), [&, name] () {
+				DumpMemo(ss, L(name));
+			});
+		};
+
+		auto dupOption = [&] (char const * name, char const * existingName) {
+			try {
+				addOption(name);
+			}
+			catch (lambda_options::OptionConflictException<Char> const & e) {
+				if (e.conflictingNames.first != Q(name)) {
+					FAIL;
+				}
+				if (e.conflictingNames.second != Q(existingName)) {
+					FAIL;
+				}
+				return;
+			}
+			FAIL;
+		};
+		
+		addOption("a");
+		addOption("-a");
+		addOption("--a");
+		addOption("---a");
+
+		dupOption("a", "a");
+		dupOption("a_", "a");
+		dupOption("a__", "a");
+		dupOption("a___", "a");
+		dupOption("-a", "-a");
+		dupOption("--a", "--a");
+		dupOption("---a", "---a");
+
+		addOption("aa");
+		addOption("-aa");
+		addOption("--aa");
+		addOption("---aa");
+
+		dupOption("a_a", "aa");
+		dupOption("a__a", "aa");
+		dupOption("a___a", "aa");
+		dupOption("a_a_", "aa");
+		dupOption("-a_a", "-aa");
+		dupOption("-a_a_", "-aa");
+		dupOption("--a__a__", "--aa");
+		dupOption("---a___a___", "---aa");
+		
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		auto yesArg = [&] (char const * cstrIn, char const * cstrExpected) {
+			args.push_back(Q(cstrIn));
+			DumpMemo(expected, L(cstrExpected));
+		};
+
+		auto badArg = [&] (char const * arg) {
+			args.push_back(Q(arg));
+			Dump(expected, arg);
+		};
+
+		yesArg("a", "a");
+		yesArg("-a", "-a");
+		yesArg("--a", "--a");
+		yesArg("---a", "---a");
+		yesArg("a_", "a");
+		yesArg("a_a", "aa");
+		yesArg("a__a", "aa");
+		yesArg("a___a", "aa");
+		yesArg("-a_", "-a");
+		yesArg("-a__", "-a");
+		yesArg("-a___", "-a");
+		yesArg("--a_", "--a");
+		yesArg("--a__", "--a");
+		yesArg("--a___", "--a");
+		yesArg("---a_", "---a");
+		yesArg("---a__", "---a");
+		yesArg("---a___", "---a");
+		yesArg("-aa_", "-aa");
+		yesArg("-aa__", "-aa");
+		yesArg("-aa___", "-aa");
+		yesArg("-a_a_", "-aa");
+		yesArg("-a_a__", "-aa");
+		yesArg("-a_a___", "-aa");
+		yesArg("-a__a_", "-aa");
+		yesArg("-a__a__", "-aa");
+		yesArg("-a__a___", "-aa");
+		yesArg("--aa_", "--aa");
+		yesArg("--aa__", "--aa");
+		yesArg("--aa___", "--aa");
+		yesArg("---aa_", "---aa");
+		yesArg("---aa__", "---aa");
+		yesArg("---aa___", "---aa");
+		yesArg("--a_a_", "--aa");
+		yesArg("--a_a__", "--aa");
+		yesArg("--a_a___", "--aa");
+		yesArg("---a_a_", "---aa");
+		yesArg("---a_a__", "---aa");
+		yesArg("---a_a___", "---aa");
+		yesArg("--a__a_", "--aa");
+		yesArg("--a__a__", "--aa");
+		yesArg("--a__a___", "--aa");
+		yesArg("---a__a_", "---aa");
+		yesArg("---a__a__", "---aa");
+		yesArg("---a__a___", "---aa");
+		yesArg("-a___a_", "-aa");
+		yesArg("-a___a__", "-aa");
+		yesArg("-a___a___", "-aa");
+		yesArg("--a___a_", "--aa");
+		yesArg("--a___a__", "--aa");
+		yesArg("--a___a___", "--aa");
+		yesArg("---a___a_", "---aa");
+		yesArg("---a___a__", "---aa");
+		yesArg("---a___a___", "---aa");
+
+		yesArg("-_a", "-a");
+		yesArg("--__a", "--a");
+		yesArg("---___a", "---a");
+
+		badArg("");
+		badArg("A");
+		badArg("-a-");
+		badArg("_-a");
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		parseContext.Run();
+		
+		auto const ssStr = ss.str();
+		auto const expectedStr = expected.str();
+		if (ssStr != expectedStr) {
+			FAIL;
+		}
+	}
+
+
+	static void TestMatchFlags4 ()
+	{
+		OptionsConfig config;
+		config.keywordStyle = KeywordStyle::Exact;
+		config.matchFlags = MatchFlags::IgnoreAsciiCase | MatchFlags::RelaxedDashes | MatchFlags::RelaxedUnderscores;
+		Opts opts(config);
+
+		auto addOption = [&] (char const * name) {
+			opts.AddOption(Q(name), nop);
+		};
+
+		auto dupOption = [&] (char const * name, char const * existingName) {
+			try {
+				addOption(name);
+			}
+			catch (lambda_options::OptionConflictException<Char> const & e) {
+				if (e.conflictingNames.first != Q(name)) {
+					FAIL;
+				}
+				if (e.conflictingNames.second != Q(existingName)) {
+					FAIL;
+				}
+				return;
+			}
+			FAIL;
+		};
+
+		addOption("");
+		dupOption("_", "");
+		dupOption("_", "");
+		dupOption("_-", "");
+		dupOption("_-_", "");
+		dupOption("__", "");
+
+		addOption("-");
+		dupOption("-_", "-");
+		dupOption("-__--__--", "-");
+
+		addOption("a");
+		addOption("-a");
+		addOption("--A");
+		addOption("---a");
+
+		dupOption("a", "a");
+		dupOption("a_", "a");
+		dupOption("a__", "a");
+		dupOption("a___", "a");
+		dupOption("-a", "-a");
+		dupOption("--a", "--A");
+		dupOption("---a", "---a");
+		dupOption("-_A", "-a");
+		dupOption("--_A_", "--A");
+		dupOption("---A_", "---a");
+
+		addOption("aa");
+		addOption("-aa");
+		addOption("--aa");
+		addOption("---aa");
+
+		dupOption("AA", "aa");
+		dupOption("Aa", "aa");
+		dupOption("aA", "aa");
+		dupOption("Aa--__-_", "aa");
+		dupOption("a_a", "aa");
+		dupOption("a__a", "aa");
+		dupOption("a___a", "aa");
+		dupOption("a_a_", "aa");
+		dupOption("-a_a", "-aa");
+		dupOption("-a_a_", "-aa");
+		dupOption("--a__a__", "--aa");
+		dupOption("---a___a___", "---aa");
+
+		dupOption("a_A", "aa");
+		dupOption("A_-a", "aa");
+		dupOption("A--_A", "aa");
+		dupOption("a_A-", "aa");
+		dupOption("-A---__---__-_A", "-aa");
+		dupOption("---A---__---__-_A", "---aa");
 	}
 
 
@@ -1724,6 +2008,9 @@ static bool RunCharTests ()
 		Tests<Char>::TestHelpGroups,
 		Tests<Char>::TestKeywordStyle,
 		Tests<Char>::TestMatchFlags1,
+		Tests<Char>::TestMatchFlags2,
+		Tests<Char>::TestMatchFlags3,
+		Tests<Char>::TestMatchFlags4,
 	};
 
 	try {

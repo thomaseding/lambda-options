@@ -847,14 +847,11 @@ namespace lambda_options
 			return n;
 		}
 
-		template <typename String>
-		static bool MatchesName (MatchFlags flags, String const & arg, String const & name)
+		template <typename Char>
+		static bool MatchesName (MatchFlags flags, std::basic_string<Char> const & arg, std::basic_string<Char> const & name)
 		{
 			if (arg == name) {
 				return true;
-			}
-			if (arg.empty() || name.empty()) {
-				return false;
 			}
 
 			if (flags == MatchFlags::Empty) {
@@ -868,9 +865,12 @@ namespace lambda_options
 				return (flags & other) == other;
 			};
 
-			bool const ci = testFlags(MatchFlags::IgnoreAsciiCase);
-			bool const rd = testFlags(MatchFlags::RelaxedDashes);
-			bool const ru = testFlags(MatchFlags::RelaxedUnderscores);
+			bool const ignoreCase = testFlags(MatchFlags::IgnoreAsciiCase);
+			bool const relaxedDashes = testFlags(MatchFlags::RelaxedDashes);
+			bool const relaxedUnderscores = testFlags(MatchFlags::RelaxedUnderscores);
+
+			Char const dash = '-';
+			Char const underscore = '_';
 
 			auto argIter = arg.begin();
 			auto nameIter = name.begin();
@@ -878,37 +878,33 @@ namespace lambda_options
 			auto const argEnd = arg.end();
 			auto const nameEnd = name.end();
 
-			size_t const argDashes = SkipAll(argIter, argEnd, '-');
-			size_t const nameDashes = SkipAll(nameIter, nameEnd, '-');
-
-			if (argDashes != nameDashes) {
-				if (argDashes < 2 || nameDashes < 2) {
-					return false;
-				}
-			}
-
-			if (argDashes == 1) {
-				if (arg.size() <= 2 || name.size() <= 2) {
-					if (ci) {
-						return EqualsCI(arg, name);
-					}
+			{
+				size_t const argDashes = SkipAll(argIter, argEnd, dash);
+				size_t const nameDashes = SkipAll(nameIter, nameEnd, dash);
+				if (argDashes != nameDashes) {
 					return false;
 				}
 			}
 
 			while (true) {
-				if (rd) {
-					SkipAll(argIter, argEnd, '-');
-					SkipAll(nameIter, nameEnd, '-');
-				}
-				if (ru) {
-					SkipAll(argIter, argEnd, '_');
-					SkipAll(nameIter, nameEnd, '_');
+				while (true) {
+					size_t skipCount = 0;
+					if (relaxedDashes) {
+						skipCount += SkipAll(argIter, argEnd, dash);
+						skipCount += SkipAll(nameIter, nameEnd, dash);
+					}
+					if (relaxedUnderscores) {
+						skipCount += SkipAll(argIter, argEnd, underscore);
+						skipCount += SkipAll(nameIter, nameEnd, underscore);
+					}
+					if (skipCount == 0) {
+						break;
+					}
 				}
 				if (argIter == argEnd || nameIter == nameEnd) {
 					return argIter == argEnd && nameIter == nameEnd;
 				}
-				if (ci) {
+				if (ignoreCase) {
 					if (!EqualsCI(*argIter, *nameIter)) {
 						return false;
 					}
