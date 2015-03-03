@@ -2,7 +2,7 @@
 
 
 ### High Priority
-* Write documentation.
+* Finish documentation.
 * Write tutorial (Beyond the existing iterative examples; e.g. Match name of `*.cpp` files but with `*.md`)
 
 
@@ -13,7 +13,7 @@
 * Add more examples.
 
 
-### LowPriority
+### Low Priority
 * Implement `MatchFlags::GnuShortGrouping`
 * Write a program that generates the repetitive code?
 * Create a Haskell port.
