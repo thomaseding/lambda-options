@@ -754,9 +754,7 @@ namespace lambda_options
 	template <typename Char>
 	inline void ConsumeRest (ParseState<Char> & parseState)
 	{
-		while (parseState.iter != parseState.end) {
-			++parseState.iter;
-		}
+		parseState.iter = parseState.end;
 	}
 
 
