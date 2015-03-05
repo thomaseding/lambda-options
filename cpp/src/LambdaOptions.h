@@ -76,11 +76,11 @@ namespace lambda_options
 
 	namespace _private
 	{
-		inline void ASSERT (unsigned int line, bool truth)
+		inline void Assert (unsigned int line, bool truth)
 		{
 			if (!truth) {
 				char msg[1024];
-				sprintf(msg, "ASSERT failed in '%s' on line %u.", __FILE__, line);
+				sprintf(msg, "Assert failed in '%s' on line %u.", __FILE__, line);
 				throw Exception(msg);
 			}
 		}
@@ -271,7 +271,7 @@ namespace lambda_options
 			if (alignedPtr != nullptr) {
 				return reinterpret_cast<T *>(alignedPtr);
 			}
-			_private::ASSERT(__LINE__, !outsidePtr);
+			_private::Assert(__LINE__, !outsidePtr);
 			outsidePtr = std::unique_ptr<char, void(*)(void *)>(new char[sizeof(T)], _private::DeleteCharArray);
 			alignedPtr = outsidePtr.get();
 			return ObjectAddress();
@@ -1265,7 +1265,7 @@ namespace lambda_options
 							name.insert(0, 1, '/');
 						} break;
 						default: {
-							ASSERT(__LINE__, false);
+							Assert(__LINE__, false);
 						}
 					}
 				}
@@ -1284,8 +1284,8 @@ namespace lambda_options
 
 			bool Intersecting (Keyword const & kw1, Keyword const & kw2, size_t & i, size_t & j) const
 			{
-				ASSERT(__LINE__, kw1.exactNames.empty());
-				ASSERT(__LINE__, kw2.exactNames.empty());
+				Assert(__LINE__, kw1.exactNames.empty());
+				Assert(__LINE__, kw2.exactNames.empty());
 
 				for (i = 0; i < kw1.names.size(); ++i) {
 					String const & name = kw1.names[i];
@@ -1491,7 +1491,7 @@ namespace lambda_options
 			typename OpaqueParser<Char>::Type LookupDynamicParser (TypeKind const & k) const
 			{
 				auto const * pParser = _private::Lookup(dynamicParserMap, k);
-				ASSERT(__LINE__, pParser != nullptr);
+				Assert(__LINE__, pParser != nullptr);
 				return *pParser;
 			}
 
@@ -1608,7 +1608,7 @@ namespace lambda_options
 					iter = startIter;
 					if (MatchKeyword(info.keyword)) {
 						auto const & typeKinds = info.typeKinds;
-						ASSERT(__LINE__, typeKinds.size() == arity);
+						Assert(__LINE__, typeKinds.size() == arity);
 						OpaqueValues parsedArgs = ParseArgs(typeKinds);
 						if (parsedArgs.size() == arity) {
 							ParseResult res = info.callback(parsedArgs);
@@ -1624,7 +1624,7 @@ namespace lambda_options
 									return ParseResult::Fatal;
 								} break;
 								default: {
-									ASSERT(__LINE__, false);
+									Assert(__LINE__, false);
 								}
 							}
 						}
@@ -1663,7 +1663,7 @@ namespace lambda_options
 					case ParseResult::Reject: return false;
 					case ParseResult::Fatal: return false;
 					default: {
-						ASSERT(__LINE__, false);
+						Assert(__LINE__, false);
 						return false;
 					}
 				}
