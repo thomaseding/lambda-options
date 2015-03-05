@@ -47,6 +47,15 @@
 //////////////////////////////////////////////////////////////////////////
 
 
+#if _MSC_VER
+#	pragma warning (push)
+#	pragma warning (disable: 4127 4180 4996)
+#endif
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
 namespace lambda_options
 {
 	class Exception : public std::exception {
@@ -582,6 +591,7 @@ namespace lambda_options
 		return false;
 	}
 
+
 	template <typename Char>
 	struct RawParser<Char, ParseState<Char>> {
 		bool operator() (ParseState<Char> & parseState, void * rawMemory)
@@ -1069,6 +1079,42 @@ namespace lambda_options
 
 	template <typename Func>
 	struct FuncTraits : public FuncTraits<decltype(&Func::operator())> {};
+
+	template <typename R>
+	struct FuncTraits<R()> {
+		enum { arity = 0 };
+		struct Return { typedef R type; };
+	};
+
+	template <typename R, typename A>
+	struct FuncTraits<R(A)> : FuncTraits<R()> {
+		enum { arity = 1 };
+		struct Arg0 { typedef A type; };
+	};
+
+	template <typename R, typename A, typename B>
+	struct FuncTraits<R(A, B)> : FuncTraits<R(A)> {
+		enum { arity = 2 };
+		struct Arg1 { typedef B type; };
+	};
+
+	template <typename R, typename A, typename B, typename C>
+	struct FuncTraits<R(A, B, C)> : FuncTraits<R(A, B)> {
+		enum { arity = 3 };
+		struct Arg2 { typedef C type; };
+	};
+
+	template <typename R, typename A, typename B, typename C, typename D>
+	struct FuncTraits<R(A, B, C, D)> : FuncTraits<R(A, B, C)> {
+		enum { arity = 4 };
+		struct Arg3 { typedef D type; };
+	};
+
+	template <typename R, typename A, typename B, typename C, typename D, typename E>
+	struct FuncTraits<R(A, B, C, D, E)> : FuncTraits<R(A, B, C, D)> {
+		enum { arity = 5 };
+		struct Arg4 { typedef E type; };
+	};
 
 	template <typename X, typename R>
 	struct FuncTraits<R(X::*)() const> {
@@ -2072,7 +2118,14 @@ namespace lambda_options
 }
 
 
+//////////////////////////////////////////////////////////////////////////
 
 
+#if _MSC_VER
+#	pragma warning (pop)
+#endif
+
+
+//////////////////////////////////////////////////////////////////////////
 
 

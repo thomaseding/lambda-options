@@ -49,7 +49,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <DisableSpecificWarnings>4127;4324;4996</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4127;4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -64,7 +64,7 @@
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <DisableSpecificWarnings>4127;4324;4996</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4127;4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
