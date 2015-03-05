@@ -127,7 +127,7 @@ static bool Equal (std::vector<T> const & xs, T const (&ys)[N])
 }
 
 
-static auto nop = [] () {};
+static void nop () {}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -1990,6 +1990,37 @@ public:
 		}
 	}
 
+	
+	static void TestConsumeRest ()
+	{
+		std::wstringstream ss;
+
+		Opts opts(testConfig);
+
+		opts.AddOption(empty, [&] (String str) {
+			Dump(ss, str);
+		});
+		opts.AddOption(Q(";"), lambda_options::ConsumeRest<Char>);
+
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		args.push_back(Q("a"));
+		Dump(expected, L"a");
+
+		args.push_back(Q(";"));
+		args.push_back(Q("b"));
+		args.push_back(Q("c"));
+
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		parseContext.Run();
+
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
 
 	static void Test_TEMPLATE ()
 	{
@@ -2062,6 +2093,7 @@ static bool RunCharTests ()
 		Tests<Char>::TestMatchFlags3,
 		Tests<Char>::TestMatchFlags4,
 		Tests<Char>::TestVectors,
+		Tests<Char>::TestConsumeRest,
 	};
 
 	try {

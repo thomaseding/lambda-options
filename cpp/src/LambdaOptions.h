@@ -751,6 +751,15 @@ namespace lambda_options
 	};
 
 
+	template <typename Char>
+	inline void ConsumeRest (ParseState<Char> & parseState)
+	{
+		while (parseState.iter != parseState.end) {
+			++parseState.iter;
+		}
+	}
+
+
 	typedef int Priority;
 
 
@@ -2114,6 +2123,8 @@ namespace lambda_options
 
 		typedef lambda_options::ArgsIter<char> ArgsIter;
 		typedef lambda_options::ParseState<char> ParseState;
+
+		auto const & ConsumeRest = lambda_options::ConsumeRest<char>;
 	}
 }
 
