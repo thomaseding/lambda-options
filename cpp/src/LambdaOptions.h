@@ -693,7 +693,6 @@ namespace lambda_options
 
 		bool operator() (ParseState<Char> & parseState, void * rawMemory)
 		{
-			static_assert(N > 0, "Parsing a zero-sized array is not well-defined.");
 			success = false;
 			pArray = reinterpret_cast<Array *>(rawMemory);
 			Array & array = *pArray;
@@ -716,6 +715,29 @@ namespace lambda_options
 		bool success;
 		size_t currIndex;
 		Array * pArray;
+	};
+
+
+	template <typename Char, typename T>
+	struct RawParser<Char, std::vector<T>> {
+	private:
+		typedef std::vector<T> Vector;
+
+	public:
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
+		{
+			Vector & vec = *new (rawMemory) Vector();
+			while (true) {
+				if (parseState.iter == parseState.end) {
+					return true;
+				}
+				Maybe<T> mValue;
+				if (!Parse(parseState, mValue)) {
+					return true;
+				}
+				vec.push_back(std::move(*mValue));
+			}
+		}
 	};
 
 

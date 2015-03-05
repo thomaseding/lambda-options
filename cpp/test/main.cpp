@@ -1941,6 +1941,56 @@ public:
 	}
 
 
+	static void TestVectors ()
+	{
+		std::wstringstream ss;
+
+		Opts opts(testConfig);
+
+		opts.AddOption(empty, [&] (String str) {
+			Dump(ss, str);
+		});
+		opts.AddOption(Q("x"), [&] (std::vector<String> && strs) {
+			DumpMemo(ss, L"<vector>");
+			for (String const & str : strs) {
+				Dump(ss, str);
+			}
+			DumpMemo(ss, L"</vector>");
+		});
+
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		args.push_back(Q("a"));
+		Dump(expected, L"a");
+
+		args.push_back(Q("b"));
+		Dump(expected, L"b");
+
+		args.push_back(Q("x"));
+		DumpMemo(expected, L"<vector>");{
+			args.push_back(Q("x"));
+			Dump(expected, L"x");
+	
+			args.push_back(Q("b"));
+			Dump(expected, L"b");
+
+			args.push_back(Q("c"));
+			Dump(expected, L"c");
+
+			args.push_back(Q("x"));
+			Dump(expected, L"x");
+		}DumpMemo(expected, L"</vector>");
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		parseContext.Run();
+
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
+
 	static void Test_TEMPLATE ()
 	{
 		std::wstringstream ss;
@@ -2011,6 +2061,7 @@ static bool RunCharTests ()
 		Tests<Char>::TestMatchFlags2,
 		Tests<Char>::TestMatchFlags3,
 		Tests<Char>::TestMatchFlags4,
+		Tests<Char>::TestVectors,
 	};
 
 	try {
