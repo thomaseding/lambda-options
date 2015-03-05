@@ -49,7 +49,13 @@
 
 #if _MSC_VER
 #	pragma warning (push)
-#	pragma warning (disable: 4127 4180 4996)
+#	pragma warning (disable: \
+		\
+		4127 \
+		4180 \
+		4345 \
+		4996 \
+		)
 #endif
 
 
@@ -214,6 +220,9 @@ namespace lambda_options
 		typedef std::unique_ptr<void, OpaqueDeleter> UniqueOpaque;
 		typedef std::vector<UniqueOpaque> OpaqueValues;
 	}
+
+
+	class Any {};
 
 
 	template <typename Char>
@@ -747,6 +756,21 @@ namespace lambda_options
 				}
 				vec.push_back(std::move(*mValue));
 			}
+		}
+	};
+
+
+	template <typename Char>
+	struct RawParser<Char, Any> {
+	public:
+		bool operator() (ParseState<Char> & parseState, void * rawMemory)
+		{
+			if (parseState.iter == parseState.end) {
+				return false;
+			}
+			new (rawMemory) Any();
+			++parseState.iter;
+			return true;
 		}
 	};
 

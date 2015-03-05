@@ -127,7 +127,17 @@ static bool Equal (std::vector<T> const & xs, T const (&ys)[N])
 }
 
 
-static void nop () {}
+using lambda_options::Any;
+
+
+static void nop0 () {}
+static void nop1 (Any) {}
+static void nop2 (Any, Any) {}
+static void nop3 (Any, Any, Any) {}
+static void nop4 (Any, Any, Any, Any) {}
+static void nop5 (Any, Any, Any, Any, Any) {}
+
+auto const & nop = nop0;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -388,33 +398,31 @@ public:
 	
 	static void TestCompileArities ()
 	{
-		typedef int I;
-	
 		Opts opts(testConfig);
 	
-		opts.AddOption(Q("x"), [] () {});
-		opts.AddOption(Q("x"), [] (I) {});
-		opts.AddOption(Q("x"), [] (I,I) {});
-		opts.AddOption(Q("x"), [] (I,I,I) {});
-		opts.AddOption(Q("x"), [] (I,I,I,I) {});
-		opts.AddOption(Q("x"), [] (I,I,I,I,I) {});
+		opts.AddOption(Q("x"), nop0);
+		opts.AddOption(Q("x"), nop1);
+		opts.AddOption(Q("x"), nop2);
+		opts.AddOption(Q("x"), nop3);
+		opts.AddOption(Q("x"), nop4);
+		opts.AddOption(Q("x"), nop5);
 	
 		opts.AddOption(Q("xx"), [] () {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("xx"), [] (I) {
+		opts.AddOption(Q("xx"), [] (Any) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("xx"), [] (I,I) {
+		opts.AddOption(Q("xx"), [] (Any,Any) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("xx"), [] (I,I,I) {
+		opts.AddOption(Q("xx"), [] (Any,Any,Any) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("xx"), [] (I,I,I,I) {
+		opts.AddOption(Q("xx"), [] (Any,Any,Any,Any) {
 			return PR::Accept;
 		});
-		opts.AddOption(Q("xx"), [] (I,I,I,I,I) {
+		opts.AddOption(Q("xx"), [] (Any,Any,Any,Any,Any) {
 			return PR::Accept;
 		});
 	
@@ -439,27 +447,26 @@ public:
 	
 	static void TestArityPrecedence1 ()
 	{
-		typedef String S;
 		std::vector<int> calls;
 	
 		Opts opts(testConfig);
-		opts.AddOption(empty, [&] (S) {
+		opts.AddOption(empty, [&] (String) {
 			calls.push_back(1);
 			return PR::Accept;
 		});
-		opts.AddOption(empty, [&] (S,S) {
+		opts.AddOption(empty, [&] (String,String) {
 			calls.push_back(2);
 			return PR::Accept;
 		});
-		opts.AddOption(empty, [&] (S,S,S) {
+		opts.AddOption(empty, [&] (String,String,String) {
 			calls.push_back(3);
 			return PR::Accept;
 		});
-		opts.AddOption(empty, [&] (S,S,S,S) {
+		opts.AddOption(empty, [&] (String,String,String,String) {
 			calls.push_back(4);
 			return PR::Accept;
 		});
-		opts.AddOption(empty, [&] (S,S,S,S,S) {
+		opts.AddOption(empty, [&] (String,String,String,String,String) {
 			calls.push_back(5);
 			return PR::Accept;
 		});
@@ -485,7 +492,6 @@ public:
 	
 	static void TestArityPrecedence2 ()
 	{
-		typedef String S;
 		std::vector<int> calls;
 	
 		Opts opts(testConfig);
@@ -493,23 +499,23 @@ public:
 			calls.push_back(0);
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [&] (S) {
+		opts.AddOption(Q("x"), [&] (String) {
 			calls.push_back(1);
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [&] (S,S) {
+		opts.AddOption(Q("x"), [&] (String,String) {
 			calls.push_back(2);
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [&] (S,S,S) {
+		opts.AddOption(Q("x"), [&] (String,String,String) {
 			calls.push_back(3);
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [&] (S,S,S,S) {
+		opts.AddOption(Q("x"), [&] (String,String,String,String) {
 			calls.push_back(4);
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [&] (S,S,S,S,S) {
+		opts.AddOption(Q("x"), [&] (String,String,String,String,String) {
 			calls.push_back(5);
 			return PR::Accept;
 		});
@@ -536,11 +542,10 @@ public:
 	
 	static void TestEmptyPrecedence1 ()
 	{
-		typedef String S;
 		std::vector<int> calls;
 	
 		Opts opts(testConfig);
-		opts.AddOption(empty, [&] (S) {
+		opts.AddOption(empty, [&] (String) {
 			calls.push_back(0);
 			return PR::Accept;
 		});
@@ -548,7 +553,7 @@ public:
 			calls.push_back(1);
 			return PR::Accept;
 		});
-		opts.AddOption(Q("x"), [&] (S) {
+		opts.AddOption(Q("x"), [&] (String) {
 			calls.push_back(2);
 			return PR::Accept;
 		});
@@ -572,11 +577,10 @@ public:
 	
 	static void TestEmptyPrecedence2 ()
 	{
-		typedef String S;
 		std::vector<int> calls;
 	
 		Opts opts(testConfig);
-		opts.AddOption(Q("x"), [&] (S) {
+		opts.AddOption(Q("x"), [&] (String) {
 			calls.push_back(0);
 			return PR::Accept;
 		});
@@ -584,7 +588,7 @@ public:
 			calls.push_back(1);
 			return PR::Accept;
 		});
-		opts.AddOption(empty, [&] (S) {
+		opts.AddOption(empty, [&] (String) {
 			calls.push_back(2); return
 			PR::Accept;
 		});
