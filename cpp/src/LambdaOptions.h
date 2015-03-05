@@ -2030,11 +2030,21 @@ namespace lambda_options
 
 	namespace with_char
 	{
-		typedef lambda_options::ArgsIter<char> ArgsIter;
-		typedef lambda_options::FormattingConfig<char> FormattingConfig;
-		typedef lambda_options::Keyword<char> Keyword;
 		typedef lambda_options::Options<char> Options;
+		typedef lambda_options::OptionsConfig OptionsConfig;
 		typedef lambda_options::ParseContext<char> ParseContext;
+		typedef lambda_options::Keyword<char> Keyword;
+		typedef lambda_options::FormattingConfig<char> FormattingConfig;
+
+		typedef lambda_options::Exception Exception;
+		typedef lambda_options::IteratorException IteratorException;
+		typedef lambda_options::OptionException OptionsException;
+		typedef lambda_options::ParseFailedException ParseFailedException;
+
+		typedef lambda_options::KeywordStyle KeywordStyle;
+		typedef lambda_options::ParseResult ParseResult;
+
+		typedef lambda_options::ArgsIter<char> ArgsIter;
 		typedef lambda_options::ParseState<char> ParseState;
 	}
 }

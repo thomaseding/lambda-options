@@ -6,6 +6,12 @@
 //////////////////////////////////////////////////////////////////////////
 
 
+using namespace lambda_options::with_char;
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
 class User {
 public:
 	User (std::string name, unsigned int age)
@@ -62,7 +68,7 @@ int main (int argc, char ** argv)
 	Keyword kwUsers("users");
 	kwUsers.args = "NAME [AGE=0]...";
 	kwUsers.desc = "Prints user names and ages.";
-	opts.AddOption(kwUsers, [&] (lambda_options::ParseState<char> parseState) {
+	opts.AddOption(kwUsers, [&] (ParseState<char> parseState) {
 		lambda_options::Maybe<User> maybeUser;
 		while (lambda_options::Parse(parseState, maybeUser)) {
 			users.insert(*maybeUser);
@@ -79,7 +85,7 @@ int main (int argc, char ** argv)
 	try {
 		parseContext.Run();
 	}
-	catch (lambda_options::ParseFailedException const & e) {
+	catch (ParseFailedException const & e) {
 		auto const & args = parseContext.Args();
 		if (e.beginIndex == e.endIndex) {
 			std::cout << "Unknown option at index " << e.beginIndex << ": " << args[e.beginIndex] << "\n";

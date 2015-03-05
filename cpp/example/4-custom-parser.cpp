@@ -6,6 +6,12 @@
 //////////////////////////////////////////////////////////////////////////
 
 
+using namespace lambda_options::with_char;
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
 class User {
 public:
 	User (std::string name, unsigned int age)
@@ -76,7 +82,7 @@ int main (int argc, char ** argv)
 	try {
 		parseContext.Run();
 	}
-	catch (lambda_options::ParseFailedException const &) {
+	catch (ParseFailedException const &) {
 		std::cout << "Bad arguments.\n";
 		printHelp();
 		return 1;

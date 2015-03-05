@@ -5,6 +5,12 @@
 //////////////////////////////////////////////////////////////////////////
 
 
+using namespace lambda_options::with_char;
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
 int main (int argc, char ** argv)
 {
 	using namespace lambda_options::with_char;
@@ -26,7 +32,7 @@ int main (int argc, char ** argv)
 	try {
 		parseContext.Run();
 	}
-	catch (lambda_options::ParseFailedException const &) {
+	catch (ParseFailedException const &) {
 		std::cout << "Bad arguments.";
 		return 1;
 	}

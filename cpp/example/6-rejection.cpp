@@ -6,6 +6,12 @@
 //////////////////////////////////////////////////////////////////////////
 
 
+using namespace lambda_options::with_char;
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
 class User {
 public:
 	User (std::string name, unsigned int age)
@@ -64,10 +70,10 @@ int main (int argc, char ** argv)
 	kwUser.desc = "Prints user's name and age.";
 	opts.AddOption(kwUser, [&] (User user) {
 		if (user.name == "Kelly") {
-			return lambda_options::ParseResult::Reject;
+			return ParseResult::Reject;
 		}
 		users.insert(user);
-		return lambda_options::ParseResult::Accept;
+		return ParseResult::Accept;
 	});
 
 	auto printHelp = [&] () {
@@ -80,7 +86,7 @@ int main (int argc, char ** argv)
 	try {
 		parseContext.Run();
 	}
-	catch (lambda_options::ParseFailedException const & e) {
+	catch (ParseFailedException const & e) {
 		auto const & args = parseContext.Args();
 		if (e.beginIndex == e.endIndex) {
 			std::cout << "Unknown option at index " << e.beginIndex << ": " << args[e.beginIndex] << "\n";

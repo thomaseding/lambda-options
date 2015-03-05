@@ -5,6 +5,12 @@
 //////////////////////////////////////////////////////////////////////////
 
 
+using namespace lambda_options::with_char;
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
 class Point {
 public:
 	Point (float x, float y, float z)
@@ -60,8 +66,6 @@ class OptionsParser {
 public:
 	OptionsParser ()
 	{
-		using namespace lambda_options::with_char;
-
 		Keyword kwHelp("help", "h");
 		kwHelp.desc = "Display this help message.";
 		opts.AddOption(kwHelp, [&] () {
@@ -93,7 +97,7 @@ public:
 		try {
 			parseContext.Run();
 		}
-		catch (lambda_options::ParseFailedException const & e) {
+		catch (ParseFailedException const & e) {
 			PrintBadArgs(e, args);
 			return false;
 		}
@@ -125,7 +129,7 @@ public:
 	}
 
 
-	void PrintBadArgs (lambda_options::ParseFailedException const & e, std::vector<std::string> const & args) const
+	void PrintBadArgs (ParseFailedException const & e, std::vector<std::string> const & args) const
 	{
 		if (e.beginIndex == e.endIndex) {
 			std::cout << "Unknown option at index " << e.beginIndex << ": " << args[e.beginIndex] << "\n";
@@ -141,7 +145,7 @@ public:
 
 
 private:
-	lambda_options::Options<char> opts;
+	Options<char> opts;
 	bool doHelp;
 	std::vector<Point> points;
 };
