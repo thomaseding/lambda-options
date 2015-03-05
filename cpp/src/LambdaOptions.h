@@ -35,7 +35,6 @@
 #include <cwctype>
 #include <exception>
 #include <functional>
-#include <limits>
 #include <memory>
 #include <new>
 #include <stdexcept>
@@ -2107,7 +2106,7 @@ namespace lambda_options
 				if (pPriority) {
 					return *pPriority;
 				}
-				return std::numeric_limits<Priority>::max();
+				return 0;
 			};
 
 			std::sort(keywords.begin(), keywords.end(), [&] (Keyword const * kw1, Keyword const * kw2) {
