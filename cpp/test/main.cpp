@@ -1063,6 +1063,9 @@ public:
 		std::wstringstream ss;
 
 		Opts opts(testConfig);
+		opts.AddOption(Q("arr0"), [&] (std::array<int, 0>) {
+			DumpMemo(ss, L"<array/>");
+		});
 		opts.AddOption(empty, [&] (std::array<std::array<int, 2>, 2> xs) {
 			DumpMemo(ss, L"<array>");
 			Dump(ss, xs[0][0]);
@@ -1096,6 +1099,9 @@ public:
 
 		std::vector<String> args;
 		std::wstringstream expected;
+
+		args.push_back(Q("arr0"));
+		DumpMemo(expected, L"<array/>");
 
 		args.push_back(Q("-1"));
 		args.push_back(Q("-2"));
@@ -1945,7 +1951,7 @@ public:
 	}
 
 
-	static void TestVectors ()
+	static void TestVectors1 ()
 	{
 		std::wstringstream ss;
 
@@ -1985,6 +1991,45 @@ public:
 			args.push_back(Q("x"));
 			Dump(expected, L"x");
 		}DumpMemo(expected, L"</vector>");
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		parseContext.Run();
+
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
+
+	static void TestVectors2 ()
+	{
+		std::wstringstream ss;
+
+		Opts opts(testConfig);
+
+		opts.AddOption(empty, [&] (String str) {
+			Dump(ss, str);
+		});
+		opts.AddOption(Q("x"), [&] (std::vector<String> && strs) {
+			DumpMemo(ss, L"<vector>");
+			for (String const & str : strs) {
+				Dump(ss, str);
+			}
+			DumpMemo(ss, L"</vector>");
+		});
+
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		args.push_back(Q("a"));
+		Dump(expected, L"a");
+
+		args.push_back(Q("b"));
+		Dump(expected, L"b");
+
+		args.push_back(Q("x"));
+		DumpMemo(expected, L"<vector>");
+		DumpMemo(expected, L"</vector>");
 
 		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
 		parseContext.Run();
@@ -2096,7 +2141,8 @@ static bool RunCharTests ()
 		Tests<Char>::TestMatchFlags2,
 		Tests<Char>::TestMatchFlags3,
 		Tests<Char>::TestMatchFlags4,
-		Tests<Char>::TestVectors,
+		Tests<Char>::TestVectors1,
+		Tests<Char>::TestVectors2,
 		Tests<Char>::TestConsumeRest,
 	};
 

@@ -573,6 +573,12 @@ namespace lambda_options
 
 
 	template <typename Char, typename T>
+	struct RawParserTraits {
+		static bool const AllowsEmptyRange = false;
+	};
+
+
+	template <typename Char, typename T>
 	struct RawParser {};
 
 
@@ -586,7 +592,7 @@ namespace lambda_options
 	template <typename Char, typename T>
 	inline bool Parse (ParseState<Char> & parseState, Maybe<T> & out)
 	{
-		if (parseState.iter == parseState.end) {
+		if (!RawParserTraits<Char, T>::AllowsEmptyRange && parseState.iter == parseState.end) {
 			return false;
 		}
 		out.ReleaseObjectIfValid();
@@ -598,6 +604,12 @@ namespace lambda_options
 		parseState.iter = startIter;
 		return false;
 	}
+
+
+	template <typename Char>
+	struct RawParserTraits<Char, ParseState<Char>> {
+		static bool const AllowsEmptyRange = true;
+	};
 
 
 	template <typename Char>
@@ -694,6 +706,12 @@ namespace lambda_options
 	};
 
 
+	template <typename Char, typename T>
+	struct RawParserTraits<Char, std::array<T, 0>> {
+		static bool const AllowsEmptyRange = true;
+	};
+
+
 	template <typename Char, typename T, size_t N>
 	struct RawParser<Char, std::array<T, N>> {
 	private:
@@ -733,6 +751,12 @@ namespace lambda_options
 		bool success;
 		size_t currIndex;
 		Array * pArray;
+	};
+
+
+	template <typename Char, typename T>
+	struct RawParserTraits<Char, std::vector<T>> {
+		static bool const AllowsEmptyRange = true;
 	};
 
 
@@ -1663,9 +1687,6 @@ namespace lambda_options
 				size_t const N = typeKinds.size();
 				OpaqueValues parsedArgs;
 				for (size_t i = 0; i < N; ++i) {
-					if (iter == end) {
-						break;
-					}
 					TypeKind const & typeKind = typeKinds[i];
 					UniqueOpaque parsedArg = OpaqueParse(typeKind);
 					if (parsedArg == nullptr) {
