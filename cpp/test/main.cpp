@@ -266,6 +266,12 @@ private:
 	}
 
 
+	static void Dump (std::wostream & os, Any)
+	{
+		os << L"Any()\n";
+	}
+
+
 	static void Dump (std::wostream & os, bool x)
 	{
 		os << L"bool(" << (x ? L"true" : L"false") << L")\n";
@@ -2061,6 +2067,43 @@ public:
 		args.push_back(Q("b"));
 		args.push_back(Q("c"));
 
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		parseContext.Run();
+
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
+
+	static void TestAny ()
+	{
+		std::wstringstream ss;
+
+		Opts opts(testConfig);
+
+		opts.AddOption(empty, [&] (unsigned int x) {
+			Dump(ss, x);
+		});
+		opts.AddOption(empty, [&] (Any x) {
+			Dump(ss, x);
+		});
+		opts.AddOption(empty, [&] (String x) {
+			Dump(ss, x);
+		});
+
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		args.push_back(Q("a"));
+		Dump(expected, Any());
+
+		args.push_back(Q("1"));
+		Dump(expected, 1u);
+
+		args.push_back(Q("-1"));
+		Dump(expected, Any());
 
 		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
 		parseContext.Run();
