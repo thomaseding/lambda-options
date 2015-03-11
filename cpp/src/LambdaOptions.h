@@ -1096,7 +1096,7 @@ namespace lambda_options
 			template <typename T>
 			static TypeKind Get ()
 			{
-				static char const uniqueMemLoc = 0;
+				static char uniqueMemLoc;
 				return TypeKind(&uniqueMemLoc);
 			}
 
