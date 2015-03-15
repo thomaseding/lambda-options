@@ -353,6 +353,35 @@ public:
 	static Keyword const empty;
 	static OptionsConfig const testConfig;
 
+
+	static void TestTypeId ()
+	{
+		typedef lambda_options::_private::TypeId TypeId;
+
+		std::vector<TypeId> typeIds;
+
+		auto put = [&] (TypeId typeId) {
+			auto it = std::find(typeIds.begin(), typeIds.end(), typeId);
+			if (it != typeIds.end()) {
+				FAIL;
+			}
+			typeIds.push_back(typeId);
+		};
+
+		put(TypeId::Get<char>());
+		put(TypeId::Get<signed char>());
+		put(TypeId::Get<unsigned char>());
+		put(TypeId::Get<int>());
+		put(TypeId::Get<unsigned int>());
+		put(TypeId::Get<void>());
+		put(TypeId::Get<void *>());
+		put(TypeId::Get<int *>());
+		put(TypeId::Get<unsigned int *>());
+		put(TypeId::Get<std::string>());
+		put(TypeId::Get<std::vector<std::string>>());
+		put(TypeId::Get<std::vector<int>>());
+	}
+
 	static void TestCompileTypes ()
 	{
 		Opts opts(testConfig);
@@ -2152,6 +2181,7 @@ static bool RunCharTests ()
 	typedef void (*TestFunc)();
 
 	TestFunc tests[] = {
+		Tests<Char>::TestTypeId,
 		Tests<Char>::TestCompileTypes,
 		Tests<Char>::TestCompileArities,
 		Tests<Char>::TestRejectEmptyOption,

@@ -1049,42 +1049,42 @@ namespace lambda_options
 		}
 
 
-		class TypeKind {
+		class TypeId {
 		public:
-			bool operator== (TypeKind const & other) const
+			bool operator== (TypeId const & other) const
 			{
 				return id == other.id;
 			}
 
 #ifdef RTTI_ENABLED
 		private:
-			TypeKind (std::type_info const & id)
+			TypeId (std::type_info const & id)
 				: id(id)
 			{}
 
-			void operator= (TypeKind const &); // disable
+			void operator= (TypeId const &); // disable
 
 		public:
 			template <typename T>
-			static TypeKind Get ()
+			static TypeId Get ()
 			{
-				return TypeKind(typeid(T));
+				return TypeId(typeid(T));
 			}
 
 		private:
 			std::type_info const & id;
 #else
 		private:
-			TypeKind (void const * id)
+			TypeId (void const * id)
 				: id(id)
 			{}
 
 		public:
 			template <typename T>
-			static TypeKind Get ()
+			static TypeId Get ()
 			{
 				static char uniqueMemLoc;
-				return TypeKind(&uniqueMemLoc);
+				return TypeId(&uniqueMemLoc);
 			}
 
 		private:
@@ -1099,7 +1099,7 @@ namespace lambda_options
 	public:
 		typedef std::function<void(_private::OpaqueValues &)> Callback;
 
-		OptInfo (Keyword<Char> const & keyword, std::vector<_private::TypeKind> && typeKinds, Callback const & callback)
+		OptInfo (Keyword<Char> const & keyword, std::vector<_private::TypeId> && typeKinds, Callback const & callback)
 			: keyword(keyword)
 			, typeKinds(std::move(typeKinds))
 			, callback(callback)
@@ -1113,7 +1113,7 @@ namespace lambda_options
 
 	public:
 		Keyword<Char> keyword;
-		std::vector<_private::TypeKind> typeKinds;
+		std::vector<_private::TypeId> typeKinds;
 		Callback callback;
 	};
 
@@ -1196,7 +1196,7 @@ namespace lambda_options
 
 	namespace _private
 	{
-		class TypeKind;
+		class TypeId;
 
 
 		template <typename Char>
@@ -1206,7 +1206,7 @@ namespace lambda_options
 
 		template <typename Char>
 		struct DynamicParserMap {
-			typedef std::vector<std::pair<TypeKind, typename OpaqueParser<Char>::Type>> Type;
+			typedef std::vector<std::pair<TypeId, typename OpaqueParser<Char>::Type>> Type;
 		};
 
 
@@ -1387,7 +1387,7 @@ namespace lambda_options
 			}
 
 
-			void NewInfo (Keyword const & keyword, std::vector<TypeKind> & typeKinds, typename OptInfo<Char>::Callback const & func, size_t arity)
+			void NewInfo (Keyword const & keyword, std::vector<TypeId> & typeKinds, typename OptInfo<Char>::Callback const & func, size_t arity)
 			{
 				if (infosByArity.size() <= arity) {
 					infosByArity.resize(arity + 1);
@@ -1411,7 +1411,7 @@ namespace lambda_options
 				auto wrapper = [=] (OpaqueValues &) {
 					func();
 				};
-				std::vector<TypeKind> typeKinds;
+				std::vector<TypeId> typeKinds;
 				NewInfo(keyword, typeKinds, wrapper, 0);
 			}
 
@@ -1423,8 +1423,8 @@ namespace lambda_options
 					A2 && a = ReifyOpaque<A2>(vals[0]);
 					func(std::forward<A>(a));
 				};
-				std::vector<TypeKind> typeKinds;
-				PushTypeKind<A2>(typeKinds);
+				std::vector<TypeId> typeKinds;
+				PushTypeId<A2>(typeKinds);
 				NewInfo(keyword, typeKinds, wrapper, 1);
 			}
 
@@ -1438,9 +1438,9 @@ namespace lambda_options
 					B2 && b = ReifyOpaque<B2>(vals[1]);
 					func(std::forward<A>(a), std::forward<B>(b));
 				};
-				std::vector<TypeKind> typeKinds;
-				PushTypeKind<A2>(typeKinds);
-				PushTypeKind<B2>(typeKinds);
+				std::vector<TypeId> typeKinds;
+				PushTypeId<A2>(typeKinds);
+				PushTypeId<B2>(typeKinds);
 				NewInfo(keyword, typeKinds, wrapper, 2);
 			}
 
@@ -1456,10 +1456,10 @@ namespace lambda_options
 					C2 && c = ReifyOpaque<C2>(vals[2]);
 					func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c));
 				};
-				std::vector<TypeKind> typeKinds;
-				PushTypeKind<A2>(typeKinds);
-				PushTypeKind<B2>(typeKinds);
-				PushTypeKind<C2>(typeKinds);
+				std::vector<TypeId> typeKinds;
+				PushTypeId<A2>(typeKinds);
+				PushTypeId<B2>(typeKinds);
+				PushTypeId<C2>(typeKinds);
 				NewInfo(keyword, typeKinds, wrapper, 3);
 			}
 
@@ -1477,11 +1477,11 @@ namespace lambda_options
 					D2 && d = ReifyOpaque<D2>(vals[3]);
 					func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d));
 				};
-				std::vector<TypeKind> typeKinds;
-				PushTypeKind<A2>(typeKinds);
-				PushTypeKind<B2>(typeKinds);
-				PushTypeKind<C2>(typeKinds);
-				PushTypeKind<D2>(typeKinds);
+				std::vector<TypeId> typeKinds;
+				PushTypeId<A2>(typeKinds);
+				PushTypeId<B2>(typeKinds);
+				PushTypeId<C2>(typeKinds);
+				PushTypeId<D2>(typeKinds);
 				NewInfo(keyword, typeKinds, wrapper, 4);
 			}
 
@@ -1501,12 +1501,12 @@ namespace lambda_options
 					E2 && e = ReifyOpaque<E2>(vals[4]);
 					func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e));
 				};
-				std::vector<TypeKind> typeKinds;
-				PushTypeKind<A2>(typeKinds);
-				PushTypeKind<B2>(typeKinds);
-				PushTypeKind<C2>(typeKinds);
-				PushTypeKind<D2>(typeKinds);
-				PushTypeKind<E2>(typeKinds);
+				std::vector<TypeId> typeKinds;
+				PushTypeId<A2>(typeKinds);
+				PushTypeId<B2>(typeKinds);
+				PushTypeId<C2>(typeKinds);
+				PushTypeId<D2>(typeKinds);
+				PushTypeId<E2>(typeKinds);
 				NewInfo(keyword, typeKinds, wrapper, 5);
 			}
 
@@ -1514,7 +1514,7 @@ namespace lambda_options
 			template <typename T>
 			void AddDynamicParser ()
 			{
-				TypeKind typeKind = TypeKind::Get<T>();
+				TypeId typeKind = TypeId::Get<T>();
 				if (_private::Lookup(dynamicParserMap, typeKind) == nullptr) {
 					auto parser = OpaqueParse<Char, T>;
 					dynamicParserMap.emplace_back(std::move(typeKind), parser);
@@ -1522,7 +1522,7 @@ namespace lambda_options
 			}
 
 
-			typename OpaqueParser<Char>::Type LookupDynamicParser (TypeKind const & k) const
+			typename OpaqueParser<Char>::Type LookupDynamicParser (TypeId const & k) const
 			{
 				auto const * pParser = _private::Lookup(dynamicParserMap, k);
 				Assert(__LINE__, pParser != nullptr);
@@ -1531,9 +1531,9 @@ namespace lambda_options
 
 
 			template <typename T>
-			void PushTypeKind (std::vector<TypeKind> & kinds)
+			void PushTypeId (std::vector<TypeId> & kinds)
 			{
-				kinds.push_back(TypeKind::Get<T>());
+				kinds.push_back(TypeId::Get<T>());
 				AddDynamicParser<T>();
 			}
 
@@ -1588,18 +1588,18 @@ namespace lambda_options
 			}
 
 		private:
-			UniqueOpaque OpaqueParse (TypeKind const & typeKind)
+			UniqueOpaque OpaqueParse (TypeId const & typeKind)
 			{
 				auto parser = opts->LookupDynamicParser(typeKind);
 				return parser(parseState);
 			}
 
-			OpaqueValues ParseArgs (std::vector<TypeKind> const & typeKinds)
+			OpaqueValues ParseArgs (std::vector<TypeId> const & typeKinds)
 			{
 				size_t const N = typeKinds.size();
 				OpaqueValues parsedArgs;
 				for (size_t i = 0; i < N; ++i) {
-					TypeKind const & typeKind = typeKinds[i];
+					TypeId const & typeKind = typeKinds[i];
 					UniqueOpaque parsedArg = OpaqueParse(typeKind);
 					if (parsedArg == nullptr) {
 						break;
