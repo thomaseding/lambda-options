@@ -1643,23 +1643,31 @@ namespace lambda_options
 				if ((opts->config.matchFlags & MatchFlags::GnuShortGrouping) == MatchFlags::Empty) {
 					return false;
 				}
+
 				String const & groupedArgs = *iter;
 				if (groupedArgs.size() < 3 || groupedArgs[0] != '-' || groupedArgs[1] == '-') {
 					return false;
 				}
+
 				String artificialArgs[] = { String(2, '-') };
 				for (size_t i = 1; i < groupedArgs.size(); ++i) {
-					String & shortOpt = artificialArgs[0];
-					shortOpt[1] = groupedArgs[i];
-					if (!IsKeyword(shortOpt)) {
+					String & shortKeyword = artificialArgs[0];
+					shortKeyword[1] = groupedArgs[i];
+					if (!IsKeyword(shortKeyword)) {
 						return false;
 					}
 				}
+
 				for (size_t i = 1; i < groupedArgs.size(); ++i) {
-					String & shortOpt = artificialArgs[0];
-					shortOpt[1] = groupedArgs[i];
+					String & shortKeyword = artificialArgs[0];
+					shortKeyword[1] = groupedArgs[i];
 					ParseContextImpl<Char> parseContext(opts, std::vector<String>(artificialArgs, artificialArgs + 1));
-					parseContext.Run();
+					try {
+						parseContext.Run();
+					}
+					catch (ParseFailedException const &) {
+						return false;
+					}
 				}
 				++iter;
 				return true;
