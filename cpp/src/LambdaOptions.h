@@ -1654,13 +1654,12 @@ namespace lambda_options
 					if (!IsKeyword(shortOpt)) {
 						return false;
 					}
+				}
+				for (size_t i = 1; i < groupedArgs.size(); ++i) {
+					String & shortOpt = artificialArgs[0];
+					shortOpt[1] = groupedArgs[i];
 					ParseContextImpl<Char> parseContext(opts, std::vector<String>(artificialArgs, artificialArgs + 1));
-					try {
-						parseContext.Run();
-					}
-					catch (ParseFailedException const &) {
-						return false;
-					}
+					parseContext.Run();
 				}
 				++iter;
 				return true;
