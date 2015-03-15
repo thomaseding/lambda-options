@@ -2060,6 +2060,7 @@ public:
 		args.push_back(Q("-zf"));
 		args.push_back(Q("-f"));
 		DumpMemo(expected, L"<f/>");
+		DumpMemo(expected, L"<f/>");
 
 		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
 		parseContext.Run();
@@ -2093,6 +2094,7 @@ public:
 
 		args.push_back(Q("-fz"));
 		args.push_back(Q("-f"));
+		DumpMemo(expected, L"<f/>");
 		DumpMemo(expected, L"<f/>");
 
 		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
