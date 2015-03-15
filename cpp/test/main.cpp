@@ -1221,6 +1221,7 @@ public:
 
 			OptionsConfig config;
 			config.keywordStyle = style;
+			config.matchFlags = MatchFlags::Empty;
 			Opts opts(config);
 
 			opts.AddOption(inputName, [&] () {
@@ -1879,6 +1880,230 @@ public:
 	}
 
 
+	static void TestGnuShortGrouping1 ()
+	{
+		std::wstringstream ss;
+
+		OptionsConfig config;
+		Opts opts(config);
+
+		Keyword kwFoo(Q("f"), Q("foo"));
+		opts.AddOption(kwFoo, [&] {
+			DumpMemo(ss, L"<foo/>");
+		});
+
+		Keyword kwBar(Q("b"), Q("bar"));
+		opts.AddOption(kwBar, [&] (std::vector<int> xs) {
+			DumpMemo(ss, L"<bar>");
+			Dump(ss, static_cast<unsigned int>(xs.size()));
+			DumpMemo(ss, L"</bar>");
+		});
+
+		Keyword kwWuz(Q("w"), Q("wuz"));
+		opts.AddOption(kwWuz, [&] {
+			DumpMemo(ss, L"<wuz/>");
+		});
+
+		Keyword kwTar(Q("x"), Q("fbx"));
+		opts.AddOption(kwTar, [&] (Any) {
+			DumpMemo(ss, L"<fbx/>");
+		});
+
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		args.push_back(Q("-f"));
+		DumpMemo(expected, L"<foo/>");
+
+		args.push_back(Q("-b"));
+		DumpMemo(expected, L"<bar>");
+		Dump(expected, 0u);
+		DumpMemo(expected, L"</bar>");
+
+		args.push_back(Q("-x"));
+		args.push_back(Q("-1"));
+		DumpMemo(expected, L"<fbx/>");
+
+		args.push_back(Q("--fbx"));
+		args.push_back(Q("-1"));
+		DumpMemo(expected, L"<fbx/>");
+
+		args.push_back(Q("-fb"));
+		DumpMemo(expected, L"<foo/>");
+		DumpMemo(expected, L"<bar>");
+		Dump(expected, 0u);
+		DumpMemo(expected, L"</bar>");
+
+		args.push_back(Q("-bf"));
+		DumpMemo(expected, L"<bar>");
+		Dump(expected, 0u);
+		DumpMemo(expected, L"</bar>");
+		DumpMemo(expected, L"<foo/>");
+
+		args.push_back(Q("-wbf"));
+		DumpMemo(expected, L"<wuz/>");
+		DumpMemo(expected, L"<bar>");
+		Dump(expected, 0u);
+		DumpMemo(expected, L"</bar>");
+		DumpMemo(expected, L"<foo/>");
+
+		args.push_back(Q("-ff"));
+		DumpMemo(expected, L"<foo/>");
+		DumpMemo(expected, L"<foo/>");
+
+		args.push_back(Q("-fxb"));
+		args.push_back(Q("-f"));
+		args.push_back(Q("-f"));
+		DumpMemo(expected, L"<foo/>");
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		try {
+			parseContext.Run();
+			FAIL;
+		}
+		catch (lambda_options::ParseFailedException const & e) {
+			if (e.beginIndex != 10) {
+				FAIL;
+			}
+			if (e.endIndex != 10) {
+				FAIL;
+			}
+		}
+
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
+
+	static void TestGnuShortGrouping2 ()
+	{
+		std::wstringstream ss;
+
+		OptionsConfig config;
+		Opts opts(config);
+
+		Keyword kwFoo(Q("f"));
+		opts.AddOption(kwFoo, [&] {
+			DumpMemo(ss, L"<f/>");
+		});
+
+		Keyword kwZzy(Q("z"));
+		opts.AddOption(kwZzy, lambda_options::ConsumeRest<Char>);
+
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		args.push_back(Q("-fz"));
+		DumpMemo(expected, L"<f/>");
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		parseContext.Run();
+
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
+
+	static void TestGnuShortGrouping3 ()
+	{
+		std::wstringstream ss;
+
+		OptionsConfig config;
+		Opts opts(config);
+
+		Keyword kwFoo(Q("f"));
+		opts.AddOption(kwFoo, [&] {
+			DumpMemo(ss, L"<f/>");
+		});
+
+		Keyword kwZzy(Q("z"));
+		opts.AddOption(kwZzy, lambda_options::ConsumeRest<Char>);
+
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		args.push_back(Q("-zf"));
+		DumpMemo(expected, L"<f/>");
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		parseContext.Run();
+
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
+
+	static void TestGnuShortGrouping4 ()
+	{
+		std::wstringstream ss;
+
+		OptionsConfig config;
+		Opts opts(config);
+
+		Keyword kwFoo(Q("f"));
+		opts.AddOption(kwFoo, [&] {
+			DumpMemo(ss, L"<f/>");
+		});
+
+		Keyword kwZzy(Q("z"));
+		opts.AddOption(kwZzy, lambda_options::ConsumeRest<Char>);
+
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		args.push_back(Q("-f"));
+		DumpMemo(expected, L"<f/>");
+
+		args.push_back(Q("-zf"));
+		args.push_back(Q("-f"));
+		DumpMemo(expected, L"<f/>");
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		parseContext.Run();
+
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
+
+	static void TestGnuShortGrouping5 ()
+	{
+		std::wstringstream ss;
+
+		OptionsConfig config;
+		Opts opts(config);
+
+		Keyword kwFoo(Q("f"));
+		opts.AddOption(kwFoo, [&] {
+			DumpMemo(ss, L"<f/>");
+		});
+
+		Keyword kwZzy(Q("z"));
+		opts.AddOption(kwZzy, lambda_options::ConsumeRest<Char>);
+
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		args.push_back(Q("-f"));
+		DumpMemo(expected, L"<f/>");
+
+		args.push_back(Q("-fz"));
+		args.push_back(Q("-f"));
+		DumpMemo(expected, L"<f/>");
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		parseContext.Run();
+
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
+
 	static void Test_TEMPLATE ()
 	{
 		std::wstringstream ss;
@@ -1914,6 +2139,7 @@ template <typename Char>
 typename lambda_options::OptionsConfig const Tests<Char>::testConfig = ([] {
 	lambda_options::OptionsConfig config;
 	config.keywordStyle = lambda_options::KeywordStyle::Exact;
+	config.matchFlags = lambda_options::MatchFlags::Empty;
 	return config;
 })();
 
@@ -1948,6 +2174,12 @@ static bool RunCharTests ()
 		Tests<Char>::TestVectors1,
 		Tests<Char>::TestVectors2,
 		Tests<Char>::TestConsumeRest,
+		Tests<Char>::TestAny,
+		Tests<Char>::TestGnuShortGrouping1,
+		Tests<Char>::TestGnuShortGrouping2,
+		Tests<Char>::TestGnuShortGrouping3,
+		Tests<Char>::TestGnuShortGrouping4,
+		Tests<Char>::TestGnuShortGrouping5,
 	};
 
 	try {

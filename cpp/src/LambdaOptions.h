@@ -809,9 +809,9 @@ namespace lambda_options
 		IgnoreAsciiCase    = 1 << 0,
 		RelaxedDashes      = 1 << 1,
 		RelaxedUnderscores = 1 << 2,
-		//GnuShortGrouping   = 1 << 3,
+		GnuShortGrouping   = 1 << 3,
 
-		Default = Empty
+		Default = GnuShortGrouping
 	};
 
 	inline MatchFlags operator& (MatchFlags a, MatchFlags b)
@@ -1623,6 +1623,49 @@ namespace lambda_options
 				return false;
 			}
 
+			bool IsKeyword (String const & str) const
+			{
+				auto const & infosByArity = opts->infosByArity;
+				for (auto const & infos : infosByArity) {
+					for (auto const & info : infos) {
+						for (auto const & name : info.keyword.names) {
+							if (MatchesName(opts->config.matchFlags, str, name)) {
+								return true;
+							}
+						}
+					}
+				}
+				return false;
+			}
+
+			bool MatchGnuShortGrouping ()
+			{
+				if ((opts->config.matchFlags & MatchFlags::GnuShortGrouping) == MatchFlags::Empty) {
+					return false;
+				}
+				String const & groupedArgs = *iter;
+				if (groupedArgs.size() < 3 || groupedArgs[0] != '-' || groupedArgs[1] == '-') {
+					return false;
+				}
+				String artificialArgs[] = { String(2, '-') };
+				for (size_t i = 1; i < groupedArgs.size(); ++i) {
+					String & shortOpt = artificialArgs[0];
+					shortOpt[1] = groupedArgs[i];
+					if (!IsKeyword(shortOpt)) {
+						return false;
+					}
+					ParseContextImpl<Char> parseContext(opts, std::vector<String>(artificialArgs, artificialArgs + 1));
+					try {
+						parseContext.Run();
+					}
+					catch (ParseFailedException const &) {
+						return false;
+					}
+				}
+				++iter;
+				return true;
+			}
+
 			bool TryParse (bool useKeyword, std::vector<OptInfo<Char>> const & infos)
 			{
 				if (infos.empty()) {
@@ -1671,6 +1714,9 @@ namespace lambda_options
 			{
 				if (iter == end) {
 					return false;
+				}
+				if (MatchGnuShortGrouping()) {
+					return true;
 				}
 				return TryParse(opts->infosByArity);
 			}
