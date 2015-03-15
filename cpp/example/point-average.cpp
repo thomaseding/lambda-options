@@ -145,7 +145,7 @@ public:
 
 
 private:
-	Options<char> opts;
+	Options opts;
 	bool doHelp;
 	std::vector<Point> points;
 };

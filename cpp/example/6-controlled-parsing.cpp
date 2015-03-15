@@ -68,7 +68,7 @@ int main (int argc, char ** argv)
 	Keyword kwUsers("users");
 	kwUsers.args = "NAME [AGE=0]...";
 	kwUsers.desc = "Prints user names and ages.";
-	opts.AddOption(kwUsers, [&] (ParseState<char> parseState) {
+	opts.AddOption(kwUsers, [&] (ParseState parseState) {
 		lambda_options::Maybe<User> maybeUser;
 		while (lambda_options::Parse(parseState, maybeUser)) {
 			users.insert(*maybeUser);

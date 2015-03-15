@@ -65,15 +65,14 @@ int main (int argc, char ** argv)
 		helpRequested = true;
 	});
 
-	Keyword kwUser("user");
-	kwUser.args = "NAME [AGE=0]";
-	kwUser.desc = "Prints user's name and age.";
-	opts.AddOption(kwUser, [&] (User user) {
-		if (user.name == "Kelly") {
-			return ParseResult::Reject;
+	Keyword kwUsers;
+	kwUsers.args = "NAME [AGE=0]...";
+	kwUsers.desc = "Prints user names and ages.";
+	opts.AddOption(kwUsers, [&] (ParseState parseState) {
+		lambda_options::Maybe<User> maybeUser;
+		while (lambda_options::Parse(parseState, maybeUser)) {
+			users.insert(*maybeUser);
 		}
-		users.insert(user);
-		return ParseResult::Accept;
 	});
 
 	auto printHelp = [&] () {
@@ -95,7 +94,7 @@ int main (int argc, char ** argv)
 			std::cout << "Bad input for " << args[e.beginIndex] << " at index " << e.endIndex << ": " << args[e.endIndex] << "\n";
 		}
 		else {
-			std::cout << "Bad input for " << args[e.beginIndex] << " at index " << e.endIndex << ".\n";
+			std::cout << "Bad input for " << args[e.beginIndex] << " at index " << e.endIndex << ": End of input.\n";
 		}
 		printHelp();
 		return 1;

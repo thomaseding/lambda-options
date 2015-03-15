@@ -81,13 +81,6 @@ namespace lambda_options
 	class Options;
 
 
-	enum class ParseResult {
-		Accept,
-		Reject,
-		Fatal,
-	};
-
-
 	namespace _private
 	{
 		inline void Assert (unsigned int line, bool truth)
@@ -103,12 +96,6 @@ namespace lambda_options
 		template <typename T>
 		struct SimplifyType {
 			typedef typename std::remove_cv<typename std::remove_reference<T>::type>::type type;
-		};
-
-
-		template <typename T>
-		struct Tag {
-			typedef T type;
 		};
 
 
@@ -1110,7 +1097,7 @@ namespace lambda_options
 	template <typename Char>
 	class OptInfo {
 	public:
-		typedef std::function<ParseResult(_private::OpaqueValues &)> Callback;
+		typedef std::function<void(_private::OpaqueValues &)> Callback;
 
 		OptInfo (Keyword<Char> const & keyword, std::vector<_private::TypeKind> && typeKinds, Callback const & callback)
 			: keyword(keyword)
@@ -1223,22 +1210,6 @@ namespace lambda_options
 		};
 
 
-		template <typename T>
-		struct ReturnType {
-			static bool const allowed = false;
-		};
-
-		template <>
-		struct ReturnType<void> {
-			static bool const allowed = true;
-		};
-
-		template <>
-		struct ReturnType<ParseResult> {
-			static bool const allowed = true;
-		};
-
-
 		template <typename Char>
 		class OptionsImpl {
 		public:
@@ -1275,8 +1246,7 @@ namespace lambda_options
 				static void Add (OptionsImpl & opts, Keyword const & keyword, Func const & f)
 				{
 					typedef typename FuncTraits<Func>::Return::type R;
-					static_assert(ReturnType<R>::allowed, "Illegal return type.");
-					opts.AddImpl(Tag<R>(), keyword, f);
+					opts.AddImpl(keyword, f);
 				}
 			};
 
@@ -1287,8 +1257,7 @@ namespace lambda_options
 				{
 					typedef typename FuncTraits<Func>::Arg0::type A;
 					typedef typename FuncTraits<Func>::Return::type R;
-					static_assert(ReturnType<R>::allowed, "Illegal return type.");
-					opts.AddImpl<A>(Tag<R>(), keyword, f);
+					opts.AddImpl<A>(keyword, f);
 				}
 			};
 
@@ -1300,8 +1269,7 @@ namespace lambda_options
 					typedef typename FuncTraits<Func>::Arg0::type A;
 					typedef typename FuncTraits<Func>::Arg1::type B;
 					typedef typename FuncTraits<Func>::Return::type R;
-					static_assert(ReturnType<R>::allowed, "Illegal return type.");
-					opts.AddImpl<A,B>(Tag<R>(), keyword, f);
+					opts.AddImpl<A,B>(keyword, f);
 				}
 			};
 
@@ -1314,8 +1282,7 @@ namespace lambda_options
 					typedef typename FuncTraits<Func>::Arg1::type B;
 					typedef typename FuncTraits<Func>::Arg2::type C;
 					typedef typename FuncTraits<Func>::Return::type R;
-					static_assert(ReturnType<R>::allowed, "Illegal return type.");
-					opts.AddImpl<A,B,C>(Tag<R>(), keyword, f);
+					opts.AddImpl<A,B,C>(keyword, f);
 				}
 			};
 
@@ -1329,8 +1296,7 @@ namespace lambda_options
 					typedef typename FuncTraits<Func>::Arg2::type C;
 					typedef typename FuncTraits<Func>::Arg3::type D;
 					typedef typename FuncTraits<Func>::Return::type R;
-					static_assert(ReturnType<R>::allowed, "Illegal return type.");
-					opts.AddImpl<A,B,C,D>(Tag<R>(), keyword, f);
+					opts.AddImpl<A,B,C,D>(keyword, f);
 				}
 			};
 
@@ -1345,8 +1311,7 @@ namespace lambda_options
 					typedef typename FuncTraits<Func>::Arg3::type D;
 					typedef typename FuncTraits<Func>::Arg4::type E;
 					typedef typename FuncTraits<Func>::Return::type R;
-					static_assert(ReturnType<R>::allowed, "Illegal return type.");
-					opts.AddImpl<A,B,C,D,E>(Tag<R>(), keyword, f);
+					opts.AddImpl<A,B,C,D,E>(keyword, f);
 				}
 			};
 
@@ -1438,42 +1403,25 @@ namespace lambda_options
 				infos.emplace_back(keyword, std::move(typeKinds), func);
 			}
 
-			void AddImpl (Tag<void>, Keyword const & keyword, std::function<void()> const & func)
-			{
-				AddImpl(Tag<ParseResult>(), keyword, [=] () {
-					func();
-					return ParseResult::Accept;
-				});
-			}
-
-			void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult()> const & func)
+			void AddImpl (Keyword const & keyword, std::function<void()> const & func)
 			{
 				if (keyword.names.empty()) {
 					throw EmptyOptionException();
 				}
 				auto wrapper = [=] (OpaqueValues &) {
-					return func();
+					func();
 				};
 				std::vector<TypeKind> typeKinds;
 				NewInfo(keyword, typeKinds, wrapper, 0);
 			}
 
 			template <typename A>
-			void AddImpl (Tag<void>, Keyword const & keyword, std::function<void(A)> const & func)
-			{
-				AddImpl<A>(Tag<ParseResult>(), keyword, [=] (A && a) {
-					func(std::forward<A>(a));
-					return ParseResult::Accept;
-				});
-			}
-
-			template <typename A>
-			void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult(A)> const & func)
+			void AddImpl (Keyword const & keyword, std::function<void(A)> const & func)
 			{
 				typedef typename SimplifyType<A>::type A2;
 				auto wrapper = [=] (OpaqueValues & vals) {
 					A2 && a = ReifyOpaque<A2>(vals[0]);
-					return func(std::forward<A>(a));
+					func(std::forward<A>(a));
 				};
 				std::vector<TypeKind> typeKinds;
 				PushTypeKind<A2>(typeKinds);
@@ -1481,23 +1429,14 @@ namespace lambda_options
 			}
 
 			template <typename A, typename B>
-			void AddImpl (Tag<void>, Keyword const & keyword, std::function<void(A,B)> const & func)
-			{
-				AddImpl<A,B>(Tag<ParseResult>(), keyword, [=] (A && a, B && b) {
-					func(std::forward<A>(a), std::forward<B>(b));
-					return ParseResult::Accept;
-				});
-			}
-
-			template <typename A, typename B>
-			void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult(A,B)> const & func)
+			void AddImpl (Keyword const & keyword, std::function<void(A,B)> const & func)
 			{
 				typedef typename SimplifyType<A>::type A2;
 				typedef typename SimplifyType<B>::type B2;
 				auto wrapper = [=] (OpaqueValues & vals) {
 					A2 && a = ReifyOpaque<A2>(vals[0]);
 					B2 && b = ReifyOpaque<B2>(vals[1]);
-					return func(std::forward<A>(a), std::forward<B>(b));
+					func(std::forward<A>(a), std::forward<B>(b));
 				};
 				std::vector<TypeKind> typeKinds;
 				PushTypeKind<A2>(typeKinds);
@@ -1506,16 +1445,7 @@ namespace lambda_options
 			}
 
 			template <typename A, typename B, typename C>
-			void AddImpl (Tag<void>, Keyword const & keyword, std::function<void(A,B,C)> const & func)
-			{
-				AddImpl<A,B,C>(Tag<ParseResult>(), keyword, [=] (A && a, B && b, C && c) {
-					func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c));
-					return ParseResult::Accept;
-				});
-			}
-
-			template <typename A, typename B, typename C>
-			void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult(A,B,C)> const & func)
+			void AddImpl (Keyword const & keyword, std::function<void(A,B,C)> const & func)
 			{
 				typedef typename SimplifyType<A>::type A2;
 				typedef typename SimplifyType<B>::type B2;
@@ -1524,7 +1454,7 @@ namespace lambda_options
 					A2 && a = ReifyOpaque<A2>(vals[0]);
 					B2 && b = ReifyOpaque<B2>(vals[1]);
 					C2 && c = ReifyOpaque<C2>(vals[2]);
-					return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c));
+					func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c));
 				};
 				std::vector<TypeKind> typeKinds;
 				PushTypeKind<A2>(typeKinds);
@@ -1534,16 +1464,7 @@ namespace lambda_options
 			}
 
 			template <typename A, typename B, typename C, typename D>
-			void AddImpl (Tag<void>, Keyword const & keyword, std::function<void(A,B,C,D)> const & func)
-			{
-				AddImpl<A,B,C,D>(Tag<ParseResult>(), keyword, [=] (A && a, B && b, C && c, D && d) {
-					func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d));
-					return ParseResult::Accept;
-				});
-			}
-
-			template <typename A, typename B, typename C, typename D>
-			void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult(A,B,C,D)> const & func)
+			void AddImpl (Keyword const & keyword, std::function<void(A,B,C,D)> const & func)
 			{
 				typedef typename SimplifyType<A>::type A2;
 				typedef typename SimplifyType<B>::type B2;
@@ -1554,7 +1475,7 @@ namespace lambda_options
 					B2 && b = ReifyOpaque<B2>(vals[1]);
 					C2 && c = ReifyOpaque<C2>(vals[2]);
 					D2 && d = ReifyOpaque<D2>(vals[3]);
-					return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d));
+					func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d));
 				};
 				std::vector<TypeKind> typeKinds;
 				PushTypeKind<A2>(typeKinds);
@@ -1565,16 +1486,7 @@ namespace lambda_options
 			}
 
 			template <typename A, typename B, typename C, typename D, typename E>
-			void AddImpl (Tag<void>, Keyword const & keyword, std::function<void(A,B,C,D,E)> const & func)
-			{
-				AddImpl<A,B,C,D,E>(Tag<ParseResult>(), keyword, [=] (A && a, B && b, C && c, D && d, E && e) {
-					func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e));
-					return ParseResult::Accept;
-				});
-			}
-
-			template <typename A, typename B, typename C, typename D, typename E>
-			void AddImpl (Tag<ParseResult>, Keyword const & keyword, std::function<ParseResult(A,B,C,D,E)> const & func)
+			void AddImpl (Keyword const & keyword, std::function<void(A,B,C,D,E)> const & func)
 			{
 				typedef typename SimplifyType<A>::type A2;
 				typedef typename SimplifyType<B>::type B2;
@@ -1587,7 +1499,7 @@ namespace lambda_options
 					C2 && c = ReifyOpaque<C2>(vals[2]);
 					D2 && d = ReifyOpaque<D2>(vals[3]);
 					E2 && e = ReifyOpaque<E2>(vals[4]);
-					return func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e));
+					func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e));
 				};
 				std::vector<TypeKind> typeKinds;
 				PushTypeKind<A2>(typeKinds);
@@ -1711,10 +1623,10 @@ namespace lambda_options
 				return false;
 			}
 
-			ParseResult TryParse (bool useKeyword, std::vector<OptInfo<Char>> const & infos)
+			bool TryParse (bool useKeyword, std::vector<OptInfo<Char>> const & infos)
 			{
 				if (infos.empty()) {
-					return ParseResult::Reject;
+					return false;
 				}
 
 				auto const startIter = iter;
@@ -1730,45 +1642,29 @@ namespace lambda_options
 						Assert(__LINE__, typeKinds.size() == arity);
 						OpaqueValues parsedArgs = ParseArgs(typeKinds);
 						if (parsedArgs.size() == arity) {
-							ParseResult res = info.callback(parsedArgs);
-							switch (res) {
-								case ParseResult::Accept: {
-									return ParseResult::Accept;
-								} break;
-								case ParseResult::Reject: {
-									continue;
-								} break;
-								case ParseResult::Fatal: {
-									iter = startIter;
-									return ParseResult::Fatal;
-								} break;
-								default: {
-									Assert(__LINE__, false);
-								}
-							}
+							info.callback(parsedArgs);
+							return true;
 						}
 					}
 				}
 
 				iter = startIter;
-				return ParseResult::Reject;
+				return false;
 			}
 
-			ParseResult TryParse (std::vector<std::vector<OptInfo<Char>>> const & infosByArity)
+			bool TryParse (std::vector<std::vector<OptInfo<Char>>> const & infosByArity)
 			{
-				ParseResult res = ParseResult::Reject;
 				bool const useKeywordState[] = { true, false };
 				for (bool useKeyword : useKeywordState) {
 					auto const end = infosByArity.rend();
 					for (auto it = infosByArity.rbegin(); it != end; ++it) {
 						auto & infos = *it;
-						res = TryParse(useKeyword, infos);
-						if (res != ParseResult::Reject) {
-							return res;
+						if (TryParse(useKeyword, infos)) {
+							return true;
 						}
 					}
 				}
-				return res;
+				return false;
 			}
 
 			bool TryParse ()
@@ -1776,16 +1672,7 @@ namespace lambda_options
 				if (iter == end) {
 					return false;
 				}
-				ParseResult res = TryParse(opts->infosByArity);
-				switch (res) {
-					case ParseResult::Accept: return true;
-					case ParseResult::Reject: return false;
-					case ParseResult::Fatal: return false;
-					default: {
-						Assert(__LINE__, false);
-						return false;
-					}
-				}
+				return TryParse(opts->infosByArity);
 			}
 
 		public:
@@ -2161,7 +2048,6 @@ namespace lambda_options
 		typedef lambda_options::ParseFailedException ParseFailedException;
 
 		typedef lambda_options::KeywordStyle KeywordStyle;
-		typedef lambda_options::ParseResult ParseResult;
 
 		typedef lambda_options::ArgsIter<char> ArgsIter;
 		typedef lambda_options::ParseState<char> ParseState;

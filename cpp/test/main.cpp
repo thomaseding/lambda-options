@@ -148,7 +148,6 @@ class Tests {
 private:
 	typedef std::basic_string<Char> String;
 	typedef lambda_options::Options<Char> Opts;
-	typedef lambda_options::ParseResult PR;
 	typedef lambda_options::Keyword<Char> Keyword;
 	typedef lambda_options::FormattingConfig<Char> FormattingConfig;
 	typedef lambda_options::OptionsConfig OptionsConfig;
@@ -358,42 +357,18 @@ public:
 	{
 		Opts opts(testConfig);
 	
-		opts.AddOption(Q("x"), [] (bool) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("x"), [] (int) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("x"), [] (unsigned int) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("x"), [] (float) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("x"), [] (double) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("x"), [] (Char) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("x"), [] (String) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("xc"), [] (String const) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("xr"), [] (String &&) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("xcr"), [] (String const &&) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("xl"), [] (String &) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("xcl"), [] (String const &) {
-			return PR::Accept;
-		});
+		opts.AddOption(Q("x"), [] (bool) {});
+		opts.AddOption(Q("x"), [] (int) {});
+		opts.AddOption(Q("x"), [] (unsigned int) {});
+		opts.AddOption(Q("x"), [] (float) {});
+		opts.AddOption(Q("x"), [] (double) {});
+		opts.AddOption(Q("x"), [] (Char) {});
+		opts.AddOption(Q("x"), [] (String) {});
+		opts.AddOption(Q("xc"), [] (String const) {});
+		opts.AddOption(Q("xr"), [] (String &&) {});
+		opts.AddOption(Q("xcr"), [] (String const &&) {});
+		opts.AddOption(Q("xl"), [] (String &) {});
+		opts.AddOption(Q("xcl"), [] (String const &) {});
 		
 	
 		std::vector<String> args;
@@ -413,24 +388,12 @@ public:
 		opts.AddOption(Q("x"), nop4);
 		opts.AddOption(Q("x"), nop5);
 	
-		opts.AddOption(Q("xx"), [] () {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("xx"), [] (Any) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("xx"), [] (Any,Any) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("xx"), [] (Any,Any,Any) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("xx"), [] (Any,Any,Any,Any) {
-			return PR::Accept;
-		});
-		opts.AddOption(Q("xx"), [] (Any,Any,Any,Any,Any) {
-			return PR::Accept;
-		});
+		opts.AddOption(Q("xx"), [] () {});
+		opts.AddOption(Q("xx"), [] (Any) {});
+		opts.AddOption(Q("xx"), [] (Any,Any) {});
+		opts.AddOption(Q("xx"), [] (Any,Any,Any) {});
+		opts.AddOption(Q("xx"), [] (Any,Any,Any,Any) {});
+		opts.AddOption(Q("xx"), [] (Any,Any,Any,Any,Any) {});
 	
 		std::vector<String> args;
 		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
@@ -442,7 +405,7 @@ public:
 	{
 		try {
 			Opts opts(testConfig);
-			opts.AddOption(empty, [] () { return PR::Accept; });
+			opts.AddOption(empty, nop);
 		}
 		catch (lambda_options::EmptyOptionException const &) {
 			return;
@@ -458,23 +421,18 @@ public:
 		Opts opts(testConfig);
 		opts.AddOption(empty, [&] (String) {
 			calls.push_back(1);
-			return PR::Accept;
 		});
 		opts.AddOption(empty, [&] (String,String) {
 			calls.push_back(2);
-			return PR::Accept;
 		});
 		opts.AddOption(empty, [&] (String,String,String) {
 			calls.push_back(3);
-			return PR::Accept;
 		});
 		opts.AddOption(empty, [&] (String,String,String,String) {
 			calls.push_back(4);
-			return PR::Accept;
 		});
 		opts.AddOption(empty, [&] (String,String,String,String,String) {
 			calls.push_back(5);
-			return PR::Accept;
 		});
 	
 		auto parseCount = [&] (size_t n) {
@@ -503,27 +461,21 @@ public:
 		Opts opts(testConfig);
 		opts.AddOption(Q("x"), [&] () {
 			calls.push_back(0);
-			return PR::Accept;
 		});
 		opts.AddOption(Q("x"), [&] (String) {
 			calls.push_back(1);
-			return PR::Accept;
 		});
 		opts.AddOption(Q("x"), [&] (String,String) {
 			calls.push_back(2);
-			return PR::Accept;
 		});
 		opts.AddOption(Q("x"), [&] (String,String,String) {
 			calls.push_back(3);
-			return PR::Accept;
 		});
 		opts.AddOption(Q("x"), [&] (String,String,String,String) {
 			calls.push_back(4);
-			return PR::Accept;
 		});
 		opts.AddOption(Q("x"), [&] (String,String,String,String,String) {
 			calls.push_back(5);
-			return PR::Accept;
 		});
 	
 		auto parseCount = [&] (size_t n) {
@@ -553,15 +505,12 @@ public:
 		Opts opts(testConfig);
 		opts.AddOption(empty, [&] (String) {
 			calls.push_back(0);
-			return PR::Accept;
 		});
 		opts.AddOption(Q("x"), [&] () {
 			calls.push_back(1);
-			return PR::Accept;
 		});
 		opts.AddOption(Q("x"), [&] (String) {
 			calls.push_back(2);
-			return PR::Accept;
 		});
 	
 		std::vector<String> args;
@@ -588,15 +537,12 @@ public:
 		Opts opts(testConfig);
 		opts.AddOption(Q("x"), [&] (String) {
 			calls.push_back(0);
-			return PR::Accept;
 		});
 		opts.AddOption(Q("x"), [&] () {
 			calls.push_back(1);
-			return PR::Accept;
 		});
 		opts.AddOption(empty, [&] (String) {
-			calls.push_back(2); return
-			PR::Accept;
+			calls.push_back(2);
 		});
 	
 		std::vector<String> args;
@@ -623,35 +569,24 @@ public:
 	
 		opts.AddOption(empty, [&] (bool x) {
 			Dump(ss, x);
-			return PR::Accept;
 		});
 		opts.AddOption(empty, [&] (unsigned int x) {
 			Dump(ss, x);
-			return PR::Accept;
 		});
 		opts.AddOption(empty, [&] (int x) {
 			Dump(ss, x);
-			return PR::Accept;
 		});
 		opts.AddOption(empty, [&] (float x) {
 			Dump(ss, x);
-			if (x == 0.0f) {
-				DumpMemo(ss, L"REJECTED");
-				return PR::Reject;
-			}
-			return PR::Accept;
 		});
-		opts.AddOption(empty, [&] (double x) {
-			Dump(ss, x);
-			return PR::Accept;
-		});
+		//opts.AddOption(empty, [&] (double x) {
+		//	Dump(ss, x);
+		//});
 		opts.AddOption(empty, [&] (Char x) {
 			Dump(ss, x);
-			return PR::Accept;
 		});
 		opts.AddOption(empty, [&] (String x) {
 			Dump(ss, x);
-			return PR::Accept;
 		});
 	
 		std::vector<String> args;
@@ -684,10 +619,10 @@ public:
 		args.push_back(Q("5.1e-9"));
 		Dump(expected, 5.1e-9f);
 	
-		args.push_back(Q("-5.1e-100"));
-		Dump(expected, -0.0f);
-		DumpMemo(expected, L"REJECTED");
-		Dump(expected, -5.1e-100);
+		//args.push_back(Q("-5.1e-100"));
+		//Dump(expected, -0.0f);
+		//DumpMemo(expected, L"REJECTED");
+		//Dump(expected, -5.1e-100);
 	
 		args.push_back(Q("0.5"));
 		Dump(expected, 0.5f);
@@ -772,172 +707,11 @@ public:
 	}
 	
 	
-	static void TestReject1 ()
-	{
-		std::wstringstream ss;
-	
-		Opts opts(testConfig);
-		opts.AddOption(empty, [&] (int x) {
-			Dump(ss, x);
-			return PR::Reject;
-		});
-		opts.AddOption(empty, [&] (String x) {
-			Dump(ss, x);
-			return PR::Accept;
-		});
-	
-		std::vector<String> args;
-		std::wstringstream expected;
-	
-		args.push_back(Q("1"));
-		Dump(expected, 1);
-		Dump(expected, L"1");
-	
-		args.push_back(Q("x"));
-		Dump(expected, L"x");
-	
-		args.push_back(Q("2"));
-		Dump(expected, 2);
-		Dump(expected, L"2");
-	
-		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
-		parseContext.Run();
-	
-		if (ss.str() != expected.str()) {
-			FAIL;
-		}
-	}
-	
-	
-	static void TestReject2 ()
-	{
-		std::wstringstream ss;
-	
-		Opts opts(testConfig);
-		opts.AddOption(empty, [&] (int x) {
-			Dump(ss, x);
-			return PR::Reject;
-		});
-		opts.AddOption(empty, [&] (Char x) {
-			Dump(ss, x);
-			return PR::Accept;
-		});
-	
-		std::vector<String> args;
-		std::wstringstream expected;
-	
-		args.push_back(Q("1"));
-		Dump(expected, 1);
-		Dump(expected, L'1');
-	
-		args.push_back(Q("x"));
-		Dump(expected, L'x');
-	
-		args.push_back(Q("22"));
-		Dump(expected, 22);
-	
-		args.push_back(Q("3"));
-	
-		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
-		try {
-			parseContext.Run();
-			FAIL;
-		}
-		catch (lambda_options::ParseFailedException const & e) {
-			if (e.endIndex != 3) {
-				FAIL;
-			}
-		}
-	
-		if (ss.str() != expected.str()) {
-			FAIL;
-		}
-	}
-	
-	
-	static void TestFatal1 ()
-	{
-		std::wstringstream ss;
-	
-		Opts opts(testConfig);
-		opts.AddOption(empty, [&] (String x) {
-			Dump(ss, x);
-			return PR::Fatal;
-		});
-	
-		std::vector<String> args;
-		args.push_back(Q("x"));
-	
-		std::wstringstream expected;
-		Dump(expected, L"x");
-	
-		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
-		try {
-			parseContext.Run();
-			FAIL;
-		}
-		catch (lambda_options::ParseFailedException const & e) {
-			if (e.endIndex != 1) {
-				FAIL;
-			}
-		}
-		
-		if (ss.str() != expected.str()) {
-			FAIL;
-		}
-	}
-
-
-	static void TestFatal2 ()
-	{
-		std::wstringstream ss;
-
-		Opts opts(testConfig);
-		opts.AddOption(empty, [&] (int x) {
-			Dump(ss, x);
-			return PR::Fatal;
-		});
-		opts.AddOption(empty, [&] (String x) {
-			Dump(ss, x);
-			return PR::Accept;
-		});
-
-		std::vector<String> args;
-		args.push_back(Q("x"));
-		args.push_back(Q("1"));
-		args.push_back(Q("y"));
-		args.push_back(Q("2"));
-
-		std::wstringstream expected;
-		Dump(expected, L"x");
-		Dump(expected, 1);
-
-		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
-		try {
-			parseContext.Run();
-			FAIL;
-		}
-		catch (lambda_options::ParseFailedException const & e) {
-			if (e.endIndex != 2) {
-				FAIL;
-			}
-		}
-
-		if (ss.str() != expected.str()) {
-			FAIL;
-		}
-	}
-	
-	
 	static void TestNoMatch ()
 	{
 		Opts opts(testConfig);
-		opts.AddOption(empty, [] (int) {
-			return PR::Accept;
-		});
-		opts.AddOption(empty, [] (Char) {
-			return PR::Accept;
-		});
+		opts.AddOption(empty, [] (int) {});
+		opts.AddOption(empty, [] (Char) {});
 	
 		std::vector<String> args;
 		args.push_back(Q("11"));
@@ -967,43 +741,34 @@ public:
 		opts.AddOption(empty, [&] (int x) {
 			DumpMemo(ss, L"int");
 			Dump(ss, x);
-			return PR::Accept;
 		});
 		opts.AddOption(empty, [&] (Char x) {
 			DumpMemo(ss, L"char");
 			Dump(ss, x);
-			return PR::Accept;
 		});
 		opts.AddOption(empty, [&] (String x) {
 			DumpMemo(ss, L"string");
 			Dump(ss, x);
-			return PR::Accept;
 		});
 		opts.AddOption(Q("x"), [&] () {
 			DumpMemo(ss, L"x");
-			return PR::Accept;
 		});
 		opts.AddOption(Q("xx"), [&] () {
 			DumpMemo(ss, L"xx");
-			return PR::Accept;
 		});
 		opts.AddOption(Q("yy"), [&] () {
 			DumpMemo(ss, L"yy");
-			return PR::Accept;
 		});
 		opts.AddOption(Q("y"), [&] () {
 			DumpMemo(ss, L"y");
-			return PR::Accept;
 		});
 		opts.AddOption(Q("z"), [&] (int x) {
 			DumpMemo(ss, L"z");
 			Dump(ss, x);
-			return PR::Accept;
 		});
 		opts.AddOption(Q("zz"), [&] (int x) {
 			DumpMemo(ss, L"zz");
 			Dump(ss, x);
-			return PR::Accept;
 		});
 	
 		std::vector<String> args;
@@ -2167,10 +1932,6 @@ static bool RunCharTests ()
 		Tests<Char>::TestEmptyPrecedence1,
 		Tests<Char>::TestEmptyPrecedence2,
 		Tests<Char>::TestObtainedValues,
-		Tests<Char>::TestReject1,
-		Tests<Char>::TestReject2,
-		Tests<Char>::TestFatal1,
-		Tests<Char>::TestFatal2,
 		Tests<Char>::TestNoMatch,
 		Tests<Char>::TestKeyword1,
 		Tests<Char>::TestArrays,
