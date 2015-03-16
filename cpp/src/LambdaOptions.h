@@ -2105,7 +2105,10 @@ namespace lambda_options
 		typedef lambda_options::ArgsIter<char> ArgsIter;
 		typedef lambda_options::ParseState<char> ParseState;
 
-		auto const & ConsumeRest = lambda_options::ConsumeRest<char>;
+		inline void ConsumeRest (ParseState & parseState)
+		{
+			lambda_options::ConsumeRest<char>(parseState);
+		}
 	}
 }
 
