@@ -42,7 +42,7 @@ int main (int argc, char ** argv)
 	try {
 		parseContext.Run();
 	}
-	catch (lambda_options::ParseFailedException const &) {
+	catch (ParseFailedException const &) {
 		return 1;
 	}
 
