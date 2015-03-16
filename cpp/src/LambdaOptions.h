@@ -1688,19 +1688,21 @@ namespace lambda_options
 					return false;
 				}
 
-				String artificialArgs[] = { String(2, '-') };
+				std::vector<std::vector<String>> artificialArgss;
+				artificialArgss.reserve(groupedArgs.size() - 1);
+
 				for (size_t i = 1; i < groupedArgs.size(); ++i) {
-					String & shortKeyword = artificialArgs[0];
-					shortKeyword[1] = groupedArgs[i];
-					if (!IsKeyword(shortKeyword)) {
+					artificialArgss.emplace_back(1, String(2, '-'));
+					auto & artificialArgs = artificialArgss.back();
+					String & artificialArg = artificialArgs[0];
+					artificialArg[1] = groupedArgs[i];
+					if (!IsKeyword(artificialArg)) {
 						return false;
 					}
 				}
 
-				for (size_t i = 1; i < groupedArgs.size(); ++i) {
-					String & shortKeyword = artificialArgs[0];
-					shortKeyword[1] = groupedArgs[i];
-					ParseContextImpl<Char> parseContext(opts, std::vector<String>(artificialArgs, artificialArgs + 1));
+				for (auto & artificialArgs : artificialArgss) {
+					ParseContextImpl<Char> parseContext(opts, std::move(artificialArgs));
 					try {
 						parseContext.Run();
 					}
@@ -1708,6 +1710,7 @@ namespace lambda_options
 						return false;
 					}
 				}
+
 				++iter;
 				return true;
 			}
