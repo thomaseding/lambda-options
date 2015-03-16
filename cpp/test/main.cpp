@@ -755,7 +755,7 @@ public:
 			FAIL;
 		}
 		catch (lambda_options::ParseFailedException const & e) {
-			if (e.endIndex != 3) {
+			if (e.endIndex != 4) {
 				FAIL;
 			}
 		}
@@ -1994,7 +1994,7 @@ public:
 			if (e.beginIndex != 10) {
 				FAIL;
 			}
-			if (e.endIndex != 10) {
+			if (e.endIndex != 11) {
 				FAIL;
 			}
 		}

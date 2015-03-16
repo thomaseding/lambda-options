@@ -87,7 +87,7 @@ namespace lambda_options
 		{
 			if (!truth) {
 				char msg[1024];
-				sprintf(msg, "Assert failed in '%s' on line %u.", __FILE__, line);
+				std::sprintf(msg, "Assert failed in '%s' on line %u.", __FILE__, line);
 				throw Exception(msg);
 			}
 		}
@@ -360,7 +360,7 @@ namespace lambda_options
 			, beginIndex(beginIndex)
 			, endIndex(endIndex)
 		{
-			sprintf(message, "Parse failed in argument range [%u, %u].",
+			std::sprintf(message, "Parse failed in argument range [%u, %u).",
 				static_cast<unsigned int>(beginIndex),
 				static_cast<unsigned int>(endIndex));
 		}
@@ -1605,7 +1605,7 @@ namespace lambda_options
 				, end(this->args.end(), this->args.end(), this)
 				, iter(begin)
 				, parseState(iter, end)
-				, highestArgIndex(0)
+				, iterHighMark(0)
 			{}
 
 			std::vector<String> const & Args () const
@@ -1623,7 +1623,7 @@ namespace lambda_options
 					return;
 				}
 				size_t currArgIndex = static_cast<size_t>(iter.iter - begin.iter);
-				throw ParseFailedException(currArgIndex, highestArgIndex);
+				throw ParseFailedException(currArgIndex, iterHighMark + 1);
 			}
 
 		private:
@@ -1777,7 +1777,7 @@ namespace lambda_options
 			ArgsIter<Char> const end;
 			ArgsIter<Char> iter;
 			ParseState<Char> parseState;
-			size_t highestArgIndex;
+			size_t iterHighMark;
 		};
 	}
 
@@ -2038,7 +2038,7 @@ namespace lambda_options
 		}
 		++iter;
 		auto & parseContext = *static_cast<ParseContextImpl<Char> *>(opaqueParseContext);
-		parseContext.highestArgIndex = std::max(parseContext.highestArgIndex, Index());
+		parseContext.iterHighMark = std::max(parseContext.iterHighMark, Index());
 		return *this;
 	}
 
