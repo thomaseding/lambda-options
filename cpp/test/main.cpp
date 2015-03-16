@@ -607,10 +607,14 @@ public:
 		});
 		opts.AddOption(empty, [&] (float x) {
 			Dump(ss, x);
+			if (x == -0.0f) {
+				DumpMemo(ss, L"REJECTED");
+				throw lambda_options::RejectArgumentException<Char>(0, Q(""));
+			}
 		});
-		//opts.AddOption(empty, [&] (double x) {
-		//	Dump(ss, x);
-		//});
+		opts.AddOption(empty, [&] (double x) {
+			Dump(ss, x);
+		});
 		opts.AddOption(empty, [&] (Char x) {
 			Dump(ss, x);
 		});
@@ -648,10 +652,10 @@ public:
 		args.push_back(Q("5.1e-9"));
 		Dump(expected, 5.1e-9f);
 	
-		//args.push_back(Q("-5.1e-100"));
-		//Dump(expected, -0.0f);
-		//DumpMemo(expected, L"REJECTED");
-		//Dump(expected, -5.1e-100);
+		args.push_back(Q("-5.1e-100"));
+		Dump(expected, -0.0f);
+		DumpMemo(expected, L"REJECTED");
+		Dump(expected, -5.1e-100);
 	
 		args.push_back(Q("0.5"));
 		Dump(expected, 0.5f);
@@ -2143,7 +2147,7 @@ public:
 
 		opts.AddOption(Q("foo"), [&] (int x, int y, int z) {
 			if (y < 0) {
-				throw lambda_options::RejectArgumentException(1);
+				throw lambda_options::RejectArgumentException<Char>(1, Q(""));
 			}
 			Dump(ss, x);
 			Dump(ss, y);
@@ -2199,7 +2203,7 @@ public:
 
 		opts.AddOption(empty, [&] (int x, int y, int z) {
 			if (y < 0) {
-				throw lambda_options::RejectArgumentException(1);
+				throw lambda_options::RejectArgumentException<Char>(1, Q(""));
 			}
 			Dump(ss, x);
 			Dump(ss, y);

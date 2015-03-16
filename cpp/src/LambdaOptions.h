@@ -353,14 +353,19 @@ namespace lambda_options
 	};
 
 
+	template <typename Char>
 	class RejectArgumentException : public Exception {
 	public:
-		RejectArgumentException (size_t argIndex)
+		typedef std::basic_string<Char> String;
+
+		RejectArgumentException(size_t argIndex, String const & message)
 			: Exception("RejectArgumentException")
+			, message(message)
 			, argIndex(argIndex)
 		{}
 
 	public:
+		String message;
 		size_t argIndex;
 	};
 
@@ -376,36 +381,19 @@ namespace lambda_options
 			, beginIndex(beginIndex)
 			, endIndex(endIndex)
 		{
-			char buffer[128];
-			auto messageAppend = [&] (char const * cstr) {
-				while (*cstr) {
-					message.push_back(*cstr);
-					++cstr;
-				}
-			};
-			if (endIndex == beginIndex + 1) {
-				std::sprintf(buffer, "%u", static_cast<unsigned int>(beginIndex));
-				messageAppend("Unknown option at index ");
-				messageAppend(buffer);
-				messageAppend(": ");
-				message += args[beginIndex];
-			}
-			else if (endIndex == args.size() + 1) {
-				std::sprintf(buffer, "%u", static_cast<unsigned int>(endIndex - 1));
-				messageAppend("Bad input for ");
-				message += args[beginIndex];
-				messageAppend(" at index ");
-				messageAppend(buffer);
-				messageAppend(": End of input.");
-			}
-			else {
-				std::sprintf(buffer, "%u", static_cast<unsigned int>(endIndex - 1));
-				messageAppend("Bad input for ");
-				message += args[beginIndex];
-				messageAppend(" at index ");
-				messageAppend(buffer);
-				messageAppend(": ");
-				message += args[endIndex - 1];
+			BuildMessage(args);
+		}
+
+		ParseFailedException(size_t beginIndex, size_t endIndex, std::vector<String> const & args, String const & extraReason)
+			: Exception(BaseMessage(beginIndex, endIndex))
+			, message(message)
+			, beginIndex(beginIndex)
+			, endIndex(endIndex)
+		{
+			BuildMessage(args);
+			if (!extraReason.empty()) {
+				MessageAppend(" - ");
+				message += extraReason;
 			}
 		}
 
@@ -417,6 +405,45 @@ namespace lambda_options
 				static_cast<unsigned int>(beginIndex),
 				static_cast<unsigned int>(endIndex));
 			return buffer;
+		}
+
+		void MessageAppend (char const * cstr)
+		{
+			while (*cstr) {
+				message.push_back(*cstr);
+				++cstr;
+			}
+		}
+
+		void BuildMessage(std::vector<String> const & args)
+		{
+			char buffer[128];
+			if (endIndex == beginIndex + 1) {
+				std::sprintf(buffer, "%u", static_cast<unsigned int>(beginIndex));
+				MessageAppend("Unknown option at index ");
+				MessageAppend(buffer);
+				MessageAppend(": `");
+				message += args[beginIndex];
+				MessageAppend("'");
+			}
+			else if (endIndex == args.size() + 1) {
+				std::sprintf(buffer, "%u", static_cast<unsigned int>(endIndex - 1));
+				MessageAppend("Bad input for `");
+				message += args[beginIndex];
+				MessageAppend("' at index ");
+				MessageAppend(buffer);
+				MessageAppend(": End of input.");
+			}
+			else {
+				std::sprintf(buffer, "%u", static_cast<unsigned int>(endIndex - 1));
+				MessageAppend("Bad input for `");
+				message += args[beginIndex];
+				MessageAppend("' at index ");
+				MessageAppend(buffer);
+				MessageAppend(": `");
+				message += args[endIndex - 1];
+				MessageAppend("'");
+			}
 		}
 
 	public:
@@ -1671,7 +1698,12 @@ namespace lambda_options
 					return;
 				}
 				size_t const currArgIndex = static_cast<size_t>(iter.iter - begin.iter);
-				throw ParseFailedException<Char>(currArgIndex, iterHighMark + 1, args);
+				if (rejectMessageWithHighMark.second == iterHighMark) {
+					throw ParseFailedException<Char>(currArgIndex, iterHighMark + 1, args, rejectMessageWithHighMark.first);
+				}
+				else {
+					throw ParseFailedException<Char>(currArgIndex, iterHighMark + 1, args);
+				}
 			}
 
 		private:
@@ -1754,7 +1786,7 @@ namespace lambda_options
 					try {
 						parseContext.Run();
 					}
-					catch (RejectArgumentException const &) {
+					catch (RejectArgumentException<Char> const &) {
 						return false;
 					}
 					catch (ParseFailedException<Char> const &) {
@@ -1790,8 +1822,9 @@ namespace lambda_options
 								info.callback(parsedArgs);
 								return true;
 							}
-							catch (RejectArgumentException const & e) {
+							catch (RejectArgumentException<Char> const & e) {
 								iterHighMark = argParseIndex + e.argIndex;
+								rejectMessageWithHighMark = std::make_pair(e.message, iterHighMark);
 							}
 						}
 					}
@@ -1835,6 +1868,7 @@ namespace lambda_options
 			ArgsIter<Char> iter;
 			ParseState<Char> parseState;
 			size_t iterHighMark;
+			std::pair<String, size_t> rejectMessageWithHighMark;
 		};
 	}
 
@@ -2182,7 +2216,7 @@ namespace lambda_options
 		typedef lambda_options::IteratorException IteratorException;
 		typedef lambda_options::OptionException OptionsException;
 		typedef lambda_options::ParseFailedException<char> ParseFailedException;
-		typedef lambda_options::RejectArgumentException RejectArgumentException;
+		typedef lambda_options::RejectArgumentException<char> RejectArgumentException;
 
 		typedef lambda_options::KeywordStyle KeywordStyle;
 
