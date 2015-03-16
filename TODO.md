@@ -11,6 +11,7 @@
 * Flesh out `Keyword::desc`/`Options<Char>::HelpDescription` a little more.
 * Support `Maybe<T>` copy/move constructor/assignment.
 * Add `RawParser` specialization for `Maybe<T>`.
+* Add an FAQ
 * Add more examples.
 
 
