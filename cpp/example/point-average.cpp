@@ -98,7 +98,7 @@ public:
 			parseContext.Run();
 		}
 		catch (ParseFailedException const & e) {
-			PrintBadArgs(e, args);
+			PrintBadArgs(e);
 			return false;
 		}
 		if (points.empty()) {
@@ -129,17 +129,9 @@ public:
 	}
 
 
-	void PrintBadArgs (ParseFailedException const & e, std::vector<std::string> const & args) const
+	void PrintBadArgs (ParseFailedException const & e) const
 	{
-		if (e.endIndex == e.beginIndex + 1) {
-			std::cout << "Unknown option at index " << e.beginIndex << ": " << args[e.beginIndex] << "\n";
-		}
-		else if (e.endIndex == args.size() + 1) {
-			std::cout << "Bad input for " << args[e.beginIndex] << " at index " << (e.endIndex - 1) << ": End of input.\n";
-		}
-		else {
-			std::cout << "Bad input for " << args[e.beginIndex] << " at index " << (e.endIndex - 1) << ": " << args[e.endIndex - 1] << "\n";
-		}
+		std::cout << e.message << "\n";
 		PrintHelp();
 	}
 

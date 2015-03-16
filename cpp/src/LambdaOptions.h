@@ -353,28 +353,66 @@ namespace lambda_options
 	};
 
 
+	template <typename Char>
 	class ParseFailedException : public Exception {
 	public:
-		ParseFailedException (size_t beginIndex, size_t endIndex)
-			: Exception("")
+		typedef std::basic_string<Char> String;
+
+		ParseFailedException (size_t beginIndex, size_t endIndex, std::vector<String> const & args)
+			: Exception(BaseMessage(beginIndex, endIndex))
+			, message(message)
 			, beginIndex(beginIndex)
 			, endIndex(endIndex)
 		{
-			std::sprintf(message, "Parse failed in argument range [%u, %u).",
-				static_cast<unsigned int>(beginIndex),
-				static_cast<unsigned int>(endIndex));
+			char buffer[128];
+
+			auto messageAppend = [&] (char const * cstr) {
+				while (*cstr) {
+					message.push_back(*cstr);
+					++cstr;
+				}
+			};
+
+			if (endIndex == beginIndex + 1) {
+				std::sprintf(buffer, "%u", static_cast<unsigned int>(beginIndex));
+				messageAppend("Unknown option at index ");
+				messageAppend(buffer);
+				messageAppend(": ");
+				message += args[beginIndex];
+			}
+			else if (endIndex == args.size() + 1) {
+				std::sprintf(buffer, "%u", static_cast<unsigned int>(endIndex - 1));
+				messageAppend("Bad input for ");
+				message += args[beginIndex];
+				messageAppend(" at index ");
+				messageAppend(buffer);
+				messageAppend(": End of input.");
+			}
+			else {
+				std::sprintf(buffer, "%u", static_cast<unsigned int>(endIndex - 1));
+				messageAppend("Bad input for ");
+				message += args[beginIndex];
+				messageAppend(" at index ");
+				messageAppend(buffer);
+				messageAppend(": ");
+				message += args[endIndex - 1];
+			}
 		}
 
-		virtual char const * what () const throw() override
+	private:
+		static std::string BaseMessage (size_t beginIndex, size_t endIndex)
 		{
-			return message;
+			char buffer[128];
+			std::sprintf(buffer, "Parse failed in argument range [%u, %u).",
+				static_cast<unsigned int>(beginIndex),
+				static_cast<unsigned int>(endIndex));
+			return buffer;
 		}
 
 	public:
+		String message;
 		size_t beginIndex;
 		size_t endIndex;
-	private:
-		char message[128];
 	};
 
 
@@ -1623,7 +1661,7 @@ namespace lambda_options
 					return;
 				}
 				size_t currArgIndex = static_cast<size_t>(iter.iter - begin.iter);
-				throw ParseFailedException(currArgIndex, iterHighMark + 1);
+				throw ParseFailedException<Char>(currArgIndex, iterHighMark + 1, args);
 			}
 
 		private:
@@ -1706,7 +1744,7 @@ namespace lambda_options
 					try {
 						parseContext.Run();
 					}
-					catch (ParseFailedException const &) {
+					catch (ParseFailedException<Char> const &) {
 						return false;
 					}
 				}
@@ -2124,7 +2162,7 @@ namespace lambda_options
 		typedef lambda_options::Exception Exception;
 		typedef lambda_options::IteratorException IteratorException;
 		typedef lambda_options::OptionException OptionsException;
-		typedef lambda_options::ParseFailedException ParseFailedException;
+		typedef lambda_options::ParseFailedException<char> ParseFailedException;
 
 		typedef lambda_options::KeywordStyle KeywordStyle;
 

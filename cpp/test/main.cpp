@@ -754,7 +754,7 @@ public:
 			parseContext.Run();
 			FAIL;
 		}
-		catch (lambda_options::ParseFailedException const & e) {
+		catch (lambda_options::ParseFailedException<Char> const & e) {
 			if (e.endIndex != 4) {
 				FAIL;
 			}
@@ -1990,7 +1990,7 @@ public:
 			parseContext.Run();
 			FAIL;
 		}
-		catch (lambda_options::ParseFailedException const & e) {
+		catch (lambda_options::ParseFailedException<Char> const & e) {
 			if (e.beginIndex != 10) {
 				FAIL;
 			}
