@@ -12,3 +12,4 @@
 *.out
 *.vcxproj.filters
 *.vcxproj.user
+*.unsuccessfulbuild
