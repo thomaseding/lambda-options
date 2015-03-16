@@ -67,21 +67,21 @@ public:
 	OptionsParser ()
 	{
 		Keyword kwHelp("help", "h");
-		kwHelp.desc = "Display this help message.";
+		kwHelp.text = "Display this help message.";
 		opts.AddOption(kwHelp, [&] () {
 			doHelp = true;
 		});
 
 		Keyword kwPoint("point", "p");
-		kwPoint.args = "x y z";
-		kwPoint.desc = "Add a point to contribute to displayed point average.";
+		kwPoint.argText = "x y z";
+		kwPoint.text = "Add a point to contribute to displayed point average.";
 		opts.AddOption(kwPoint, [&] (Point p) {
 			points.emplace_back(p.x, p.y, p.z);
 		});
 
 		Keyword kwWeightedPoint("point", "p");
-		kwWeightedPoint.args = "w x y z";
-		kwWeightedPoint.desc = "Add a weighted point to contribute to displayed point average.";
+		kwWeightedPoint.argText = "w x y z";
+		kwWeightedPoint.text = "Add a weighted point to contribute to displayed point average.";
 		opts.AddOption(kwWeightedPoint, [&] (float weight, Point p) {
 			points.emplace_back(weight * p.x, weight * p.y, weight * p.z);
 		});

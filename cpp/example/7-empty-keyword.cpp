@@ -60,14 +60,14 @@ int main (int argc, char ** argv)
 	std::set<User> users;
 
 	Keyword kwHelp("help", "h");
-	kwHelp.desc = "Display this help message.";
+	kwHelp.text = "Display this help message.";
 	opts.AddOption(kwHelp, [&] () {
 		helpRequested = true;
 	});
 
 	Keyword kwUsers;
-	kwUsers.args = "NAME [AGE=0]...";
-	kwUsers.desc = "Prints user names and ages.";
+	kwUsers.argText = "NAME [AGE=0]...";
+	kwUsers.text = "Prints user names and ages.";
 	opts.AddOption(kwUsers, [&] (ParseState parseState) {
 		lambda_options::Maybe<User> maybeUser;
 		while (lambda_options::Parse(parseState, maybeUser)) {

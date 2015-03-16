@@ -1148,15 +1148,15 @@ public:
 		Opts opts(testConfig);
 
 		Keyword kwFoo(Q("foo"));
-		kwFoo.desc = Q("Foo does shtuff.");
+		kwFoo.text = Q("Foo does shtuff.");
 		opts.AddOption(kwFoo, nop);
 
 		Keyword kwBar(Q("bar"), Q('b'));
-		kwBar.desc = Q("Bar does even moare shtuff!!!");
+		kwBar.text = Q("Bar does even moare shtuff!!!");
 		opts.AddOption(kwBar, nop);
 
 		Keyword kwRofl(Q("foflcopter"));
-		kwRofl.desc = Q("0123456789 01234567890123456789 012345678901234567890123456789 0123456789012345678901234567890123456789");
+		kwRofl.text = Q("0123456789 01234567890123456789 012345678901234567890123456789 0123456789012345678901234567890123456789");
 		opts.AddOption(kwRofl, nop);
 
 		FormattingConfig config;
@@ -1179,15 +1179,15 @@ public:
 		Opts opts(testConfig);
 
 		Keyword kwFoo(Q("foo"));
-		kwFoo.group = Q("cake");
+		kwFoo.helpGroup = Q("cake");
 		opts.AddOption(kwFoo, nop);
 
 		Keyword kwBar(Q("bar"));
-		kwBar.group = Q("lie");
+		kwBar.helpGroup = Q("lie");
 		opts.AddOption(kwBar, nop);
 
 		Keyword kwBaz(Q("baz"));
-		kwBaz.group = Q("cake");
+		kwBaz.helpGroup = Q("cake");
 		opts.AddOption(kwBaz, nop);
 
 		auto printString = [] (String const & str) {
@@ -1202,39 +1202,39 @@ public:
 			String desc = opts.HelpDescription();
 			printString(desc);
 		}
-		opts.SetGroupPriority(Q("cake"), 0);
-		opts.SetGroupPriority(Q("lie"), 1);
+		opts.SetHelpGroupPriority(Q("cake"), 0);
+		opts.SetHelpGroupPriority(Q("lie"), 1);
 		{
 			String desc = opts.HelpDescription();
 			printString(desc);
 		}
-		opts.SetGroupPriority(Q("cake"), 10);
-		opts.SetGroupPriority(Q("lie"), 5);
+		opts.SetHelpGroupPriority(Q("cake"), 10);
+		opts.SetHelpGroupPriority(Q("lie"), 5);
 		{
 			FormattingConfig config;
-			config.groupFilter.push_back(Q("cake"));
+			config.helpGroupFilter.push_back(Q("cake"));
 			String desc = opts.HelpDescription(config);
 			printString(desc);
 		}
 		{
 			FormattingConfig config;
-			config.groupFilter.push_back(Q("cake"));
-			config.groupFilter.push_back(Q("lie"));
+			config.helpGroupFilter.push_back(Q("cake"));
+			config.helpGroupFilter.push_back(Q("lie"));
 			String desc = opts.HelpDescription(config);
 			printString(desc);
 		}
 		{
 			FormattingConfig config;
-			config.groupFilter.push_back(Q("lie"));
-			config.groupFilter.push_back(Q("cake"));
+			config.helpGroupFilter.push_back(Q("lie"));
+			config.helpGroupFilter.push_back(Q("cake"));
 			String desc = opts.HelpDescription(config);
 			printString(desc);
 		}
 		{
 			FormattingConfig config;
-			config.groupFilter.push_back(Q("where"));
-			config.groupFilter.push_back(Q("lie"));
-			config.groupFilter.push_back(Q("waldo"));
+			config.helpGroupFilter.push_back(Q("where"));
+			config.helpGroupFilter.push_back(Q("lie"));
+			config.helpGroupFilter.push_back(Q("waldo"));
 			String desc = opts.HelpDescription(config);
 			printString(desc);
 		}

@@ -845,7 +845,7 @@ namespace lambda_options
 		FormattingConfig ();
 	public:
 		size_t maxWidth;
-		std::vector<String> groupFilter;
+		std::vector<String> helpGroupFilter;
 	};
 
 
@@ -859,14 +859,53 @@ namespace lambda_options
 			String const & name1 = nil,
 			String const & name2 = nil,
 			String const & name3 = nil,
-			String const & name4 = nil);
+			String const & name4 = nil)
+		{
+			String const * pNames[] = { &name1, &name2, &name3, &name4 };
+			for (String const * pName : pNames) {
+				if (pName == &nil) {
+					break;
+				}
+				names.emplace_back(*pName);
+			}
+		}
+
+		Keyword & Name (String const & name)
+		{
+			names.emplace_back(name);
+			return *this;
+		}
+
+		Keyword & ExactName (String const & exactName)
+		{
+			exactNames.emplace_back(exactName);
+			return *this;
+		}
+
+		Keyword & Text (String const & text)
+		{
+			this->text = text;
+			return *this;
+		}
+
+		Keyword & ArgText (String const & argText)
+		{
+			this->argText = argText;
+			return *this;
+		}
+
+		Keyword & HelpGroup (String const & helpGroup)
+		{
+			this->helpGroup = helpGroup;
+			return *this;
+		}
 
 	public:
 		std::vector<String> names;
 		std::vector<String> exactNames;
-		String desc;
-		String args;
-		String group;
+		String text;
+		String argText;
+		String helpGroup;
 	};
 
 
@@ -1225,11 +1264,11 @@ namespace lambda_options
 			String HelpDescription (FormattingConfig<Char> const & config) const;
 
 
-			void SetGroupPriority (String const & group, Priority priority)
+			void SetHelpGroupPriority (String const & helpGroup, Priority priority)
 			{
-				Priority * p = _private::Lookup(groupPriorities, group);
+				Priority * p = _private::Lookup(helpGroupPriorities, helpGroup);
 				if (p == nullptr) {
-					groupPriorities.emplace_back(group, priority);
+					helpGroupPriorities.emplace_back(helpGroup, priority);
 				}
 				else {
 					*p = priority;
@@ -1540,7 +1579,7 @@ namespace lambda_options
 
 		public:
 			typename DynamicParserMap<Char>::Type dynamicParserMap;
-			std::vector<std::pair<String, Priority>> groupPriorities;
+			std::vector<std::pair<String, Priority>> helpGroupPriorities;
 			OptionsConfig config;
 			std::vector<std::vector<OptInfo<Char>>> infosByArity;
 		};
@@ -1784,9 +1823,9 @@ namespace lambda_options
 			return impl->HelpDescription(config);
 		}
 
-		void SetGroupPriority (String const & group, int priority)
+		void SetHelpGroupPriority (String const & group, int priority)
 		{
-			impl->SetGroupPriority(group, priority);
+			impl->SetHelpGroupPriority(group, priority);
 		}
 
 		template <typename StringIter>
@@ -1814,13 +1853,13 @@ namespace lambda_options
 
 			void FormatKeyword (Keyword<Char> const & keyword)
 			{
-				if (AllowGroup(keyword.group)) {
+				if (AllowHelpGroup(keyword.helpGroup)) {
 					width = 0;
 					ChangeIndentation(0);
 					NewLine();
 					FormatKeywordNames(keyword);
-					FormatKeywordArgs(keyword);
-					FormatKeywordHelp(keyword);
+					FormatKeywordArgText(keyword);
+					FormatKeywordText(keyword);
 					FlushWord();
 				}
 			}
@@ -1831,10 +1870,11 @@ namespace lambda_options
 			}
 
 		private:
-			bool AllowGroup (String const & group) const
+			bool AllowHelpGroup (String const & helpGroup) const
 			{
-				return config.groupFilter.empty() 
-					|| _private::Contains(config.groupFilter.begin(), config.groupFilter.end(), group);
+				return config.helpGroupFilter.empty() 
+					|| Contains(config.helpGroupFilter.begin(), config.helpGroupFilter.end(), helpGroup)
+					;
 			}
 
 			void FormatKeywordNames (Keyword<Char> const & keyword)
@@ -1867,19 +1907,19 @@ namespace lambda_options
 				}
 			}
 
-			void FormatKeywordArgs (Keyword<Char> const & keyword)
+			void FormatKeywordArgText (Keyword<Char> const & keyword)
 			{
-				if (!keyword.args.empty()) {
+				if (!keyword.argText.empty()) {
 					FlushWord();
 					ChangeIndentation(width + 1);
-					Emit(keyword.args);
+					Emit(keyword.argText);
 				}
 			}
 
-			void FormatKeywordHelp (Keyword<Char> const & keyword)
+			void FormatKeywordText (Keyword<Char> const & keyword)
 			{
 				ChangeIndentation(29);
-				Emit(keyword.desc);
+				Emit(keyword.text);
 			}
 
 			bool FlushWord ()
@@ -2015,23 +2055,6 @@ namespace lambda_options
 
 
 	template <typename Char>
-	Keyword<Char>::Keyword (
-		String const & name1,
-		String const & name2,
-		String const & name3,
-		String const & name4)
-	{
-		String const * pNames[] = { &name1, &name2, &name3, &name4 };
-		for (String const * pName : pNames) {
-			if (pName == &nil) {
-				break;
-			}
-			names.push_back(*pName);
-		}
-	}
-
-
-	template <typename Char>
 	ParseContext<Char>::ParseContext (std::shared_ptr<OptionsImpl const> opts, std::vector<String> && args)
 		: impl(new ParseContextImpl(opts, std::move(args)))
 	{}
@@ -2062,8 +2085,8 @@ namespace lambda_options
 				}
 			}
 
-			auto getPriority = [&] (String const & group) {
-				Priority const * pPriority = _private::Lookup(groupPriorities, group);
+			auto getPriority = [&] (String const & helpGroup) {
+				Priority const * pPriority = _private::Lookup(helpGroupPriorities, helpGroup);
 				if (pPriority) {
 					return *pPriority;
 				}
@@ -2071,8 +2094,8 @@ namespace lambda_options
 			};
 
 			std::sort(keywords.begin(), keywords.end(), [&] (Keyword const * kw1, Keyword const * kw2) {
-				String const & g1 = kw1->group;
-				String const & g2 = kw2->group;
+				String const & g1 = kw1->helpGroup;
+				String const & g2 = kw2->helpGroup;
 				Priority const p1 = getPriority(g1);
 				Priority const p2 = getPriority(g2);
 				return p1 < p2;
