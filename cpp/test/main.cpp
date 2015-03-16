@@ -2135,6 +2135,115 @@ public:
 	}
 
 
+	static void TestRejectArgumentException1 ()
+	{
+		std::wstringstream ss;
+
+		Opts opts(testConfig);
+
+		opts.AddOption(Q("foo"), [&] (int x, int y, int z) {
+			if (y < 0) {
+				throw lambda_options::RejectArgumentException(1);
+			}
+			Dump(ss, x);
+			Dump(ss, y);
+			Dump(ss, z);
+		});
+
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		args.push_back(Q("foo"));
+		args.push_back(Q("1"));
+		args.push_back(Q("2"));
+		args.push_back(Q("3"));
+
+		args.push_back(Q("foo"));
+		args.push_back(Q("4"));
+		args.push_back(Q("-5"));
+		args.push_back(Q("6"));
+		
+		args.push_back(Q("foo"));
+		args.push_back(Q("7"));
+		args.push_back(Q("8"));
+		args.push_back(Q("9"));
+
+		Dump(expected, 1);
+		Dump(expected, 2);
+		Dump(expected, 3);
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		try {
+			parseContext.Run();
+		}
+		catch (lambda_options::ParseFailedException<Char> const & e) {
+			if (e.beginIndex != 4) {
+				FAIL;
+			}
+			if (e.endIndex != 7) {
+				FAIL;
+			}
+		}
+
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
+
+	static void TestRejectArgumentException2 ()
+	{
+		std::wstringstream ss;
+
+		Opts opts(testConfig);
+
+		opts.AddOption(empty, [&] (int x, int y, int z) {
+			if (y < 0) {
+				throw lambda_options::RejectArgumentException(1);
+			}
+			Dump(ss, x);
+			Dump(ss, y);
+			Dump(ss, z);
+		});
+
+		std::wstringstream expected;
+		std::vector<String> args;
+
+		args.push_back(Q("1"));
+		args.push_back(Q("2"));
+		args.push_back(Q("3"));
+
+		args.push_back(Q("4"));
+		args.push_back(Q("-5"));
+		args.push_back(Q("6"));
+		
+		args.push_back(Q("7"));
+		args.push_back(Q("8"));
+		args.push_back(Q("9"));
+
+		Dump(expected, 1);
+		Dump(expected, 2);
+		Dump(expected, 3);
+
+		auto parseContext = opts.CreateParseContext(args.begin(), args.end());
+		try {
+			parseContext.Run();
+		}
+		catch (lambda_options::ParseFailedException<Char> const & e) {
+			if (e.beginIndex != 3) {
+				FAIL;
+			}
+			if (e.endIndex != 5) {
+				FAIL;
+			}
+		}
+
+		if (ss.str() != expected.str()) {
+			FAIL;
+		}
+	}
+
+
 	static void Test_TEMPLATE ()
 	{
 		std::wstringstream ss;
@@ -2212,6 +2321,8 @@ static bool RunCharTests ()
 		Tests<Char>::TestGnuShortGrouping3,
 		Tests<Char>::TestGnuShortGrouping4,
 		Tests<Char>::TestGnuShortGrouping5,
+		Tests<Char>::TestRejectArgumentException1,
+		Tests<Char>::TestRejectArgumentException2,
 	};
 
 	try {

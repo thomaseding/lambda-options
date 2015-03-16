@@ -353,6 +353,18 @@ namespace lambda_options
 	};
 
 
+	class RejectArgumentException : public Exception {
+	public:
+		RejectArgumentException (size_t argIndex)
+			: Exception("RejectArgumentException")
+			, argIndex(argIndex)
+		{}
+
+	public:
+		size_t argIndex;
+	};
+
+
 	template <typename Char>
 	class ParseFailedException : public Exception {
 	public:
@@ -365,14 +377,12 @@ namespace lambda_options
 			, endIndex(endIndex)
 		{
 			char buffer[128];
-
 			auto messageAppend = [&] (char const * cstr) {
 				while (*cstr) {
 					message.push_back(*cstr);
 					++cstr;
 				}
 			};
-
 			if (endIndex == beginIndex + 1) {
 				std::sprintf(buffer, "%u", static_cast<unsigned int>(beginIndex));
 				messageAppend("Unknown option at index ");
@@ -1660,7 +1670,7 @@ namespace lambda_options
 				if (iter == end) {
 					return;
 				}
-				size_t currArgIndex = static_cast<size_t>(iter.iter - begin.iter);
+				size_t const currArgIndex = static_cast<size_t>(iter.iter - begin.iter);
 				throw ParseFailedException<Char>(currArgIndex, iterHighMark + 1, args);
 			}
 
@@ -1744,6 +1754,9 @@ namespace lambda_options
 					try {
 						parseContext.Run();
 					}
+					catch (RejectArgumentException const &) {
+						return false;
+					}
 					catch (ParseFailedException<Char> const &) {
 						return false;
 					}
@@ -1768,12 +1781,18 @@ namespace lambda_options
 					}
 					iter = startIter;
 					if (MatchKeyword(info.keyword)) {
+						size_t const argParseIndex = static_cast<size_t>(iter.iter - begin.iter);
 						auto const & typeKinds = info.typeKinds;
 						Assert(__LINE__, typeKinds.size() == arity);
 						OpaqueValues parsedArgs = ParseArgs(typeKinds);
 						if (parsedArgs.size() == arity) {
-							info.callback(parsedArgs);
-							return true;
+							try {
+								info.callback(parsedArgs);
+								return true;
+							}
+							catch (RejectArgumentException const & e) {
+								iterHighMark = argParseIndex + e.argIndex;
+							}
 						}
 					}
 				}
@@ -2163,6 +2182,7 @@ namespace lambda_options
 		typedef lambda_options::IteratorException IteratorException;
 		typedef lambda_options::OptionException OptionsException;
 		typedef lambda_options::ParseFailedException<char> ParseFailedException;
+		typedef lambda_options::RejectArgumentException RejectArgumentException;
 
 		typedef lambda_options::KeywordStyle KeywordStyle;
 
