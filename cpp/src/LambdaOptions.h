@@ -377,7 +377,6 @@ namespace lambda_options
 
 		ParseFailedException (size_t beginIndex, size_t endIndex, std::vector<String> const & args)
 			: Exception(BaseMessage(beginIndex, endIndex))
-			, message(message)
 			, beginIndex(beginIndex)
 			, endIndex(endIndex)
 		{
@@ -386,7 +385,6 @@ namespace lambda_options
 
 		ParseFailedException(size_t beginIndex, size_t endIndex, std::vector<String> const & args, String const & extraReason)
 			: Exception(BaseMessage(beginIndex, endIndex))
-			, message(message)
 			, beginIndex(beginIndex)
 			, endIndex(endIndex)
 		{
@@ -1838,8 +1836,8 @@ namespace lambda_options
 			{
 				bool const useKeywordState[] = { true, false };
 				for (bool useKeyword : useKeywordState) {
-					auto const end = infosByArity.rend();
-					for (auto it = infosByArity.rbegin(); it != end; ++it) {
+					auto const itEnd = infosByArity.rend();
+					for (auto it = infosByArity.rbegin(); it != itEnd; ++it) {
 						auto & infos = *it;
 						if (TryParse(useKeyword, infos)) {
 							return true;
@@ -2170,7 +2168,7 @@ namespace lambda_options
 	namespace _private
 	{
 		template <typename Char>
-		auto OptionsImpl<Char>::HelpDescription (FormattingConfig<Char> const & config) const -> String
+		auto OptionsImpl<Char>::HelpDescription (FormattingConfig<Char> const & formatConfig) const -> String
 		{
 			std::vector<Keyword const *> keywords;
 			for (auto const & infos : infosByArity) {
@@ -2195,7 +2193,7 @@ namespace lambda_options
 				return p1 < p2;
 			});
 
-			Formatter<Char> formatter(config);
+			Formatter<Char> formatter(formatConfig);
 			for (Keyword const * keyword : keywords) {
 				formatter.FormatKeyword(*keyword);
 			}
