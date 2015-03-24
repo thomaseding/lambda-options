@@ -2187,7 +2187,7 @@ namespace lambda_options
 				return 0;
 			};
 
-			std::sort(keywords.begin(), keywords.end(), [&] (Keyword const * kw1, Keyword const * kw2) {
+			std::stable_sort(keywords.begin(), keywords.end(), [&] (Keyword const * kw1, Keyword const * kw2) {
 				String const & g1 = kw1->helpGroup;
 				String const & g2 = kw2->helpGroup;
 				Priority const p1 = getPriority(g1);
