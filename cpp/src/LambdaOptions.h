@@ -1357,7 +1357,6 @@ namespace lambda_options
 			struct Adder<Func, 0> {
 				static void Add (OptionsImpl & opts, Keyword const & keyword, Func const & f)
 				{
-					typedef typename FuncTraits<Func>::Return::type R;
 					opts.AddImpl(keyword, f);
 				}
 			};
@@ -1368,7 +1367,6 @@ namespace lambda_options
 				static void Add (OptionsImpl & opts, Keyword const & keyword, Func const & f)
 				{
 					typedef typename FuncTraits<Func>::Arg0::type A;
-					typedef typename FuncTraits<Func>::Return::type R;
 					opts.AddImpl<A>(keyword, f);
 				}
 			};
@@ -1380,7 +1378,6 @@ namespace lambda_options
 				{
 					typedef typename FuncTraits<Func>::Arg0::type A;
 					typedef typename FuncTraits<Func>::Arg1::type B;
-					typedef typename FuncTraits<Func>::Return::type R;
 					opts.AddImpl<A,B>(keyword, f);
 				}
 			};
@@ -1393,7 +1390,6 @@ namespace lambda_options
 					typedef typename FuncTraits<Func>::Arg0::type A;
 					typedef typename FuncTraits<Func>::Arg1::type B;
 					typedef typename FuncTraits<Func>::Arg2::type C;
-					typedef typename FuncTraits<Func>::Return::type R;
 					opts.AddImpl<A,B,C>(keyword, f);
 				}
 			};
@@ -1407,7 +1403,6 @@ namespace lambda_options
 					typedef typename FuncTraits<Func>::Arg1::type B;
 					typedef typename FuncTraits<Func>::Arg2::type C;
 					typedef typename FuncTraits<Func>::Arg3::type D;
-					typedef typename FuncTraits<Func>::Return::type R;
 					opts.AddImpl<A,B,C,D>(keyword, f);
 				}
 			};
@@ -1422,7 +1417,6 @@ namespace lambda_options
 					typedef typename FuncTraits<Func>::Arg2::type C;
 					typedef typename FuncTraits<Func>::Arg3::type D;
 					typedef typename FuncTraits<Func>::Arg4::type E;
-					typedef typename FuncTraits<Func>::Return::type R;
 					opts.AddImpl<A,B,C,D,E>(keyword, f);
 				}
 			};
