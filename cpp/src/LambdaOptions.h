@@ -1961,7 +1961,6 @@ namespace lambda_options
 	{
 		template <typename Char>
 		class Formatter {
-			enum Phase { EmitName, EmitDesc };
 			typedef std::basic_string<Char> String;
 
 		public:
@@ -2130,7 +2129,6 @@ namespace lambda_options
 			FormattingConfig<Char> config;
 			std::vector<Char> emittedChars;
 			std::vector<Char> word;
-			Phase phase;
 			size_t width;
 			size_t indentation;
 		};
