@@ -2037,6 +2037,8 @@ namespace lambda_options
 
 			void FormatKeywordText (Keyword<Char> const & keyword)
 			{
+				FlushWord();
+				ChangeIndentation(width + 1);
 				ChangeIndentation(29);
 				Emit(keyword.text);
 			}
