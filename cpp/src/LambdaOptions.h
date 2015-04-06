@@ -85,11 +85,16 @@ namespace lambda_options
 	{
 		inline void Assert (unsigned int line, bool truth)
 		{
+#ifdef LAMBDA_OPTIONS_NO_THROW
+			(void) line;
+			(void) truth;
+#else
 			if (!truth) {
 				char msg[1024];
 				std::sprintf(msg, "Assert failed in '%s' on line %u.", __FILE__, line);
 				throw Exception(msg);
 			}
+#endif
 		}
 
 
@@ -375,6 +380,10 @@ namespace lambda_options
 	public:
 		typedef std::basic_string<Char> String;
 
+		ParseFailedException ()
+			: Exception("")
+		{}
+
 		ParseFailedException (size_t beginIndex, size_t endIndex, std::vector<String> const & args)
 			: Exception(BaseMessage(beginIndex, endIndex))
 			, beginIndex(beginIndex)
@@ -531,9 +540,11 @@ namespace lambda_options
 
 		void EnsureSameBacking (ArgsIter const & other) const
 		{
+#ifndef LAMBDA_OPTIONS_NO_THROW
 			if (end != other.end) {
 				throw IteratorException("Iterators do not correspond to the same data.");
 			}
+#endif
 		}
 
 	private:
@@ -1124,10 +1135,20 @@ namespace lambda_options
 		ParseContext (ParseContext && other);
 		ParseContext & operator= (ParseContext && other);
 	
-		void Run ()
+#ifdef LAMBDA_OPTIONS_NO_THROW
+		bool Run (ParseFailedException<Char> & e)
 		{
-			impl->Run();
+			return impl->Run(e);
 		}
+#else
+		void Run()
+		{
+			ParseFailedException<Char> e;
+			if (!impl->Run(e)) {
+				throw e;
+			}
+		}
+#endif
 	
 		std::vector<String> const & Args () const
 		{
@@ -1499,6 +1520,7 @@ namespace lambda_options
 					infosByArity.resize(arity + 1);
 				}
 				auto & infos = infosByArity[arity];
+#ifndef LAMBDA_OPTIONS_NO_THROW
 				for (auto & info : infos) {
 					size_t i;
 					size_t j;
@@ -1506,14 +1528,17 @@ namespace lambda_options
 						throw OptionConflictException<Char>(keyword.names[i], info.keyword.names[j], arity);
 					}
 				}
+#endif
 				infos.emplace_back(keyword, std::move(typeKinds), func);
 			}
 
 			void AddImpl (Keyword const & keyword, std::function<void()> const & func)
 			{
+#ifndef LAMBDA_OPTIONS_NO_THROW
 				if (keyword.names.empty()) {
 					throw EmptyOptionException();
 				}
+#endif
 				auto wrapper = [=] (OpaqueValues &) {
 					func();
 				};
@@ -1680,22 +1705,23 @@ namespace lambda_options
 				return args;
 			}
 
-			void Run ()
+			bool Run (ParseFailedException<Char> & e)
 			{
 				iter = begin;
 				while (TryParse()) {
 					continue;
 				}
 				if (iter == end) {
-					return;
+					return true;
 				}
 				size_t const currArgIndex = static_cast<size_t>(iter.iter - begin.iter);
 				if (rejectMessageWithHighMark.second == iterHighMark) {
-					throw ParseFailedException<Char>(currArgIndex, iterHighMark + 1, args, rejectMessageWithHighMark.first);
+					e = ParseFailedException<Char>(currArgIndex, iterHighMark + 1, args, rejectMessageWithHighMark.first);
 				}
 				else {
-					throw ParseFailedException<Char>(currArgIndex, iterHighMark + 1, args);
+					e = ParseFailedException<Char>(currArgIndex, iterHighMark + 1, args);
 				}
+				return false;
 			}
 
 		private:
@@ -1775,15 +1801,19 @@ namespace lambda_options
 
 				for (auto & artificialArgs : artificialArgss) {
 					ParseContextImpl<Char> parseContext(opts, std::move(artificialArgs));
+#ifndef LAMBDA_OPTIONS_NO_THROW
 					try {
-						parseContext.Run();
+#endif
+						ParseFailedException<Char> e;
+						if (!parseContext.Run(e)) {
+							return false;
+						}
+#ifndef LAMBDA_OPTIONS_NO_THROW
 					}
 					catch (RejectArgumentException<Char> const &) {
 						return false;
 					}
-					catch (ParseFailedException<Char> const &) {
-						return false;
-					}
+#endif
 				}
 
 				++iter;
@@ -1810,14 +1840,18 @@ namespace lambda_options
 						Assert(__LINE__, typeKinds.size() == arity);
 						OpaqueValues parsedArgs = ParseArgs(typeKinds);
 						if (parsedArgs.size() == arity) {
+#ifndef LAMBDA_OPTIONS_NO_THROW
 							try {
+#endif
 								info.callback(parsedArgs);
 								return true;
+#ifndef LAMBDA_OPTIONS_NO_THROW
 							}
 							catch (RejectArgumentException<Char> const & e) {
 								iterHighMark = argParseIndex + e.argIndex;
 								rejectMessageWithHighMark = std::make_pair(e.message, iterHighMark);
 							}
+#endif
 						}
 					}
 				}
@@ -2116,9 +2150,11 @@ namespace lambda_options
 	ArgsIter<Char> & ArgsIter<Char>::operator++ ()
 	{
 		using namespace _private;
+#ifndef LAMBDA_OPTIONS_NO_THROW
 		if (iter == end) {
 			throw IteratorException("Cannot increment past 'end' iterator.");
 		}
+#endif
 		++iter;
 		auto & parseContext = *static_cast<ParseContextImpl<Char> *>(opaqueParseContext);
 		parseContext.iterHighMark = std::max(parseContext.iterHighMark, Index());
