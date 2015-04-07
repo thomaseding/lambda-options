@@ -1836,6 +1836,9 @@ namespace lambda_options
 					iter = startIter;
 					if (MatchKeyword(info.keyword)) {
 						size_t const argParseIndex = static_cast<size_t>(iter.iter - begin.iter);
+#ifdef LAMBDA_OPTIONS_NO_THROW
+						(void) argParseIndex;
+#endif
 						auto const & typeKinds = info.typeKinds;
 						Assert(__LINE__, typeKinds.size() == arity);
 						OpaqueValues parsedArgs = ParseArgs(typeKinds);
@@ -1924,13 +1927,13 @@ namespace lambda_options
 		void AddOption (String const & keyword, Func const & func)
 		{
 			Keyword<Char> kw(keyword);
-			impl->AddOption<Func>(kw, func);
+			impl->template AddOption<Func>(kw, func);
 		}
 
 		template <typename Func>
 		void AddOption (Keyword<Char> const & keyword, Func const & func)
 		{
-			impl->AddOption<Func>(keyword, func);
+			impl->template AddOption<Func>(keyword, func);
 		}
 
 		String HelpDescription () const
