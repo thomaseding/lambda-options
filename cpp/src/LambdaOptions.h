@@ -2223,7 +2223,19 @@ namespace lambda_options
 				String const & g2 = kw2->helpGroup;
 				Priority const p1 = getPriority(g1);
 				Priority const p2 = getPriority(g2);
-				return p1 < p2;
+				if (p1 < p2) {
+					return true;
+				}
+				if (p1 > p2) {
+					return false;
+				}
+				if (kw1->names.empty()) {
+					return true;
+				}
+				if (kw2->names.empty()) {
+					return false;
+				}
+				return kw1->names.front() < kw2->names.front();
 			});
 
 			Formatter<Char> formatter(formatConfig);
