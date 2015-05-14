@@ -9,7 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 
-module LambdaOptions (
+module Text.LambdaOptions (
     Parseable(..),
     Keyword,
     OptionCallback,

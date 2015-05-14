@@ -10,9 +10,9 @@ A modern command-line parser for Haskell.
 
 Basic example:
 ```haskell
-import LambdaOptions
 import System.Environment
 import System.ExitCode
+import Text.LambdaOptions
 
 options :: LambdaOptions IO ()
 options = do
