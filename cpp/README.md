@@ -12,7 +12,7 @@ This library is designed to be an intuitive alternative to other C++ command-lin
 Quick installation: Download the required header here: [cpp/src/LambdaOptions.h](cpp/src/LambdaOptions.h?ts=4)
 
 * Examples: [cpp/example](cpp/example)
-* Documentation: [wiki/API-Index](../../wiki/API-Index)
+* Documentation: [wiki/API-Index](https://github.com/thomaseding/wiki-lambda-options-cpp/wiki/API-Index)
 
 --------------
 
