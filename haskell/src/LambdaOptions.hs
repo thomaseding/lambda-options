@@ -43,7 +43,7 @@ internalError = error "Internal logic error."
 
 -- | Class describing parseable values. Much like the 'Prelude.Read' class.
 class Parseable a where
-    -- | Given a 'String', returns @Just a@ if and only if the entire string can be parsed.
+    -- | Given a 'String', returns @Just a@ if and only if the __/entire/__ string can be parsed.
     parse :: String -> Maybe a
 
 
@@ -129,11 +129,23 @@ instance (Typeable a, WrapCallback m b) => WrapCallback m (a -> b) where
 
 
 -- | The callback to be called for a successfully parsed option.
---   This function (or value) can have any arity and ultimately returns a value with type @Monad m => m ()@
+--
+-- This function (or value) can have any arity and ultimately returns a value with type @Monad m => m ()@
+--
+-- Each of the callback's arguments must have a type 't' which implements 'Parseable'.
+--
+-- Example callbacks:
+--
+-- > putStrLn "Option parsed!" :: IO ()
+-- > put :: String -> State ()
+-- > \n -> liftIO (print n) :: (MonadIO m) => Int -> m ()
+-- > \n s f -> lift (print (n, s, f)) :: (MonadTrans m) => Int -> String -> Float -> m IO ()
 type OptionCallback m f = (Monad m, GetOpaqueParsers f, WrapCallback m f)
 
 
 -- | An option keyword, such as @"--help"@
+--
+-- NB: In the future, this will become a proper data type that contains a list of aliases and help descriptions.
 type Keyword = String
 
 
@@ -166,8 +178,9 @@ data OptionsState m = OptionsState {
 
 
 -- | Contains information about what went wrong during an unsuccessful parse.
-data OptionsError :: * where
-    OptionsError :: OptionsError
+data OptionsError
+    -- | NB: In the future, there will be more informative constructors.
+    = OptionsError
     deriving (Show)
 
 
