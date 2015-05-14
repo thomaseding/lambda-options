@@ -2197,6 +2197,7 @@ namespace lambda_options
 	ParseContext<Char> & ParseContext<Char>::operator= (ParseContext && other)
 	{
 		impl = std::move(other.impl);
+		return *this;
 	}
 
 
