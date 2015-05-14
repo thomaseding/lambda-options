@@ -10,10 +10,11 @@
 
 
 module LambdaOptions (
+    Parseable(..),
     Keyword,
     OptionCallback,
     Options,
-    OptionsError,
+    OptionsError(..),
     addOption,
     runOptions,
 ) where
@@ -40,7 +41,9 @@ internalError = error "Internal logic error."
 --------------------------------------------------------------------------------
 
 
+-- | Class describing parseable values. Much like the 'Prelude.Read' class.
 class Parseable a where
+    -- | Given a 'String', returns @Just a@ if and only if the entire string can be parsed.
     parse :: String -> Maybe a
 
 
@@ -125,9 +128,12 @@ instance (Typeable a, WrapCallback m b) => WrapCallback m (a -> b) where
 --------------------------------------------------------------------------------
 
 
+-- | The callback to be called for a successfully parsed option.
+--   This function (or value) can have any arity and ultimately returns a value with type @Monad m => m ()@
 type OptionCallback m f = (Monad m, GetOpaqueParsers f, WrapCallback m f)
 
 
+-- | An option keyword, such as @"--help"@
 type Keyword = String
 
 
@@ -141,6 +147,7 @@ data OptionInfo m = OptionInfo {
 --------------------------------------------------------------------------------
 
 
+-- | A monad transformer for parsing options.
 newtype Options m a = Options {
     unOptions :: StateT (OptionsState m) m a
 } deriving (Applicative, Functor, Monad, MonadState (OptionsState m), MonadIO)
@@ -158,10 +165,14 @@ data OptionsState m = OptionsState {
 } deriving ()
 
 
-data OptionsError = OptionsError
+-- | Contains information about what went wrong during an unsuccessful parse.
+data OptionsError :: * where
+    OptionsError :: OptionsError
     deriving (Show)
 
 
+-- | Tries to parse the supplied options against input arguments.
+--   If successful, parsed option callbacks are executed.
 runOptions :: (Monad m) => Options m a -> [String] -> m (Maybe OptionsError)
 runOptions action args = runOptions' $ runStateT (unOptions $ action >> tryParseAll) $ OptionsState {
     stateOpaqueParsers = Map.empty,
@@ -186,6 +197,7 @@ addByArity x xss = \case
         xs : rest -> xs : addByArity x rest (n - 1)
 
 
+-- | Adds the following option into the monadic context.
 addOption :: forall m f. (OptionCallback m f) => Keyword -> f -> Options m ()
 addOption keyword f = do
     let (typeReps, opaqueParsers) = unzip $ getOpaqueParsers (Proxy :: Proxy f)
