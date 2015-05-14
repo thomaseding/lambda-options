@@ -9,10 +9,10 @@ A modern command-line parser for C++.
 
 This library is designed to be an intuitive alternative to other C++ command-line libraries such as: Boost.Program_Options, GNU Getopt, TCLAP, and others.
 
-Quick installation: Download the required header here: [cpp/src/LambdaOptions.h](cpp/src/LambdaOptions.h?ts=4)
+Quick installation: Download the required header here: [src/LambdaOptions.h](cpp/src/LambdaOptions.h?ts=4)
 
 * Examples: [example](example)
-* Documentation: [wiki/API-Index](https://github.com/thomaseding/wiki-lambda-options-cpp/wiki/API-Index)
+* Documentation: [API-Index](https://github.com/thomaseding/wiki-lambda-options-cpp/wiki/API-Index)
 
 --------------
 
