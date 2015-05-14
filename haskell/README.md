@@ -14,7 +14,7 @@ import System.Environment
 import System.ExitCode
 import Text.LambdaOptions
 
-options :: LambdaOptions IO ()
+options :: Options IO ()
 options = do
   addOption "--help" $ do
     putStrLn "--user NAME [AGE]"
