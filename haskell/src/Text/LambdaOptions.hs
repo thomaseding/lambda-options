@@ -217,9 +217,9 @@ data OptionsState m = OptionsState {
 } deriving ()
 
 
--- | Contains information about what went wrong during an unsuccessful parse.
+-- | Contains information about what went wrong during an unsuccessful options parse.
 data OptionsError
-    -- | Contains @error-message@ @begin-index@ @end-index@
+    -- | Contains @(error-message)@ @(begin-args-index)@ @(end-args-index)@
     = ParseFailed String Int Int
     deriving (Show)
 
@@ -241,6 +241,27 @@ mkParseFailed' beginIndex endIndex args
 
 -- | Tries to parse the supplied options against input arguments.
 --   If successful, parsed option callbacks are executed.
+--
+-- Example:
+--
+-- @
+-- options :: Options IO ()
+-- options = do
+--     addOption "--help" $ do
+--         putStrLn "--user NAME [AGE]"
+--     addOption "--user" $ \name -> do
+--         putStrLn $ "Name:" ++ name
+--     addOption "--user" $ \name age -> do
+--         putStrLn $ "Name:" ++ name ++ " Age:" ++ show (age :: Int)
+--
+-- main :: IO ()
+-- main = do
+--     args <- getArgs
+--     mError <- runOptions options args
+--     case mError of
+--         Just (ParseFailed _ _ _) -> exitFailure
+--         Nothing -> exitSuccess
+-- @
 runOptions :: (Monad m) => Options m a -> [String] -> m (Maybe OptionsError)
 runOptions action args = runOptions' args $ runStateT (unOptions $ action >> tryParseAll) $ OptionsState {
     stateOpaqueParsers = Map.empty,
