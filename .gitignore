@@ -13,6 +13,5 @@
 *.vcxproj.filters
 *.vcxproj.user
 *.unsuccessfulbuild
-*.cabal
 
 haskell/dist/
