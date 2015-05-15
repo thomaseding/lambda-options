@@ -7,7 +7,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections #-}
 
 
 module Text.LambdaOptions (
@@ -53,17 +52,19 @@ newtype List a = List [a]
 
 -- | Class describing parseable values. Much like the 'Prelude.Read' class.
 class Parseable a where
-    -- | Given a sequence of strings, returns 'Nothing' if the parse failed.
-    -- otherwise, return 'Just' the parsed value and the rest of the string input.
+    -- | Given a sequence of strings, returns 'Nothing' and the number of strings consumed if the parse failed.
+    -- Otherwise, return 'Just' the parsed value and the number of strings consumed.
     -- Element-wise, an entire string must be parsed in the sequence to be considered
     -- a successful parse.
-    parse :: [String] -> Maybe (a, [String])
+    parse :: [String] -> (Maybe a, Int)
 
 
-simpleParse :: (String -> Maybe a) -> [String] -> Maybe (a, [String])
+simpleParse :: (String -> Maybe a) -> [String] -> (Maybe a, Int)
 simpleParse parser = \case
-        [] -> Nothing
-        s : rest -> fmap (, rest) $ parser s
+        [] -> (Nothing, 0)
+        s : _ -> case parser s of
+            Nothing -> (Nothing, 0)
+            Just x -> (Just x, 1)
 
 
 instance Parseable Int where
@@ -80,18 +81,20 @@ instance Parseable Float where
 
 instance (Parseable a) => Parseable (Maybe a) where
     parse args = case parse args of
-        Nothing -> Just (Nothing, args)
-        Just (x, rest) -> Just (Just x, rest)
+        (Nothing, n) -> (Just Nothing, n)
+        (Just x, n) -> (Just $ Just x, n)
 
 
 instance (Parseable a) => Parseable (List a) where
     parse args = case parse args of
-        Just (mx, rest) -> case mx of
-            Just x -> case parse rest of
-                Just (List xs, rest') -> Just (List $ x : xs, rest')
-                Nothing -> internalError
-            Nothing -> Just (List [], rest)
-        Nothing -> internalError
+        (Just mx, n) -> case mx of
+            Just x -> let
+                rest = drop n args
+                in case parse rest of
+                    (Just (List xs), n') -> (Just $ List $ x : xs, n + n')
+                    (Nothing, _) -> internalError
+            Nothing -> (Just $ List [], n)
+        (Nothing, _) -> internalError
 
 
 --------------------------------------------------------------------------------
@@ -107,13 +110,13 @@ type OpaqueCallback m = [Opaque] -> m ()
 --------------------------------------------------------------------------------
 
 
-type OpaqueParser = [String] -> Maybe (Opaque, [String])
+type OpaqueParser = [String] -> (Maybe Opaque, Int)
 
 
 parseOpaque :: forall a. (Parseable a, Typeable a) => Proxy a -> OpaqueParser
 parseOpaque ~Proxy str = case parse str of
-    Nothing -> Nothing
-    Just (x :: a, rest) -> Just (Opaque x, rest)
+    (Nothing, n) -> (Nothing, n)
+    (Just (x :: a), n) -> (Just $ Opaque x, n)
 
 
 --------------------------------------------------------------------------------
@@ -208,31 +211,53 @@ data OptionsState m = OptionsState {
     stateOpaqueParsers :: Map TypeRep OpaqueParser,
     stateOptionsByArity :: [[OptionInfo m]],
     stateCollectedActions :: m (),
+    stateCurrMark :: Int,
+    stateHighMark :: Int,
     stateArgs :: [String]
 } deriving ()
 
 
 -- | Contains information about what went wrong during an unsuccessful parse.
 data OptionsError
-    -- | NB: In the future, there will be more informative constructors.
-    = OptionsError
+    -- | Contains @error-message@ @begin-index@ @end-index@
+    = ParseFailed String Int Int
     deriving (Show)
+
+
+mkParseFailed :: Int -> Int -> [String] -> OptionsError
+mkParseFailed beginIndex endIndex args = ParseFailed (mkParseFailed' beginIndex endIndex args) beginIndex endIndex
+
+
+mkParseFailed' :: Int -> Int -> [String] -> String
+mkParseFailed' beginIndex endIndex args
+    | endIndex == beginIndex + 1 = "Unknown option at index " ++ beginIndexStr ++ ": `" ++ begin ++ "'"
+    | endIndex == length args + 1 = "Bad input for `" ++ begin ++ "' at index " ++ beginIndexStr ++ ": End of input."
+    | otherwise = "Bad input for `" ++ begin ++ "' at index " ++ beginIndexStr ++ ": `" ++ end ++ "'"
+    where
+        begin = args !! beginIndex
+        end = args !! (endIndex - 1)
+        beginIndexStr = show beginIndex
 
 
 -- | Tries to parse the supplied options against input arguments.
 --   If successful, parsed option callbacks are executed.
 runOptions :: (Monad m) => Options m a -> [String] -> m (Maybe OptionsError)
-runOptions action args = runOptions' $ runStateT (unOptions $ action >> tryParseAll) $ OptionsState {
+runOptions action args = runOptions' args $ runStateT (unOptions $ action >> tryParseAll) $ OptionsState {
     stateOpaqueParsers = Map.empty,
     stateOptionsByArity = [],
     stateCollectedActions = return (),
+    stateCurrMark = 0,
+    stateHighMark = 0,
     stateArgs = args }
 
 
-runOptions' :: (Monad m) => m (Bool, OptionsState m) -> m (Maybe OptionsError)
-runOptions' m = m >>= \case
+runOptions' :: (Monad m) => [String] -> m (Bool, OptionsState m) -> m (Maybe OptionsError)
+runOptions' args m = m >>= \case
     (True, st) -> stateCollectedActions st >> return Nothing
-    (False, _) -> return $ Just OptionsError
+    (False, st) -> return $ Just $ let
+        currMark = stateCurrMark st
+        highMark = stateHighMark st
+        in mkParseFailed currMark (highMark + 1) args
 
 
 addByArity :: a -> [[a]] -> Int -> [[a]]
@@ -294,19 +319,27 @@ tryParseByOption option = do
         True -> do
             let knownParsers = stateOpaqueParsers restorePoint
             args <- gets stateArgs
+            beginMark <- gets stateCurrMark
             let typeReps = optionTypeReps option
                 opaqueParsers = mapMaybe (flip Map.lookup knownParsers) typeReps
-                (mOpaques, args') = sequenceParsers args opaqueParsers
-            case mOpaques of
+                (mOpaques, n) = sequenceParsers args opaqueParsers
+                args' = drop n args
+            result <- case mOpaques of
                 Nothing -> do
                     put restorePoint
                     return False
                 Just opaques -> do
                     let action = optionCallback option opaques
                     modify $ \st -> st {
+                        stateCurrMark = beginMark + n,
                         stateCollectedActions = stateCollectedActions st >> action,
                         stateArgs = args' }
                     return True
+            modify $ \st -> let
+                oldHighMark = stateHighMark st
+                newHighMark = max oldHighMark (beginMark + n)
+                in st { stateHighMark = newHighMark }
+            return result
 
 
 matchKeyword :: (Monad m) => Keyword -> Options m Bool
@@ -315,18 +348,25 @@ matchKeyword kw = gets stateArgs >>= \case
     (arg : rest) -> case kw == arg of
         False -> return False
         True -> do
-            modify $ \st -> st { stateArgs = rest }
+            modify $ \st -> let
+                newCurrMark = stateCurrMark st + 1
+                in st {
+                    stateCurrMark = newCurrMark,
+                    stateHighMark = max newCurrMark (stateHighMark st),
+                    stateArgs = rest }
             return True
 
 
-sequenceParsers :: [String] -> [OpaqueParser] -> (Maybe [Opaque], [String])
+sequenceParsers :: [String] -> [OpaqueParser] -> (Maybe [Opaque], Int)
 sequenceParsers args = \case
-    [] -> (Just [], args)
+    [] -> (Just [], 0)
     p : ps -> case p args of
-        Nothing -> (Nothing, args)
-        Just (o, rest) -> case sequenceParsers rest ps of
-            (Nothing, _) -> (Nothing, args)
-            (Just os, rest') -> (Just $ o : os, rest')
+        (Nothing, n) -> (Nothing, n)
+        (Just o, n) -> let
+            rest = drop n args
+            in case sequenceParsers rest ps of
+                (Nothing, n') -> (Nothing, n + n')
+                (Just os, n') -> (Just $ o : os, n + n')
 
 
 

@@ -28,6 +28,6 @@ main = do
     args <- getArgs
     mError <- runOptions options args
     case mError of
-        Just OptionsError -> exitFailure
+        Just (ParseFailed _ _ _) -> exitFailure
         Nothing -> exitSuccess
 ```
