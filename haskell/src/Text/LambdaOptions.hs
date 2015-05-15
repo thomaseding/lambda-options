@@ -7,9 +7,11 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 
 
 module Text.LambdaOptions (
+    List(..),
     Parseable(..),
     Keyword,
     OptionCallback,
@@ -41,22 +43,55 @@ internalError = error "Internal logic error."
 --------------------------------------------------------------------------------
 
 
+-- | A simple wrapper over @[a]@. Used to avoid overlapping instances for @Parseable [a]@ and @Parseable String@
+newtype List a = List [a]
+    deriving (Show, Read, Eq, Ord)
+
+
+--------------------------------------------------------------------------------
+
+
 -- | Class describing parseable values. Much like the 'Prelude.Read' class.
 class Parseable a where
-    -- | Given a 'String', returns @Just a@ if and only if the __/entire/__ string can be parsed.
-    parse :: String -> Maybe a
+    -- | Given a sequence of strings, returns 'Nothing' if the parse failed.
+    -- otherwise, return 'Just' the parsed value and the rest of the string input.
+    -- Element-wise, an entire string must be parsed in the sequence to be considered
+    -- a successful parse.
+    parse :: [String] -> Maybe (a, [String])
+
+
+simpleParse :: (String -> Maybe a) -> [String] -> Maybe (a, [String])
+simpleParse parser = \case
+        [] -> Nothing
+        s : rest -> fmap (, rest) $ parser s
 
 
 instance Parseable Int where
-    parse = readMaybe
+    parse = simpleParse readMaybe
 
 
 instance Parseable String where
-    parse = Just
+    parse = simpleParse Just
 
 
 instance Parseable Float where
-    parse = readMaybe
+    parse = simpleParse readMaybe
+
+
+instance (Parseable a) => Parseable (Maybe a) where
+    parse args = case parse args of
+        Nothing -> Just (Nothing, args)
+        Just (x, rest) -> Just (Just x, rest)
+
+
+instance (Parseable a) => Parseable (List a) where
+    parse args = case parse args of
+        Just (mx, rest) -> case mx of
+            Just x -> case parse rest of
+                Just (List xs, rest') -> Just (List $ x : xs, rest')
+                Nothing -> internalError
+            Nothing -> Just (List [], rest)
+        Nothing -> internalError
 
 
 --------------------------------------------------------------------------------
@@ -72,13 +107,13 @@ type OpaqueCallback m = [Opaque] -> m ()
 --------------------------------------------------------------------------------
 
 
-type OpaqueParser = String -> Maybe Opaque
+type OpaqueParser = [String] -> Maybe (Opaque, [String])
 
 
 parseOpaque :: forall a. (Parseable a, Typeable a) => Proxy a -> OpaqueParser
 parseOpaque ~Proxy str = case parse str of
     Nothing -> Nothing
-    Just (x :: a) -> Just $ Opaque x
+    Just (x :: a, rest) -> Just (Opaque x, rest)
 
 
 --------------------------------------------------------------------------------
@@ -132,12 +167,12 @@ instance (Typeable a, WrapCallback m b) => WrapCallback m (a -> b) where
 --
 -- This function (or value) can have any arity and ultimately returns a value with type @Monad m => m ()@
 --
--- Each of the callback's arguments must have a type 't' which implements 'Parseable'.
+-- Each of the callback's arguments must have a type 't' which implements 'Parseable' and 'Data.Typeable.Typeable'.
 --
 -- Example callbacks:
 --
 -- > putStrLn "Option parsed!" :: IO ()
--- > put :: String -> State ()
+-- > put :: String -> State String ()
 -- > \n -> liftIO (print n) :: (MonadIO m) => Int -> m ()
 -- > \n s f -> lift (print (n, s, f)) :: (MonadTrans m) => Int -> String -> Float -> m IO ()
 type OptionCallback m f = (Monad m, GetOpaqueParsers f, WrapCallback m f)
@@ -260,18 +295,17 @@ tryParseByOption option = do
             let knownParsers = stateOpaqueParsers restorePoint
             args <- gets stateArgs
             let typeReps = optionTypeReps option
-                arity = length typeReps
                 opaqueParsers = mapMaybe (flip Map.lookup knownParsers) typeReps
-                opaques = catMaybes $ zipWith ($) opaqueParsers args
-            case length opaques == arity of
-                False -> do
+                (mOpaques, args') = sequenceParsers args opaqueParsers
+            case mOpaques of
+                Nothing -> do
                     put restorePoint
                     return False
-                True -> do
+                Just opaques -> do
                     let action = optionCallback option opaques
                     modify $ \st -> st {
                         stateCollectedActions = stateCollectedActions st >> action,
-                        stateArgs = drop arity $ stateArgs st }
+                        stateArgs = args' }
                     return True
 
 
@@ -283,6 +317,16 @@ matchKeyword kw = gets stateArgs >>= \case
         True -> do
             modify $ \st -> st { stateArgs = rest }
             return True
+
+
+sequenceParsers :: [String] -> [OpaqueParser] -> (Maybe [Opaque], [String])
+sequenceParsers args = \case
+    [] -> (Just [], args)
+    p : ps -> case p args of
+        Nothing -> (Nothing, args)
+        Just (o, rest) -> case sequenceParsers rest ps of
+            (Nothing, _) -> (Nothing, args)
+            (Just os, rest') -> (Just $ o : os, rest')
 
 
 
