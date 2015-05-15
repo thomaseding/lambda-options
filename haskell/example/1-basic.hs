@@ -1,18 +1,7 @@
-# lambda-options-haskell
-
-A modern command-line parser for Haskell.
-
-* Easy to use. The API is expressive.
-* Easy to learn. The API is tiny and simple.
-* BSD 1-Clause License
-
---------------
-
-Basic example:
-```haskell
 import System.Environment
 import System.Exit
 import Text.LambdaOptions
+
 
 options :: Options IO ()
 options = do
@@ -23,6 +12,7 @@ options = do
     addOption "--user" $ \name age -> do
         putStrLn $ "Name:" ++ name ++ " Age:" ++ show (age :: Int)
 
+
 main :: IO ()
 main = do
     args <- getArgs
@@ -30,4 +20,7 @@ main = do
     case mError of
         Just OptionsError -> exitFailure
         Nothing -> exitSuccess
-```
+
+
+
+
