@@ -18,7 +18,7 @@ module Text.LambdaOptions (
     addOption,
     HelpDescription(..),
 
-    ToKeyword(),
+    ToKeyword,
     kw,
 
     OptionsError(..),
@@ -50,6 +50,10 @@ internalError :: a
 internalError = error "Internal logic error."
 
 
+mkProxy :: a -> Proxy a
+mkProxy _ = Proxy
+
+
 --------------------------------------------------------------------------------
 
 
@@ -62,6 +66,11 @@ newtype List a = List [a]
 
 
 -- | When used as a callback argument, this contains the help description given by the added options.
+--
+-- Example:
+--
+-- > addOption (kw ["--help", "-h"]) $ \(HelpDescription desc) -> do
+-- >     putStrLn desc
 newtype HelpDescription = HelpDescription String
     deriving (Typeable)
 
@@ -189,9 +198,9 @@ instance (Typeable a, WrapCallback m b) => WrapCallback m (a -> b) where
 --------------------------------------------------------------------------------
 
 
--- | The callback to be called for a successfully parsed option.
+-- | Describes the callback 'f' to be called for a successfully parsed option.
 --
--- This function (or value) can have any arity and ultimately returns a value with type @Monad m => m ()@
+-- The function (or value) 'f' can have any arity and ultimately returns a value with type @Monad m => m ()@
 --
 -- Each of the callback's arguments must have a type 't' which implements 'Parseable' and 'Data.Typeable.Typeable'.
 --
@@ -201,16 +210,14 @@ instance (Typeable a, WrapCallback m b) => WrapCallback m (a -> b) where
 --
 -- Example callbacks:
 --
--- > putStrLn "Option parsed!" :: IO ()
--- > put :: String -> State String ()
--- > \n -> liftIO (print n) :: (MonadIO m) => Int -> m ()
--- > \name year ratio -> lift (print (name, year, ratio)) :: (MonadTrans m) => String -> Int -> Float -> m IO ()
+-- > f0 = putStrLn "Option parsed!" :: IO ()
+-- > f1 = put :: String -> State String ()
+-- > f2 n = liftIO (print n) :: (MonadIO m) => Int -> m ()
+-- > f3 name year ratio = lift (print (name, year, ratio)) :: (MonadTrans m) => String -> Int -> Float -> m IO ()
 type OptionCallback m f = (Monad m, GetOpaqueParsers f, WrapCallback m f)
 
 
 -- | An option keyword, such as @"--help"@
---
--- NB: In the future, this will become a proper data type that contains a list of aliases and help descriptions.
 data Keyword = Keyword {
     kwNames :: [String], -- ^ All the aliases for this keyword.
     kwArgText :: String, -- ^ Text to describe the arguments to the option given by this keyword.
@@ -369,9 +376,9 @@ addByArity x xss = \case
 --
 -- If the keyword is matched and the types of the callback's parameters can successfully be parsed, the
 -- callback is called with the parsed arguments.
-addOption :: forall m f. (OptionCallback m f) => Keyword -> f -> Options m ()
+addOption :: (OptionCallback m f) => Keyword -> f -> Options m ()
 addOption (internalizeKw -> kwd) f = do
-    let (typeReps, opaqueParsers) = unzip $ getOpaqueParsers (Proxy :: Proxy f)
+    let (typeReps, opaqueParsers) = unzip $ getOpaqueParsers $ mkProxy f
         arity = length typeReps
         f' = wrap f
         info = OptionInfo {
