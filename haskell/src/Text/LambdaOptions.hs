@@ -343,8 +343,8 @@ mkParseFailed' beginIndex endIndex args
 
 
 -- | Tries to parse the supplied options against input arguments.
--- If successful, parsed option callbacks are executed. Otherwise
--- __/none/__ of the callbacks are executed.
+-- If successful, parsed option callbacks are returned in 'Prelude.Right'. Otherwise
+-- an 'OptionsError' is returned in 'Prelude.Left'.
 --
 -- Example program:
 --
