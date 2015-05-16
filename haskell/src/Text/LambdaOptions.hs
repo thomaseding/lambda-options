@@ -174,11 +174,9 @@ instance (Typeable a, WrapCallback m b) => WrapCallback m (a -> b) where
 --
 -- Each of the callback's arguments must have a type 't' which implements 'Parseable' and 'Data.Typeable.Typeable'.
 --
--- Think of this type as the following type declaration:
+-- Think of this as the following constraint synonym:
 --
--- > type OptionCallback m f = f
--- >     where
--- >         f = (Parseable t*, Typeable t*, Monad m) => t0 -> t1 -> ... -> tN -> m ()
+-- > type OptionCallback m f = (Monad m, f ~ (Parseable t*, Typeable t*) => t0 -> t1 -> ... -> tN -> m ())
 --
 -- Example callbacks:
 --
