@@ -34,7 +34,6 @@ module Text.LambdaOptions (
 
 
 import Control.Applicative
-import Control.Monad.Loops
 import Control.Monad.State
 import Data.Function
 import Data.List
@@ -437,13 +436,23 @@ addOption (internalizeKw -> kwd) f = do
     modify $ \st -> st { stateOptionsByArity = addByArity info (stateOptionsByArity st) arity }
 
 
-firstM' :: (Monad m) => [m Bool] -> m Bool
-firstM' = liftM isJust . firstM id
+firstM :: (Monad m) => [m Bool] -> m Bool
+firstM = \case
+    m : ms -> m >>= \case
+        False -> firstM ms
+        True -> return True
+    [] -> return False
+
+
+whileM :: (Monad m) => m Bool -> m ()
+whileM m = m >>= \case
+    True -> whileM m
+    False -> return ()
 
 
 tryParseAll :: (Monad m) => Options m Bool
 tryParseAll = do
-    whileM_ tryParse $ return ()
+    whileM tryParse
     gets (null . stateArgs)
 
 
@@ -456,11 +465,11 @@ tryParse = gets (null . stateArgs) >>= \case
 tryParseByArity :: (Monad m) => Options m Bool
 tryParseByArity = do
     optionsByArity <- gets $ reverse . stateOptionsByArity
-    firstM' $ map tryParseByOptions optionsByArity
+    firstM $ map tryParseByOptions optionsByArity
 
 
 tryParseByOptions :: (Monad m) => [OptionInfo m] -> Options m Bool
-tryParseByOptions = firstM' . map tryParseByOption
+tryParseByOptions = firstM . map tryParseByOption
 
 
 tryParseByOption :: (Monad m) => OptionInfo m -> Options m Bool
