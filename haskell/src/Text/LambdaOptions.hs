@@ -12,17 +12,21 @@
 
 
 module Text.LambdaOptions (
+    runOptions,
     Options,
+    OptionsError(..),
+
     Keyword(..),
     OptionCallback,
     addOption,
+
     HelpDescription(..),
+    getHelpDescription,
 
-    ToKeyword,
+    ToKeyword(..),
     kw,
-
-    OptionsError(..),
-    runOptions,
+    text,
+    argText,
 
     Parseable(..),
     List(..),
@@ -95,24 +99,29 @@ simpleParse parser = \case
             Just x -> (Just x, 1)
 
 
+-- | Parses an 'Int' using its 'Prelude.Read' instance.
 instance Parseable Int where
     parse = simpleParse readMaybe
 
 
+-- | Identity parser.
 instance Parseable String where
     parse = simpleParse Just
 
 
+-- | Parses a 'Float' using its 'Prelude.Read' instance.
 instance Parseable Float where
     parse = simpleParse readMaybe
 
 
+-- | Greedily parses a single argument or no argument. Never fails.
 instance (Parseable a) => Parseable (Maybe a) where
     parse args = case parse args of
         (Nothing, n) -> (Just Nothing, n)
         (Just x, n) -> (Just $ Just x, n)
 
 
+-- | Greedily parses arguments item-wise. Never fails.
 instance (Parseable a) => Parseable (List a) where
     parse args = case parse args of
         (Just mx, n) -> case mx of
@@ -125,6 +134,7 @@ instance (Parseable a) => Parseable (List a) where
         (Nothing, _) -> internalError
 
 
+-- | Consumes nothing. Returns the options' help description. Never fails.
 instance Parseable HelpDescription where
     parse _ = (Just $ HelpDescription "", 0)
 
@@ -229,18 +239,22 @@ instance IsString Keyword where
     fromString name = kw [name]
 
 
+-- | Convenience 'Keyword' creation class.
 class ToKeyword a where
     toKeyword :: a -> Keyword
 
 
+-- | Identiy mapping.
 instance ToKeyword Keyword where
     toKeyword = id
 
 
+-- | Used to create a 'Keyword' with a single alias.
 instance ToKeyword String where
     toKeyword name = toKeyword [name]
 
 
+-- | Used to create a 'Keyword' with many (or no) aliases
 instance ToKeyword [String] where
     toKeyword names = Keyword {
         kwNames = names,
@@ -248,11 +262,23 @@ instance ToKeyword [String] where
         kwText = "" }
 
 
--- | Convenience 'Keyword' to build upon.
--- Takes either a single alias or a list of name aliases to start with.
--- Use record syntax to set the rest.
+-- | Shorthand for 'toKeyword'.
 kw :: (ToKeyword a) => a -> Keyword
 kw = toKeyword
+
+
+-- | Sets the 'kwArgText' field in the keyword. Intended to be used infix:
+--
+-- > kw "--directory" `argText` "DIR" `text` "Write files to DIR."
+argText :: Keyword -> String -> Keyword
+argText k s = k { kwArgText = s }
+
+
+-- | Sets the 'kwText' field in the keyword. Intended to be used infix.
+--
+-- > kw "--quiet" `text` "Suppress message display."
+text :: Keyword -> String -> Keyword
+text k s = k { kwText = s }
 
 
 internalizeKw :: Keyword -> Keyword
@@ -320,29 +346,52 @@ mkParseFailed' beginIndex endIndex args
 -- If successful, parsed option callbacks are executed. Otherwise
 -- __/none/__ of the callbacks are executed.
 --
--- Example:
+-- Example program:
 --
 -- > import System.Environment
 -- > import Text.LambdaOptions
 -- > 
 -- > options :: Options IO ()
 -- > options = do
--- >     addOption (kw "--help") $ do
--- >         putStrLn "--user NAME [AGE]"
--- >     addOption (kw "--user") $ \name -> do
+-- >     addOption (kw ["--help", "-h"] `text` "Display this help text.") $ \(HelpDescription desc) -> do
+-- >         putStrLn "Usage:"
+-- >         putStrLn desc
+-- >     addOption (kw "--user" `argText` "NAME" `text` "Prints name.") $ \name -> do
 -- >         putStrLn $ "Name:" ++ name
--- >     addOption (kw "--user") $ \name age -> do
+-- >     addOption (kw "--user" `argText` "NAME AGE" `text` "Prints name and age.") $ \name age -> do
 -- >         putStrLn $ "Name:" ++ name ++ " Age:" ++ show (age :: Int)
 -- > 
 -- > main :: IO ()
 -- > main = do
 -- >     args <- getArgs
--- >     mError <- runOptions options args
--- >     case mError of
--- >         Just (ParseFailed msg _ _) -> putStrLn msg
--- >         Nothing -> return ()
-runOptions :: (Monad m) => Options m a -> [String] -> m (Maybe OptionsError)
-runOptions action args = runOptions' args $ runStateT (unOptions $ action >> tryParseAll) $ OptionsState {
+-- >     result <- runOptions options args
+-- >     case result of
+-- >         Left (ParseFailed msg _ _) -> do
+-- >             putStrLn msg
+-- >             desc <- getHelpDescription options
+-- >             putStrLn desc
+-- >         Right action -> action
+--
+-- >>> example.exe --user John 20 --user Jane
+-- Name:John Age:20
+-- Name:Jane
+-- >>> example.exe -h
+-- Usage:
+-- -h, --help                  Display this help text.
+--     --user NAME             Prints name.
+--     --user NAME AGE         Prints name and age.
+-- >>> example.exe --user BadLuckBrian thirteen
+-- Unknown option at index 2: `thirteen'
+-- Usage:
+-- -h, --help                  Display this help text.
+--     --user NAME             Prints name.
+--     --user NAME AGE         Prints name and age.
+runOptions :: (Monad m) => Options m () -> [String] -> m (Either OptionsError (m ()))
+runOptions options args = runOptions' args $ runOptionsInternal args (options >> tryParseAll)
+
+
+runOptionsInternal :: (Monad m) => [String] -> Options m a -> m (a, OptionsState m)
+runOptionsInternal args options = runStateT (unOptions options) $ OptionsState {
     stateOpaqueParsers = Map.empty,
     stateOptionsByArity = [],
     stateCollectedActions = return (),
@@ -351,10 +400,10 @@ runOptions action args = runOptions' args $ runStateT (unOptions $ action >> try
     stateArgs = args }
 
 
-runOptions' :: (Monad m) => [String] -> m (Bool, OptionsState m) -> m (Maybe OptionsError)
-runOptions' args m = m >>= \case
-    (True, st) -> stateCollectedActions st >> return Nothing
-    (False, st) -> return $ Just $ let
+runOptions' :: (Monad m) => [String] -> m (Bool, OptionsState m) -> m (Either OptionsError (m ()))
+runOptions' args m = m >>= return . \case
+    (True, st) -> Right $ stateCollectedActions st
+    (False, st) -> Left $ let
         currMark = stateCurrMark st
         highMark = stateHighMark st
         in mkParseFailed currMark (highMark + 1) args
@@ -503,6 +552,11 @@ createHelpDescription :: (Monad m) => Options m String
 createHelpDescription = liftM runFormatter collectKeywords
 
 
+-- | Produces the help description given by the input options.
+getHelpDescription :: (Monad m) => Options m a -> m String
+getHelpDescription options = liftM fst $ runOptionsInternal [] $ options >> createHelpDescription
+
+
 --------------------------------------------------------------------------------
 
 
@@ -565,7 +619,6 @@ formatKeywordNames kwd = do
                 True -> (Just name, rest)
                 False -> (Nothing, names)
             [] -> (Nothing, [])
-        shortIdx = 0 :: Int
         otherIdxs = [maybe 0 (const 1) mShortName ..] :: [Int]
     case mShortName of
         Nothing -> return ()
@@ -586,10 +639,10 @@ formatKeywordNames kwd = do
 formatKeywordArgText :: Keyword -> Formatter ()
 formatKeywordArgText kwd = case kwArgText kwd of
     "" -> return ()
-    argText -> do
+    argTxt -> do
         _ <- flushWord
         changeIndentation . succ =<< gets fmtWidth
-        emitString argText
+        emitString argTxt
 
 
 formatKeywordText :: Keyword -> Formatter()
@@ -597,10 +650,10 @@ formatKeywordText kwd = do
     _ <- flushWord
     case kwText kwd of
         "" -> return ()
-        text -> do
+        txt -> do
             changeIndentation . succ =<< gets fmtWidth
             changeIndentation 29
-            emitString text
+            emitString txt
 
 
 flushWord :: Formatter Bool
