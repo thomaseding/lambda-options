@@ -10,14 +10,16 @@
 
 
 module Text.LambdaOptions (
-    List(..),
-    Parseable(..),
+    Options,
     Keyword,
     OptionCallback,
-    Options,
-    OptionsError(..),
     addOption,
+
+    OptionsError(..),
     runOptions,
+
+    Parseable(..),
+    List(..),
 ) where
 
 
@@ -172,12 +174,18 @@ instance (Typeable a, WrapCallback m b) => WrapCallback m (a -> b) where
 --
 -- Each of the callback's arguments must have a type 't' which implements 'Parseable' and 'Data.Typeable.Typeable'.
 --
+-- Think of this type as the following type declaration:
+--
+-- > type OptionCallback m f = f
+-- >     where
+-- >         f = (Parseable t*, Typeable t*, Monad m) => t0 -> t1 -> ... -> tN -> m ()
+--
 -- Example callbacks:
 --
 -- > putStrLn "Option parsed!" :: IO ()
 -- > put :: String -> State String ()
 -- > \n -> liftIO (print n) :: (MonadIO m) => Int -> m ()
--- > \n s f -> lift (print (n, s, f)) :: (MonadTrans m) => Int -> String -> Float -> m IO ()
+-- > \name year ratio -> lift (print (name, year, ratio)) :: (MonadTrans m) => String -> Int -> Float -> m IO ()
 type OptionCallback m f = (Monad m, GetOpaqueParsers f, WrapCallback m f)
 
 
@@ -240,7 +248,8 @@ mkParseFailed' beginIndex endIndex args
 
 
 -- | Tries to parse the supplied options against input arguments.
---   If successful, parsed option callbacks are executed.
+-- If successful, parsed option callbacks are executed. Otherwise
+-- __/none/__ of the callbacks are executed.
 --
 -- Example:
 --
@@ -291,7 +300,10 @@ addByArity x xss = \case
         xs : rest -> xs : addByArity x rest (n - 1)
 
 
--- | Adds the following option into the monadic context.
+-- | Adds the supplied option to the @Options m ()@ context.
+--
+-- If the keyword is matched and the types of the callback's parameters can successfully be parsed, the
+-- callback is called with the parsed arguments.
 addOption :: forall m f. (OptionCallback m f) => Keyword -> f -> Options m ()
 addOption keyword f = do
     let (typeReps, opaqueParsers) = unzip $ getOpaqueParsers (Proxy :: Proxy f)
