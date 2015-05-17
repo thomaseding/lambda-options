@@ -10,7 +10,7 @@ name:                lambda-options
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.5.0.0
+version:             0.5.1.0
 
 -- A short (one-line) description of the package.
 synopsis:            A modern command-line parser for Haskell.
@@ -57,7 +57,7 @@ library
   -- other-modules:       
   
   -- LANGUAGE extensions used by modules in this package.
-  other-extensions:    ConstraintKinds, DeriveDataTypeable, FlexibleInstances, GADTs, GeneralizedNewtypeDeriving, MultiParamTypeClasses
+  other-extensions:    ConstraintKinds, DeriveDataTypeable, FlexibleInstances, FunctionalDependencies, GADTs, GeneralizedNewtypeDeriving, MultiParamTypeClasses, UndecidableInstances
   
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.7 && <4.8, mtl >=2.2 && <2.3, containers >=0.5 && <0.6
