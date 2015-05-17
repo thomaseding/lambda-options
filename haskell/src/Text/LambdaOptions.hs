@@ -19,6 +19,7 @@ module Text.LambdaOptions (
 
     HelpDescription(..),
     getHelpDescription,
+    fitToOptions,
 
     ToKeyword(..),
     kw,
@@ -554,12 +555,20 @@ collectKeywords = gets $ sortBy cmp . map optionKeyword . concat . stateOptionsB
 
 
 createHelpDescription :: (Monad m) => Options m String
-createHelpDescription = liftM runFormatter collectKeywords
+createHelpDescription = liftM (runFormatter . mapM_ formatKeyword) collectKeywords
 
 
 -- | Produces the help description given by the input options.
 getHelpDescription :: (Monad m) => Options m a -> String
 getHelpDescription options = fst $ runOptionsInternal [] $ options >> createHelpDescription
+
+
+-- | Fits the given string to the width of the options' help description.
+fitToOptions :: (Monad m) => Options m a -> String -> String
+fitToOptions _  s = runFormatter $ do
+    emitString s
+    _ <- flushWord
+    return ()
 
 
 --------------------------------------------------------------------------------
@@ -582,16 +591,14 @@ data FormatterState = FormatterState {
 type Formatter = State FormatterState
 
 
-runFormatter :: [Keyword] -> String
-runFormatter = reverse . fmtEmittedChars . flip execState st . mapM_ formatKeyword
-    where
-        st = FormatterState {
-            fmtConfig = FormattingConfig {
-                fmtMaxWidth = 80 },
-            fmtEmittedChars = [],
-            fmtWord = [],
-            fmtWidth = 0,
-            fmtIndentation = 0 }
+runFormatter :: Formatter () -> String
+runFormatter m = reverse $ fmtEmittedChars $ execState m $ FormatterState {
+    fmtConfig = FormattingConfig {
+        fmtMaxWidth = 80 },
+    fmtEmittedChars = [],
+    fmtWord = [],
+    fmtWidth = 0,
+    fmtIndentation = 0 }
 
 
 formatKeyword :: Keyword -> Formatter ()
