@@ -13,6 +13,7 @@ Basic example:
 import System.Environment
 import Text.LambdaOptions
 
+
 options :: Options IO ()
 options = do
     addOption (kw ["--help", "-h"] `text` "Display this help text.") $ \(HelpDescription desc) -> do
@@ -23,15 +24,14 @@ options = do
     addOption (kw "--user" `argText` "NAME AGE" `text` "Prints name and age.") $ \name age -> do
         putStrLn $ "Name:" ++ name ++ " Age:" ++ show (age :: Int)
 
+
 main :: IO ()
 main = do
     args <- getArgs
-    result <- runOptions options args
-    case result of
+    case runOptions options args of
         Left (ParseFailed msg _ _) -> do
             putStrLn msg
-            desc <- getHelpDescription options
-            putStrLn desc
+            putStrLn $ getHelpDescription options
         Right action -> action
 ```
 

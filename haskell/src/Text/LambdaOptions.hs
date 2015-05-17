@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
@@ -220,7 +221,7 @@ instance (Typeable a, WrapCallback m b) => WrapCallback m (a -> b) where
 -- > f1 = put :: String -> State String ()
 -- > f2 n = liftIO (print n) :: (MonadIO m) => Int -> m ()
 -- > f3 name year ratio = lift (print (name, year, ratio)) :: (MonadTrans m) => String -> Int -> Float -> m IO ()
-class (Monad m, GetOpaqueParsers f, WrapCallback m f) => OptionCallback m f
+type OptionCallback m f = (Monad m, GetOpaqueParsers f, WrapCallback m f)
 
 
 -- | An option keyword, such as @"--help"@
@@ -285,7 +286,6 @@ internalizeKeyword k = k {
 --------------------------------------------------------------------------------
 
 
-
 data OptionInfo m = OptionInfo {
     optionKeyword :: Keyword,
     optionTypeReps :: [TypeRep],
@@ -296,14 +296,10 @@ data OptionInfo m = OptionInfo {
 --------------------------------------------------------------------------------
 
 
--- | A monad transformer for parsing options.
+-- | A monad for parsing options.
 newtype Options m a = Options {
-    unOptions :: StateT (OptionsState m) m a
-} deriving (Applicative, Functor, Monad, MonadState (OptionsState m), MonadIO)
-
-
-instance MonadTrans Options where
-    lift = Options . lift
+    unOptions :: State (OptionsState m) a
+} deriving (Applicative, Functor, Monad, MonadState (OptionsState m))
 
 
 data OptionsState m = OptionsState {
@@ -347,6 +343,7 @@ mkParseFailed' beginIndex endIndex args
 -- > import System.Environment
 -- > import Text.LambdaOptions
 -- > 
+-- > 
 -- > options :: Options IO ()
 -- > options = do
 -- >     addOption (kw ["--help", "-h"] `text` "Display this help text.") $ \(HelpDescription desc) -> do
@@ -357,15 +354,14 @@ mkParseFailed' beginIndex endIndex args
 -- >     addOption (kw "--user" `argText` "NAME AGE" `text` "Prints name and age.") $ \name age -> do
 -- >         putStrLn $ "Name:" ++ name ++ " Age:" ++ show (age :: Int)
 -- > 
+-- > 
 -- > main :: IO ()
 -- > main = do
 -- >     args <- getArgs
--- >     result <- runOptions options args
--- >     case result of
+-- >     case runOptions options args of
 -- >         Left (ParseFailed msg _ _) -> do
 -- >             putStrLn msg
--- >             desc <- getHelpDescription options
--- >             putStrLn desc
+-- >             putStrLn $ getHelpDescription options
 -- >         Right action -> action
 --
 -- >>> example.exe --user John 20 --user Jane
@@ -382,12 +378,12 @@ mkParseFailed' beginIndex endIndex args
 -- -h, --help                  Display this help text.
 --     --user NAME             Prints name.
 --     --user NAME AGE         Prints name and age.
-runOptions :: (Monad m) => Options m () -> [String] -> m (Either OptionsError (m ()))
+runOptions :: (Monad m) => Options m () -> [String] -> Either OptionsError (m ())
 runOptions options args = runOptions' args $ runOptionsInternal args (options >> tryParseAll)
 
 
-runOptionsInternal :: (Monad m) => [String] -> Options m a -> m (a, OptionsState m)
-runOptionsInternal args options = runStateT (unOptions options) $ OptionsState {
+runOptionsInternal :: (Monad m) => [String] -> Options m a -> (a, OptionsState m)
+runOptionsInternal args options = runState (unOptions options) $ OptionsState {
     stateOpaqueParsers = Map.empty,
     stateOptionsByArity = [],
     stateCollectedActions = return (),
@@ -396,8 +392,8 @@ runOptionsInternal args options = runStateT (unOptions options) $ OptionsState {
     stateArgs = args }
 
 
-runOptions' :: (Monad m) => [String] -> m (Bool, OptionsState m) -> m (Either OptionsError (m ()))
-runOptions' args m = flip liftM m $ \result -> case result of
+runOptions' :: (Monad m) => [String] -> (Bool, OptionsState m) -> Either OptionsError (m ())
+runOptions' args result = case result of
     (True, st) -> Right $ stateCollectedActions st
     (False, st) -> Left $ let
         currMark = stateCurrMark st
@@ -560,8 +556,8 @@ createHelpDescription = liftM runFormatter collectKeywords
 
 
 -- | Produces the help description given by the input options.
-getHelpDescription :: (Monad m) => Options m a -> m String
-getHelpDescription options = liftM fst $ runOptionsInternal [] $ options >> createHelpDescription
+getHelpDescription :: (Monad m) => Options m a -> String
+getHelpDescription options = fst $ runOptionsInternal [] $ options >> createHelpDescription
 
 
 --------------------------------------------------------------------------------

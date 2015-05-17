@@ -16,12 +16,10 @@ options = do
 main :: IO ()
 main = do
     args <- getArgs
-    result <- runOptions options args
-    case result of
+    case runOptions options args of
         Left (ParseFailed msg _ _) -> do
             putStrLn msg
-            desc <- getHelpDescription options
-            putStrLn desc
+            putStrLn $ getHelpDescription options
         Right action -> action
 
 
