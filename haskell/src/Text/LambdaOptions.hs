@@ -1,9 +1,11 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 
 module Text.LambdaOptions (
@@ -144,7 +146,7 @@ data Opaque where
     Opaque :: (Typeable a) => a -> Opaque
 
 
-type OpaqueCallback m = [Opaque] -> m ()
+type OpaqueCallback r = [Opaque] -> r
 
 
 --------------------------------------------------------------------------------
@@ -181,17 +183,17 @@ instance (Monad m) => GetOpaqueParsers (m ()) where
 --------------------------------------------------------------------------------
 
 
-class WrapCallback m f where
-    wrap :: f -> OpaqueCallback m
+class WrapCallback r f | f -> r where
+    wrap :: f -> OpaqueCallback r
 
 
-instance WrapCallback m (m ()) where
+instance WrapCallback (m ()) (m ()) where
     wrap action opaques = case opaques of
         [] -> action
         _ -> internalError
 
 
-instance (Typeable a, WrapCallback m b) => WrapCallback m (a -> b) where
+instance (Typeable a, WrapCallback r f) => WrapCallback r (a -> f) where
     wrap f opaques = case opaques of
         Opaque o : os -> case cast o of
             Just x -> let
@@ -221,7 +223,7 @@ instance (Typeable a, WrapCallback m b) => WrapCallback m (a -> b) where
 -- > f1 = put :: String -> State String ()
 -- > f2 n = liftIO (print n) :: (MonadIO m) => Int -> m ()
 -- > f3 name year ratio = lift (print (name, year, ratio)) :: (MonadTrans m) => String -> Int -> Float -> m IO ()
-type OptionCallback m f = (Monad m, GetOpaqueParsers f, WrapCallback m f)
+type OptionCallback m f = (Monad m, GetOpaqueParsers f, WrapCallback (m ()) f)
 
 
 -- | An option keyword, such as @"--help"@
@@ -289,7 +291,7 @@ internalizeKeyword k = k {
 data OptionInfo m = OptionInfo {
     optionKeyword :: Keyword,
     optionTypeReps :: [TypeRep],
-    optionOpaqueCallback :: OpaqueCallback m
+    optionOpaqueCallback :: OpaqueCallback (m ())
 } deriving ()
 
 
