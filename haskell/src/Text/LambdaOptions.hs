@@ -1,14 +1,8 @@
-{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE ViewPatterns #-}
 
 
 module Text.LambdaOptions (
@@ -53,8 +47,12 @@ internalError :: a
 internalError = error "Internal logic error."
 
 
-mkProxy :: a -> Proxy a
-mkProxy _ = Proxy
+getProxy :: a -> Proxy a
+getProxy _ = Proxy
+
+
+decomposeFuncProxy :: Proxy (a -> b) -> (Proxy a, Proxy b)
+decomposeFuncProxy _ = (Proxy, Proxy)
 
 
 --------------------------------------------------------------------------------
@@ -91,7 +89,7 @@ class Parseable a where
 
 
 simpleParse :: (String -> Maybe a) -> [String] -> (Maybe a, Int)
-simpleParse parser = \case
+simpleParse parser args = case args of
         [] -> (Nothing, 0)
         s : _ -> case parser s of
             Nothing -> (Nothing, 0)
@@ -141,7 +139,7 @@ instance Parseable HelpDescription where
 --------------------------------------------------------------------------------
 
 
-data Opaque :: * where
+data Opaque where
     Opaque :: (Typeable a) => a -> Opaque
 
 
@@ -154,10 +152,10 @@ type OpaqueCallback m = [Opaque] -> m ()
 type OpaqueParser = [String] -> (Maybe Opaque, Int)
 
 
-parseOpaque :: forall a. (Parseable a, Typeable a) => Proxy a -> OpaqueParser
-parseOpaque ~Proxy str = case parse str of
+parseOpaque :: (Parseable a, Typeable a) => Proxy a -> OpaqueParser
+parseOpaque proxy str = case parse str of
     (Nothing, n) -> (Nothing, n)
-    (Just (x :: a), n) -> (Just $ Opaque x, n)
+    (Just x, n) -> (Just $ Opaque $ x `asProxyTypeOf` proxy, n)
 
 
 --------------------------------------------------------------------------------
@@ -168,9 +166,8 @@ class GetOpaqueParsers f where
 
 
 instance (Parseable a, Typeable a, GetOpaqueParsers b) => GetOpaqueParsers (a -> b) where
-    getOpaqueParsers ~Proxy = let
-        proxyA = Proxy :: Proxy a
-        proxyB = Proxy :: Proxy b
+    getOpaqueParsers funcProxy = let
+        (proxyA, proxyB) = decomposeFuncProxy funcProxy
         typeRep = typeOf proxyA
         parser = parseOpaque proxyA
         in (typeRep, parser) : getOpaqueParsers proxyB
@@ -188,13 +185,13 @@ class WrapCallback m f where
 
 
 instance WrapCallback m (m ()) where
-    wrap action = \case
+    wrap action opaques = case opaques of
         [] -> action
         _ -> internalError
 
 
 instance (Typeable a, WrapCallback m b) => WrapCallback m (a -> b) where
-    wrap f = \case
+    wrap f opaques = case opaques of
         Opaque o : os -> case cast o of
             Just x -> let
                 g = f x
@@ -223,7 +220,7 @@ instance (Typeable a, WrapCallback m b) => WrapCallback m (a -> b) where
 -- > f1 = put :: String -> State String ()
 -- > f2 n = liftIO (print n) :: (MonadIO m) => Int -> m ()
 -- > f3 name year ratio = lift (print (name, year, ratio)) :: (MonadTrans m) => String -> Int -> Float -> m IO ()
-type OptionCallback m f = (Monad m, GetOpaqueParsers f, WrapCallback m f)
+class (Monad m, GetOpaqueParsers f, WrapCallback m f) => OptionCallback m f
 
 
 -- | An option keyword, such as @"--help"@
@@ -280,8 +277,8 @@ text :: Keyword -> String -> Keyword
 text k s = k { kwText = s }
 
 
-internalizeKw :: Keyword -> Keyword
-internalizeKw k = k {
+internalizeKeyword :: Keyword -> Keyword
+internalizeKeyword k = k {
     kwNames = nub $ sort $ kwNames k }
 
 
@@ -400,7 +397,7 @@ runOptionsInternal args options = runStateT (unOptions options) $ OptionsState {
 
 
 runOptions' :: (Monad m) => [String] -> m (Bool, OptionsState m) -> m (Either OptionsError (m ()))
-runOptions' args m = m >>= return . \case
+runOptions' args m = flip liftM m $ \result -> case result of
     (True, st) -> Right $ stateCollectedActions st
     (False, st) -> Left $ let
         currMark = stateCurrMark st
@@ -409,11 +406,11 @@ runOptions' args m = m >>= return . \case
 
 
 addByArity :: a -> [[a]] -> Int -> [[a]]
-addByArity x xss = \case
+addByArity x xss n = case n of
     0 -> case xss of
         [] -> [[x]]
         xs : rest -> (x : xs) : rest
-    n -> case xss of
+    _ -> case xss of
         [] -> [] : addByArity x [] (n - 1)
         xs : rest -> xs : addByArity x rest (n - 1)
 
@@ -423,10 +420,11 @@ addByArity x xss = \case
 -- If the keyword is matched and the types of the callback's parameters can successfully be parsed, the
 -- callback is called with the parsed arguments.
 addOption :: (OptionCallback m f) => Keyword -> f -> Options m ()
-addOption (internalizeKw -> kwd) f = do
-    let (typeReps, opaqueParsers) = unzip $ getOpaqueParsers $ mkProxy f
+addOption inKwd f = do
+    let (typeReps, opaqueParsers) = unzip $ getOpaqueParsers $ getProxy f
         arity = length typeReps
         f' = wrap f
+        kwd = internalizeKeyword inKwd
         info = OptionInfo {
             optionKeyword = kwd,
             optionTypeReps = typeReps,
@@ -437,15 +435,15 @@ addOption (internalizeKw -> kwd) f = do
 
 
 firstM :: (Monad m) => [m Bool] -> m Bool
-firstM = \case
-    m : ms -> m >>= \case
+firstM actions = case actions of
+    m : ms -> m >>= \result -> case result of
         False -> firstM ms
         True -> return True
     [] -> return False
 
 
 whileM :: (Monad m) => m Bool -> m ()
-whileM m = m >>= \case
+whileM m = m >>= \result -> case result of
     True -> whileM m
     False -> return ()
 
@@ -457,7 +455,7 @@ tryParseAll = do
 
 
 tryParse :: (Monad m) => Options m Bool
-tryParse = gets (null . stateArgs) >>= \case
+tryParse = gets (null . stateArgs) >>= \result -> case result of
     True -> return False
     False -> tryParseByArity
 
@@ -475,7 +473,7 @@ tryParseByOptions = firstM . map tryParseByOption
 tryParseByOption :: (Monad m) => OptionInfo m -> Options m Bool
 tryParseByOption option = do
     restorePoint <- get
-    matchKeyword (optionKeyword option) >>= \case
+    matchKeyword (optionKeyword option) >>= \match -> case match of
         False -> return False
         True -> do
             let knownParsers = stateOpaqueParsers restorePoint
@@ -513,7 +511,7 @@ handleSpecialOpaque opaque@(Opaque o) = case cast o of
 
 
 matchKeyword :: (Monad m) => Keyword -> Options m Bool
-matchKeyword kwd = gets stateArgs >>= \case
+matchKeyword kwd = gets stateArgs >>= \args -> case args of
     [] -> return False
     (arg : rest) -> case matchKeyword' arg kwd of
         Nothing -> return False
@@ -536,7 +534,7 @@ matchKeyword' arg kwd = case kwNames kwd of
 
 
 sequenceParsers :: [String] -> [OpaqueParser] -> (Maybe [Opaque], Int)
-sequenceParsers args = \case
+sequenceParsers args parsers = case parsers of
     [] -> (Just [], 0)
     p : ps -> case p args of
         (Nothing, n) -> (Nothing, n)
@@ -715,7 +713,7 @@ newLine doFlushWord = do
 
 
 emitSpace :: Formatter ()
-emitSpace = flushWord >>= \case
+emitSpace = flushWord >>= \result -> case result of
     False -> return ()
     True -> do
         st <- get
@@ -729,9 +727,9 @@ emitSpace = flushWord >>= \case
 
 
 emitChar :: Char -> Formatter ()
-emitChar = \case
+emitChar c = case c of
     ' ' -> emitSpace
-    c -> modify $ \st -> st {
+    _ -> modify $ \st -> st {
         fmtWord = c : fmtWord st }
 
 
