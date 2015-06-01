@@ -6,7 +6,9 @@ module Text.LambdaOptions.Parseable (
 ) where
 
 
+import Data.Word
 import Text.Read
+import Text.Read.Bounded
 
 
 --------------------------------------------------------------------------------
@@ -29,9 +31,26 @@ simpleParse parser args = case args of
             Just x -> (Just x, 1)
 
 
--- | Parses an 'Int' using its 'Prelude.Read' instance.
+parseBounded :: (ReadBounded a) => [String] -> (Maybe a, Int)
+parseBounded = simpleParse $ \str -> case readBounded str of
+    NoRead -> Nothing
+    ClampedRead _ -> Nothing
+    ExactRead x -> Just x
+
+
+-- | Parses a 'Word' using its 'Text.Read.Bounded.ReadBounded' instance.
+instance Parseable Word where
+    parse = parseBounded
+
+
+-- | Parses an 'Int' using its 'Text.Read.Bounded.ReadBounded' instance.
 instance Parseable Int where
-    parse = simpleParse readMaybe
+    parse = parseBounded
+
+
+-- | Parses an 'Integer' using its 'Prelude.Read' instance.
+instance Parseable Integer where
+    parse = parseBounded
 
 
 -- | Identity parser.
