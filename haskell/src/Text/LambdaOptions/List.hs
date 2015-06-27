@@ -20,7 +20,7 @@ internalError = error "InternalError: Text.LambdaOptions.List"
 
 
 -- | A simple wrapper over @[a]@. Used to avoid overlapping instances for @Parseable [a]@ and @Parseable String@
-newtype List a = List [a]
+newtype List a = List { unList :: [a] }
     deriving (Typeable, Data, Show, Read, Eq, Ord)
 
 
