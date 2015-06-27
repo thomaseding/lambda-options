@@ -59,7 +59,7 @@ getProxy _ = Proxy
 -- > f1 = put :: String -> State String ()
 -- > f2 n = liftIO (print n) :: (MonadIO m) => Int -> m ()
 -- > f3 name year ratio = lift (print (name, year, ratio)) :: (MonadTrans m) => String -> Int -> Float -> m IO ()
-type OptionCallback m a f = (Monad m, GetOpaqueParsers f, Wrap (m a) f)
+type OptionCallback m a f = (Monad m, GetOpaqueParsers a f, Wrap (m a) f)
 
 
 internalizeKeyword :: Keyword -> Keyword

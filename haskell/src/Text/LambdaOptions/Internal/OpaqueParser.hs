@@ -1,4 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Text.LambdaOptions.Internal.OpaqueParser (
     OpaqueParser,
@@ -34,11 +37,11 @@ parseOpaque proxy str = case parse str of
 --------------------------------------------------------------------------------
 
 
-class GetOpaqueParsers f where
+class GetOpaqueParsers r f | f -> r where
     getOpaqueParsers :: Proxy f -> [(TypeRep, OpaqueParser)]
 
 
-instance (Parseable a, Typeable a, GetOpaqueParsers b) => GetOpaqueParsers (a -> b) where
+instance (Parseable a, Typeable a, GetOpaqueParsers r b) => GetOpaqueParsers r (a -> b) where
     getOpaqueParsers funcProxy = let
         (proxyA, proxyB) = decomposeFuncProxy funcProxy
         typeRep = typeOf proxyA
@@ -46,7 +49,7 @@ instance (Parseable a, Typeable a, GetOpaqueParsers b) => GetOpaqueParsers (a ->
         in (typeRep, parser) : getOpaqueParsers proxyB
 
 
-instance (Monad m) => GetOpaqueParsers (m a) where
+instance (Monad m) => GetOpaqueParsers r (m r) where
     getOpaqueParsers ~Proxy = []
 
 
