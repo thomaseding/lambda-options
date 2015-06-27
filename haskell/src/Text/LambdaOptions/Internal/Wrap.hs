@@ -27,13 +27,13 @@ class Wrap r f | f -> r where
     wrap :: f -> OpaqueCallback r
 
 
-instance (Monad m) => Wrap (m ()) (m ()) where
+instance (Monad m) => Wrap (m b) (m b) where
     wrap action opaques = case opaques of
         [] -> action
         _ -> internalError
 
 
-instance (Monad m, Typeable a, Wrap (m ()) f) => Wrap (m ()) (a -> f) where
+instance (Monad m, Typeable a, Wrap (m b) f) => Wrap (m b) (a -> f) where
     wrap f opaques = case opaques of
         Opaque o : os -> case cast o of
             Just x -> let

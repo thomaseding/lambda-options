@@ -46,7 +46,7 @@ instance (Parseable a, Typeable a, GetOpaqueParsers b) => GetOpaqueParsers (a ->
         in (typeRep, parser) : getOpaqueParsers proxyB
 
 
-instance (Monad m) => GetOpaqueParsers (m ()) where
+instance (Monad m) => GetOpaqueParsers (m a) where
     getOpaqueParsers ~Proxy = []
 
 

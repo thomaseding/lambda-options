@@ -45,13 +45,13 @@ getProxy _ = Proxy
 
 -- | Describes the callback 'f' to be called for a successfully parsed option.
 --
--- The function (or value) 'f' can have any arity and ultimately returns a value with type @Monad m => m ()@
+-- The function (or value) 'f' can have any arity and ultimately returns a value with type @Monad m => m a@
 --
 -- Each of the callback's arguments must have a type 't' which implements 'Parseable' and 'Data.Typeable.Typeable'.
 --
 -- Think of this as the following constraint synonym:
 --
--- > type OptionCallback m f = (Monad m, f ~ (Parseable t*, Typeable t*) => t0 -> t1 -> ... -> tN -> m ())
+-- > type OptionCallback m a f = (Monad m, f ~ (Parseable t*, Typeable t*) => t0 -> t1 -> ... -> tN -> m a)
 --
 -- Example callbacks:
 --
@@ -59,7 +59,7 @@ getProxy _ = Proxy
 -- > f1 = put :: String -> State String ()
 -- > f2 n = liftIO (print n) :: (MonadIO m) => Int -> m ()
 -- > f3 name year ratio = lift (print (name, year, ratio)) :: (MonadTrans m) => String -> Int -> Float -> m IO ()
-type OptionCallback m f = (Monad m, GetOpaqueParsers f, Wrap (m ()) f)
+type OptionCallback m a f = (Monad m, GetOpaqueParsers f, Wrap (m a) f)
 
 
 internalizeKeyword :: Keyword -> Keyword
@@ -70,10 +70,10 @@ internalizeKeyword k = k {
 --------------------------------------------------------------------------------
 
 
-data OptionInfo m = OptionInfo {
+data OptionInfo m a = OptionInfo {
     optionKeyword :: Keyword,
     optionTypeReps :: [TypeRep],
-    optionOpaqueCallback :: OpaqueCallback (m ())
+    optionOpaqueCallback :: OpaqueCallback (m a)
 } deriving ()
 
 
@@ -81,15 +81,15 @@ data OptionInfo m = OptionInfo {
 
 
 -- | A monad for parsing options.
-newtype Options m a = Options {
-    unOptions :: State (OptionsState m) a
-} deriving (Applicative, Functor, Monad, MonadState (OptionsState m))
+newtype Options m a b = Options {
+    unOptions :: State (OptionsState m a) b
+} deriving (Applicative, Functor, Monad, MonadState (OptionsState m a))
 
 
-data OptionsState m = OptionsState {
+data OptionsState m a = OptionsState {
     stateOpaqueParsers :: Map TypeRep OpaqueParser,
-    stateOptionsByArity :: [[OptionInfo m]],
-    stateCollectedActions :: m (),
+    stateOptionsByArity :: [[OptionInfo m a]],
+    stateCollectedActions :: [m a],
     stateCurrMark :: Int,
     stateHighMark :: Int,
     stateArgs :: [String],
@@ -129,7 +129,7 @@ mkParseFailed' beginIndex endIndex args
 -- > import Text.LambdaOptions
 -- > 
 -- > 
--- > options :: Options IO ()
+-- > options :: Options IO () ()
 -- > options = do
 -- >     addOption (kw ["--help", "-h"] `text` "Display this help text.") $ \(HelpDescription desc) -> do
 -- >         putStrLn "Usage:"
@@ -147,7 +147,7 @@ mkParseFailed' beginIndex endIndex args
 -- >         Left (ParseFailed msg _ _) -> do
 -- >             putStrLn msg
 -- >             putStrLn $ getHelpDescription options
--- >         Right action -> action
+-- >         Right actions -> sequence_ actions
 --
 -- >>> example.exe --user John 20 --user Jane
 -- Name:John Age:20
@@ -163,24 +163,24 @@ mkParseFailed' beginIndex endIndex args
 -- -h, --help                  Display this help text.
 --     --user NAME             Prints name.
 --     --user NAME AGE         Prints name and age.
-runOptions :: (Monad m) => Options m () -> [String] -> Either OptionsError (m ())
+runOptions :: (Monad m) => Options m a () -> [String] -> Either OptionsError [m a]
 runOptions options args = runOptions' args $ runOptionsInternal defaultFormatConfig args (options >> tryParseAll)
 
 
-runOptionsInternal :: (Monad m) => FormatConfig -> [String] -> Options m a -> (a, OptionsState m)
+runOptionsInternal :: (Monad m) => FormatConfig -> [String] -> Options m a b -> (b, OptionsState m a)
 runOptionsInternal config args options = runState (unOptions options) $ OptionsState {
     stateOpaqueParsers = Map.empty,
     stateOptionsByArity = [],
-    stateCollectedActions = return (),
+    stateCollectedActions = [],
     stateCurrMark = 0,
     stateHighMark = 0,
     stateArgs = args,
     stateFormatConfig = config }
 
 
-runOptions' :: (Monad m) => [String] -> (Bool, OptionsState m) -> Either OptionsError (m ())
+runOptions' :: (Monad m) => [String] -> (Bool, OptionsState m a) -> Either OptionsError [m a]
 runOptions' args result = case result of
-    (True, st) -> Right $ stateCollectedActions st
+    (True, st) -> Right $ reverse $ stateCollectedActions st
     (False, st) -> Left $ let
         currMark = stateCurrMark st
         highMark = stateHighMark st
@@ -197,11 +197,11 @@ addByArity x xss n = case n of
         xs : rest -> xs : addByArity x rest (n - 1)
 
 
--- | Adds the supplied option to the @Options m ()@ context.
+-- | Adds the supplied option to the @Options m a ()@ context.
 --
 -- If the keyword is matched and the types of the callback's parameters can successfully be parsed, the
 -- callback is called with the parsed arguments.
-addOption :: (OptionCallback m f) => Keyword -> f -> Options m ()
+addOption :: (OptionCallback m a f) => Keyword -> f -> Options m a ()
 addOption inKwd f = do
     let (typeReps, opaqueParsers) = unzip $ getOpaqueParsers $ getProxy f
         arity = length typeReps
@@ -230,29 +230,29 @@ whileM m = m >>= \result -> case result of
     False -> return ()
 
 
-tryParseAll :: (Monad m) => Options m Bool
+tryParseAll :: (Monad m) => Options m a Bool
 tryParseAll = do
     whileM tryParse
     gets (null . stateArgs)
 
 
-tryParse :: (Monad m) => Options m Bool
+tryParse :: (Monad m) => Options m a Bool
 tryParse = gets (null . stateArgs) >>= \result -> case result of
     True -> return False
     False -> tryParseByArity
 
 
-tryParseByArity :: (Monad m) => Options m Bool
+tryParseByArity :: (Monad m) => Options m a Bool
 tryParseByArity = do
     optionsByArity <- gets $ reverse . stateOptionsByArity
     firstM $ map tryParseByOptions optionsByArity
 
 
-tryParseByOptions :: (Monad m) => [OptionInfo m] -> Options m Bool
+tryParseByOptions :: (Monad m) => [OptionInfo m a] -> Options m a Bool
 tryParseByOptions = firstM . map tryParseByOption
 
 
-tryParseByOption :: (Monad m) => OptionInfo m -> Options m Bool
+tryParseByOption :: (Monad m) => OptionInfo m a -> Options m a Bool
 tryParseByOption option = do
     restorePoint <- get
     matchKeyword (optionKeyword option) >>= \match -> case match of
@@ -274,7 +274,7 @@ tryParseByOption option = do
                     let action = optionOpaqueCallback option opaques'
                     modify $ \st -> st {
                         stateCurrMark = beginMark + n,
-                        stateCollectedActions = stateCollectedActions st >> action,
+                        stateCollectedActions = action : stateCollectedActions st,
                         stateArgs = args' }
                     return True
             modify $ \st -> let
@@ -284,7 +284,7 @@ tryParseByOption option = do
             return result
 
 
-handleSpecialOpaque :: (Monad m) => Opaque -> Options m Opaque
+handleSpecialOpaque :: (Monad m) => Opaque -> Options m a Opaque
 handleSpecialOpaque opaque@(Opaque o) = case cast o of
     Just (HelpDescription _) -> do
         desc <- createHelpDescription
@@ -292,7 +292,7 @@ handleSpecialOpaque opaque@(Opaque o) = case cast o of
     _ -> return opaque
 
 
-matchKeyword :: (Monad m) => Keyword -> Options m Bool
+matchKeyword :: (Monad m) => Keyword -> Options m a Bool
 matchKeyword kwd = gets stateArgs >>= \args -> case args of
     [] -> return False
     (arg : rest) -> case matchKeyword' arg kwd of
@@ -327,7 +327,7 @@ sequenceParsers args parsers = case parsers of
                 (Just os, n') -> (Just $ o : os, n + n')
 
 
-collectKeywords :: (Monad m) => Options m [Keyword]
+collectKeywords :: (Monad m) => Options m a [Keyword]
 collectKeywords = gets $ sortBy cmp . map optionKeyword . concat . stateOptionsByArity
     where
         cmp = namesCmp `on` kwNames
@@ -358,7 +358,7 @@ instance Parseable HelpDescription where
 --------------------------------------------------------------------------------
 
 
-createHelpDescription :: (Monad m) => Options m String
+createHelpDescription :: (Monad m) => Options m a String
 createHelpDescription = do
     config <- gets stateFormatConfig
     kwds <- collectKeywords
@@ -366,7 +366,7 @@ createHelpDescription = do
 
 
 -- | Produces the help description given by the input options.
-getHelpDescription :: (Monad m) => Options m a -> String
+getHelpDescription :: (Monad m) => Options m a () -> String
 getHelpDescription options = fst $ runOptionsInternal defaultFormatConfig [] $ do
     _ <- options
     createHelpDescription

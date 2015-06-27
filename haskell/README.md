@@ -14,7 +14,7 @@ import System.Environment
 import Text.LambdaOptions
 
 
-options :: Options IO ()
+options :: Options IO () ()
 options = do
     addOption (kw ["--help", "-h"] `text` "Display this help text.") $ \(HelpDescription desc) -> do
         putStrLn "Usage:"
@@ -32,6 +32,6 @@ main = do
         Left (ParseFailed msg _ _) -> do
             putStrLn msg
             putStrLn $ getHelpDescription options
-        Right action -> action
+        Right actions -> sequence_ actions
 ```
 
