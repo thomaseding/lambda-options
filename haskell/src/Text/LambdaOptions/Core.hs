@@ -13,6 +13,8 @@ module Text.LambdaOptions.Core (
 
     HelpDescription(..),
     getHelpDescription,
+
+    getKeywords
 ) where
 
 
@@ -368,8 +370,18 @@ createHelpDescription = do
 -- | Produces the help description given by the input options.
 getHelpDescription :: (Monad m) => Options m a () -> String
 getHelpDescription options = fst $ runOptionsInternal defaultFormatConfig [] $ do
-    _ <- options
+    options
     createHelpDescription
+
+
+--------------------------------------------------------------------------------
+
+
+-- | Produces the `Keyword`s inserted into the input options.
+getKeywords :: (Monad m) => Options m a () -> [Keyword]
+getKeywords options = fst $ runOptionsInternal defaultFormatConfig [] $ do
+    options
+    collectKeywords
 
 
 
