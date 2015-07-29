@@ -3,6 +3,7 @@
 
 module Text.LambdaOptions.Parseable (
     Parseable(..),
+    simpleParse,
 ) where
 
 
