@@ -1955,6 +1955,8 @@ namespace lambda_options
 		template <typename StringIter>
 		ParseContext<Char> CreateParseContext (StringIter begin, StringIter end) const;
 
+		ParseContext<Char> CreateParseContext(std::vector<String> && args) const;
+
 
 	private:
 		std::shared_ptr<OptionsImpl> impl;
@@ -2173,6 +2175,13 @@ namespace lambda_options
 	ParseContext<Char> Options<Char>::CreateParseContext (StringIter begin, StringIter end) const
 	{
 		return ParseContext<Char>(impl, std::vector<String>(begin, end));
+	}
+
+
+	template <typename Char>
+	ParseContext<Char> Options<Char>::CreateParseContext(std::vector<String> && args) const
+	{
+		return ParseContext<Char>(impl, std::move(args));
 	}
 
 
