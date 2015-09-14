@@ -2265,7 +2265,9 @@ namespace lambda_options
 		typedef lambda_options::ParseFailedException<char> ParseFailedException;
 		typedef lambda_options::RejectArgumentException<char> RejectArgumentException;
 
+		typedef lambda_options::Priority Priority;
 		typedef lambda_options::KeywordStyle KeywordStyle;
+		typedef lambda_options::MatchFlags MatchFlags;
 
 		typedef lambda_options::ArgsIter<char> ArgsIter;
 		typedef lambda_options::ParseState<char> ParseState;
