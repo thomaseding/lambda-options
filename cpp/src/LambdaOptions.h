@@ -1291,6 +1291,24 @@ namespace lambda_options
 		struct Arg4 { typedef E type; };
 	};
 
+	template <typename R, typename A, typename B, typename C, typename D, typename E, typename F>
+	struct FuncTraits<R(A, B, C, D, E, F)> : FuncTraits<R(A, B, C, D, E)>{
+		enum { arity = 6 };
+		struct Arg5 { typedef F type; };
+	};
+
+	template <typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G>
+	struct FuncTraits<R(A, B, C, D, E, F, G)> : FuncTraits<R(A, B, C, D, E, F)>{
+		enum { arity = 7 };
+		struct Arg6 { typedef G type; };
+	};
+
+	template <typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G, typename H>
+	struct FuncTraits<R(A, B, C, D, E, F, G, H)> : FuncTraits<R(A, B, C, D, E, F, G)>{
+		enum { arity = 8 };
+		struct Arg7 { typedef H type; };
+	};
+
 	template <typename X, typename R>
 	struct FuncTraits<R(X::*)() const> {
 		enum { arity = 0 };
@@ -1325,6 +1343,24 @@ namespace lambda_options
 	struct FuncTraits<R(X::*)(A, B, C, D, E) const> : FuncTraits<R(X::*)(A, B, C, D) const> {
 		enum { arity = 5 };
 		struct Arg4 { typedef E type; };
+	};
+
+	template <typename X, typename R, typename A, typename B, typename C, typename D, typename E, typename F>
+	struct FuncTraits<R(X::*)(A, B, C, D, E, F) const> : FuncTraits<R(X::*)(A, B, C, D, E) const>{
+		enum { arity = 6 };
+		struct Arg5 { typedef F type; };
+	};
+
+	template <typename X, typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G>
+	struct FuncTraits<R(X::*)(A, B, C, D, E, F, G) const> : FuncTraits<R(X::*)(A, B, C, D, E, F) const>{
+		enum { arity = 7 };
+		struct Arg6 { typedef G type; };
+	};
+
+	template <typename X, typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G, typename H>
+	struct FuncTraits<R(X::*)(A, B, C, D, E, F, G, H) const> : FuncTraits<R(X::*)(A, B, C, D, E, F, G) const>{
+		enum { arity = 8 };
+		struct Arg7 { typedef H type; };
 	};
 
 
@@ -1442,6 +1478,55 @@ namespace lambda_options
 					opts.AddImpl<A,B,C,D,E>(keyword, f);
 				}
 			};
+
+
+			template <typename Func>
+			struct Adder<Func, 6> {
+				static void Add(OptionsImpl & opts, Keyword const & keyword, Func const & f)
+				{
+					typedef typename FuncTraits<Func>::Arg0::type A;
+					typedef typename FuncTraits<Func>::Arg1::type B;
+					typedef typename FuncTraits<Func>::Arg2::type C;
+					typedef typename FuncTraits<Func>::Arg3::type D;
+					typedef typename FuncTraits<Func>::Arg4::type E;
+					typedef typename FuncTraits<Func>::Arg5::type F;
+					opts.AddImpl<A, B, C, D, E, F>(keyword, f);
+				}
+			};
+
+
+			template <typename Func>
+			struct Adder<Func, 7> {
+				static void Add(OptionsImpl & opts, Keyword const & keyword, Func const & f)
+				{
+					typedef typename FuncTraits<Func>::Arg0::type A;
+					typedef typename FuncTraits<Func>::Arg1::type B;
+					typedef typename FuncTraits<Func>::Arg2::type C;
+					typedef typename FuncTraits<Func>::Arg3::type D;
+					typedef typename FuncTraits<Func>::Arg4::type E;
+					typedef typename FuncTraits<Func>::Arg5::type F;
+					typedef typename FuncTraits<Func>::Arg6::type G;
+					opts.AddImpl<A, B, C, D, E, F, G>(keyword, f);
+				}
+			};
+
+
+			template <typename Func>
+			struct Adder<Func, 8> {
+				static void Add(OptionsImpl & opts, Keyword const & keyword, Func const & f)
+				{
+					typedef typename FuncTraits<Func>::Arg0::type A;
+					typedef typename FuncTraits<Func>::Arg1::type B;
+					typedef typename FuncTraits<Func>::Arg2::type C;
+					typedef typename FuncTraits<Func>::Arg3::type D;
+					typedef typename FuncTraits<Func>::Arg4::type E;
+					typedef typename FuncTraits<Func>::Arg5::type F;
+					typedef typename FuncTraits<Func>::Arg6::type G;
+					typedef typename FuncTraits<Func>::Arg7::type H;
+					opts.AddImpl<A, B, C, D, E, F, G, H>(keyword, f);
+				}
+			};
+
 
 			template <typename Func>
 			void AddOption (Keyword const & keyword, Func const & f)
@@ -1640,6 +1725,99 @@ namespace lambda_options
 				PushTypeId<D2>(typeKinds);
 				PushTypeId<E2>(typeKinds);
 				NewInfo(keyword, typeKinds, wrapper, 5);
+			}
+
+			template <typename A, typename B, typename C, typename D, typename E, typename F>
+			void AddImpl(Keyword const & keyword, std::function<void(A, B, C, D, E, F)> const & func)
+			{
+				typedef typename SimplifyType<A>::type A2;
+				typedef typename SimplifyType<B>::type B2;
+				typedef typename SimplifyType<C>::type C2;
+				typedef typename SimplifyType<D>::type D2;
+				typedef typename SimplifyType<E>::type E2;
+				typedef typename SimplifyType<F>::type F2;
+				auto wrapper = [=](OpaqueValues & vals) {
+					A2 && a = ReifyOpaque<A2>(vals[0]);
+					B2 && b = ReifyOpaque<B2>(vals[1]);
+					C2 && c = ReifyOpaque<C2>(vals[2]);
+					D2 && d = ReifyOpaque<D2>(vals[3]);
+					E2 && e = ReifyOpaque<E2>(vals[4]);
+					F2 && f = ReifyOpaque<F2>(vals[5]);
+					func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e), std::forward<F>(f));
+				};
+				std::vector<TypeId> typeKinds;
+				PushTypeId<A2>(typeKinds);
+				PushTypeId<B2>(typeKinds);
+				PushTypeId<C2>(typeKinds);
+				PushTypeId<D2>(typeKinds);
+				PushTypeId<E2>(typeKinds);
+				PushTypeId<F2>(typeKinds);
+				NewInfo(keyword, typeKinds, wrapper, 6);
+			}
+
+			template <typename A, typename B, typename C, typename D, typename E, typename F, typename G>
+			void AddImpl(Keyword const & keyword, std::function<void(A, B, C, D, E, F, G)> const & func)
+			{
+				typedef typename SimplifyType<A>::type A2;
+				typedef typename SimplifyType<B>::type B2;
+				typedef typename SimplifyType<C>::type C2;
+				typedef typename SimplifyType<D>::type D2;
+				typedef typename SimplifyType<E>::type E2;
+				typedef typename SimplifyType<F>::type F2;
+				typedef typename SimplifyType<G>::type G2;
+				auto wrapper = [=](OpaqueValues & vals) {
+					A2 && a = ReifyOpaque<A2>(vals[0]);
+					B2 && b = ReifyOpaque<B2>(vals[1]);
+					C2 && c = ReifyOpaque<C2>(vals[2]);
+					D2 && d = ReifyOpaque<D2>(vals[3]);
+					E2 && e = ReifyOpaque<E2>(vals[4]);
+					F2 && f = ReifyOpaque<F2>(vals[5]);
+					G2 && g = ReifyOpaque<G2>(vals[6]);
+					func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e), std::forward<F>(f), std::forward<G>(g));
+				};
+				std::vector<TypeId> typeKinds;
+				PushTypeId<A2>(typeKinds);
+				PushTypeId<B2>(typeKinds);
+				PushTypeId<C2>(typeKinds);
+				PushTypeId<D2>(typeKinds);
+				PushTypeId<E2>(typeKinds);
+				PushTypeId<F2>(typeKinds);
+				PushTypeId<G2>(typeKinds);
+				NewInfo(keyword, typeKinds, wrapper, 7);
+			}
+
+			template <typename A, typename B, typename C, typename D, typename E, typename F, typename G, typename H>
+			void AddImpl(Keyword const & keyword, std::function<void(A, B, C, D, E, F, G, H)> const & func)
+			{
+				typedef typename SimplifyType<A>::type A2;
+				typedef typename SimplifyType<B>::type B2;
+				typedef typename SimplifyType<C>::type C2;
+				typedef typename SimplifyType<D>::type D2;
+				typedef typename SimplifyType<E>::type E2;
+				typedef typename SimplifyType<F>::type F2;
+				typedef typename SimplifyType<G>::type G2;
+				typedef typename SimplifyType<H>::type H2;
+				auto wrapper = [=](OpaqueValues & vals) {
+					A2 && a = ReifyOpaque<A2>(vals[0]);
+					B2 && b = ReifyOpaque<B2>(vals[1]);
+					C2 && c = ReifyOpaque<C2>(vals[2]);
+					D2 && d = ReifyOpaque<D2>(vals[3]);
+					E2 && e = ReifyOpaque<E2>(vals[4]);
+					F2 && f = ReifyOpaque<F2>(vals[5]);
+					G2 && g = ReifyOpaque<G2>(vals[6]);
+					H2 && h = ReifyOpaque<H2>(vals[7]);
+					func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e), std::forward<F>(f), std::forward<G>(g), std::forward<H>(h));
+				};
+				std::vector<TypeId> typeKinds;
+				PushTypeId<A2>(typeKinds);
+				PushTypeId<B2>(typeKinds);
+				PushTypeId<C2>(typeKinds);
+				PushTypeId<D2>(typeKinds);
+				PushTypeId<E2>(typeKinds);
+				PushTypeId<F2>(typeKinds);
+				PushTypeId<G2>(typeKinds);
+				PushTypeId<H2>(typeKinds);
+				NewInfo(keyword, typeKinds, wrapper, 8);
 			}
 
 
