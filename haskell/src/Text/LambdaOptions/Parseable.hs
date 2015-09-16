@@ -117,6 +117,7 @@ instance (Parseable a) => Parseable (Maybe a) where
         (Just x, n) -> (Just $ Just x, n)
 
 
+-- | Always succeeds and never consumes any input.
 instance Parseable () where
     parse _ = (Just (), 0)
 
