@@ -25,6 +25,7 @@ newtype List a = List { unList :: [a] }
 
 
 -- | Greedily parses arguments item-wise. Never fails.
+-- Ex: @parse (words "5 67 NaN") == (Just [5,67], 2)@
 instance (Parseable a) => Parseable (List a) where
     parse args = case parse args of
         (Just mx, n) -> case mx of
