@@ -2,11 +2,11 @@ import System.Environment
 import Text.LambdaOptions
 
 
-options :: Options IO ()
+options :: Options IO () ()
 options = do
-    addOption (kw ["--help", "-h"] `text` "Display this help text.") $ \(HelpDescription desc) -> do
+    addOption (kw ["--help", "-h"] `text` "Display this help text.") $ do
         putStrLn "Usage:"
-        putStrLn desc
+        putStrLn $ getHelpDescription options
     addOption (kw "--user" `argText` "NAME" `text` "Prints name.") $ \name -> do
         putStrLn $ "Name:" ++ name
     addOption (kw "--user" `argText` "NAME AGE" `text` "Prints name and age.") $ \name age -> do
@@ -20,6 +20,6 @@ main = do
         Left (ParseFailed msg _ _) -> do
             putStrLn msg
             putStrLn $ getHelpDescription options
-        Right action -> action
+        Right actions -> sequence_ actions
 
 

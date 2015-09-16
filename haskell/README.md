@@ -16,9 +16,9 @@ import Text.LambdaOptions
 
 options :: Options IO () ()
 options = do
-    addOption (kw ["--help", "-h"] `text` "Display this help text.") $ \(HelpDescription desc) -> do
+    addOption (kw ["--help", "-h"] `text` "Display this help text.") $ do
         putStrLn "Usage:"
-        putStrLn desc
+        getHelpDescription options >>= putStrLn
     addOption (kw "--user" `argText` "NAME" `text` "Prints name.") $ \name -> do
         putStrLn $ "Name:" ++ name
     addOption (kw "--user" `argText` "NAME AGE" `text` "Prints name and age.") $ \name age -> do
@@ -35,3 +35,19 @@ main = do
         Right actions -> sequence_ actions
 ```
 
+```
+$ example.exe --user HaskellCurry 81 --user GraceHopper
+Name:HaskellCurry Age:81
+Name:GraceHopper
+$ example.exe -h
+Usage:
+ -h, --help                  Display this help text.
+     --user NAME             Prints name.
+     --user NAME AGE         Prints name and age.
+$ example.exe --user Pythagoras LXXV
+Unknown option at index 2: `LXXV'
+Usage:
+ -h, --help                  Display this help text.
+     --user NAME             Prints name.
+     --user NAME AGE         Prints name and age.
+```

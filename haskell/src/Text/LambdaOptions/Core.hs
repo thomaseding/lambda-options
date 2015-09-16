@@ -11,7 +11,6 @@ module Text.LambdaOptions.Core (
     OptionCallback,
     addOption,
 
-    HelpDescription(..),
     getHelpDescription,
 
     getKeywords
@@ -133,9 +132,9 @@ mkParseFailed' beginIndex endIndex args
 -- > 
 -- > options :: Options IO () ()
 -- > options = do
--- >     addOption (kw ["--help", "-h"] `text` "Display this help text.") $ \(HelpDescription desc) -> do
+-- >     addOption (kw ["--help", "-h"] `text` "Display this help text.") $ do
 -- >         putStrLn "Usage:"
--- >         putStrLn desc
+-- >         putStrLn $ getHelpDescription options
 -- >     addOption (kw "--user" `argText` "NAME" `text` "Prints name.") $ \name -> do
 -- >         putStrLn $ "Name:" ++ name
 -- >     addOption (kw "--user" `argText` "NAME AGE" `text` "Prints name and age.") $ \name age -> do
@@ -151,16 +150,16 @@ mkParseFailed' beginIndex endIndex args
 -- >             putStrLn $ getHelpDescription options
 -- >         Right actions -> sequence_ actions
 --
--- >>> example.exe --user John 20 --user Jane
--- Name:John Age:20
--- Name:Jane
+-- >>> example.exe --user HaskellCurry 81 --user GraceHopper
+-- Name:HaskellCurry Age:81
+-- Name:GraceHopper
 -- >>> example.exe -h
 -- Usage:
 -- -h, --help                  Display this help text.
 --     --user NAME             Prints name.
 --     --user NAME AGE         Prints name and age.
--- >>> example.exe --user BadLuckBrian thirteen
--- Unknown option at index 2: `thirteen'
+-- >>> example.exe --user Pythagoras LXXV
+-- Unknown option at index 2: `LXXV'
 -- Usage:
 -- -h, --help                  Display this help text.
 --     --user NAME             Prints name.
@@ -272,8 +271,7 @@ tryParseByOption option = do
                     put restorePoint
                     return False
                 Just opaques -> do
-                    opaques' <- mapM handleSpecialOpaque opaques
-                    let action = optionOpaqueCallback option opaques'
+                    let action = optionOpaqueCallback option opaques
                     modify $ \st -> st {
                         stateCurrMark = beginMark + n,
                         stateCollectedActions = action : stateCollectedActions st,
@@ -284,14 +282,6 @@ tryParseByOption option = do
                 newHighMark = max oldHighMark (beginMark + n)
                 in st { stateHighMark = newHighMark }
             return result
-
-
-handleSpecialOpaque :: (Monad m) => Opaque -> Options m a Opaque
-handleSpecialOpaque opaque@(Opaque o) = case cast o of
-    Just (HelpDescription _) -> do
-        desc <- createHelpDescription
-        return $ Opaque $ HelpDescription desc
-    _ -> return opaque
 
 
 matchKeyword :: (Monad m) => Keyword -> Options m a Bool
@@ -337,24 +327,6 @@ collectKeywords = gets $ sortBy cmp . map optionKeyword . concat . stateOptionsB
         namesCmp [] _ = LT
         namesCmp _ [] = GT
         namesCmp ns1 ns2 = (compare `on` head) ns1 ns2
-
-
---------------------------------------------------------------------------------
-
-
--- | When used as a callback argument, this contains the help description given by the added options.
---
--- Example:
---
--- > addOption (kw ["--help", "-h"]) $ \(HelpDescription desc) -> do
--- >     putStrLn desc
-newtype HelpDescription = HelpDescription String
-    deriving (Typeable)
-
-
--- | Consumes nothing. Returns the options' help description. Never fails.
-instance Parseable HelpDescription where
-    parse _ = (Just $ HelpDescription "", 0)
 
 
 --------------------------------------------------------------------------------
