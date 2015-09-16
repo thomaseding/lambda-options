@@ -19,9 +19,8 @@ import Text.Read.Bounded
 
 -- | Class describing parseable values. Much like the 'Text.Read.Read' class.
 class Parseable a where
-    -- | Given a sequence of strings, returns 'Nothing' and the number of strings consumed if the parse failed.
-    --
-    -- Otherwise, return 'Just' the parsed value and the number of strings consumed.
+    -- | Given a sequence of strings, `parse` returns 'Nothing' and the number of strings consumed if the parse failed.
+    -- Otherwise, `parse` returns 'Just' the parsed value and the number of strings consumed.
     --
     -- Element-wise, an entire string must be parsed in the sequence to be considered a successful parse.
     parse :: [String] -> (Maybe a, Int)
@@ -45,6 +44,7 @@ simpleParse parser args = case args of
 -- Useful for implementing new parsers.
 --
 -- Example:
+--
 -- @
 -- data Point = Point Float Float Float
 --
@@ -92,6 +92,7 @@ instance Parseable Integer where
     parse = parseBounded
 
 
+-- | Parses a single character string.
 instance Parseable Char where
     parse strs = case strs of
         [c] : _ -> (Just c, 1)
@@ -110,7 +111,6 @@ instance Parseable Float where
 
 
 -- | Greedily parses a single argument or no argument. Never fails.
--- Ex: @parse (words "5 6 7") == (Just [5,6,7], 3)@
 instance (Parseable a) => Parseable (Maybe a) where
     parse args = case parse args of
         (Nothing, n) -> (Just Nothing, n)
