@@ -545,6 +545,8 @@ namespace lambda_options
 			if (end != other.end) {
 				throw IteratorException("Iterators do not correspond to the same data.");
 			}
+#else
+			(void) other;
 #endif
 		}
 
@@ -626,12 +628,14 @@ namespace lambda_options
 		ParseState (ParseState const & other)
 			: iter(other.iter)
 			, end(other.end)
+			, userData(other.userData)
 		{}
 
 	private:
-		ParseState (ArgsIter<Char> & iter, ArgsIter<Char> end)
+		ParseState (ArgsIter<Char> & iter, ArgsIter<Char> end, void * userData)
 			: iter(iter)
 			, end(end)
+			, userData(userData)
 		{}
 
 	private:
@@ -641,6 +645,7 @@ namespace lambda_options
 	public:
 		ArgsIter<Char> & iter;
 		ArgsIter<Char> const end;
+		void * userData;
 	};
 
 
@@ -1157,7 +1162,7 @@ namespace lambda_options
 		}
 	
 	private:
-		ParseContext (std::shared_ptr<OptionsImpl const> opts, std::vector<String> && args);
+		ParseContext (std::shared_ptr<OptionsImpl const> opts, std::vector<String> && args, void * userData);
 	
 		ParseContext (ParseContext const & other);   // disable
 		void operator= (ParseContext const & other); // disable
@@ -1936,14 +1941,15 @@ namespace lambda_options
 			void operator= (ParseContextImpl const &);   // disable
 
 		public:
-			ParseContextImpl (std::shared_ptr<OptionsImpl const> opts, std::vector<String> && args)
+			ParseContextImpl (std::shared_ptr<OptionsImpl const> opts, std::vector<String> && args, void * userData)
 				: opts(opts)
 				, args(std::move(args))
 				, begin(this->args.begin(), this->args.end(), this)
 				, end(this->args.end(), this->args.end(), this)
 				, iter(begin)
-				, parseState(iter, end)
+				, parseState(iter, end, userData)
 				, iterHighMark(0)
+				, userData(userData)
 			{}
 
 			std::vector<String> const & Args () const
@@ -2046,7 +2052,7 @@ namespace lambda_options
 				}
 
 				for (auto & artificialArgs : artificialArgss) {
-					ParseContextImpl<Char> parseContext(opts, std::move(artificialArgs));
+					ParseContextImpl<Char> parseContext(opts, std::move(artificialArgs), userData);
 #ifndef LAMBDA_OPTIONS_NO_THROW
 					try {
 #endif
@@ -2144,6 +2150,7 @@ namespace lambda_options
 			ParseState<Char> parseState;
 			size_t iterHighMark;
 			std::pair<String, size_t> rejectMessageWithHighMark;
+			void * userData;
 		};
 	}
 
@@ -2200,7 +2207,11 @@ namespace lambda_options
 		template <typename StringIter>
 		ParseContext<Char> CreateParseContext (StringIter begin, StringIter end) const;
 
+		template <typename StringIter>
+		ParseContext<Char> CreateParseContext(StringIter begin, StringIter end, void * userData) const;
+
 		ParseContext<Char> CreateParseContext(std::vector<String> && args) const;
+		ParseContext<Char> CreateParseContext(std::vector<String> && args, void * userData) const;
 
 
 	private:
@@ -2419,14 +2430,29 @@ namespace lambda_options
 	template <typename StringIter>
 	ParseContext<Char> Options<Char>::CreateParseContext (StringIter begin, StringIter end) const
 	{
-		return ParseContext<Char>(impl, std::vector<String>(begin, end));
+		return CreateParseContext(begin, end, nullptr);
+	}
+
+
+	template <typename Char>
+	template <typename StringIter>
+	ParseContext<Char> Options<Char>::CreateParseContext(StringIter begin, StringIter end, void * userData) const
+	{
+		return CreateParseContext(std::vector<String>(begin, end), userData);
 	}
 
 
 	template <typename Char>
 	ParseContext<Char> Options<Char>::CreateParseContext(std::vector<String> && args) const
 	{
-		return ParseContext<Char>(impl, std::move(args));
+		return CreateParseContext(std::move(args), nullptr);
+	}
+
+
+	template <typename Char>
+	ParseContext<Char> Options<Char>::CreateParseContext(std::vector<String> && args, void * userData) const
+	{
+		return ParseContext<Char>(impl, std::move(args), userData);
 	}
 
 
@@ -2437,8 +2463,8 @@ namespace lambda_options
 
 
 	template <typename Char>
-	ParseContext<Char>::ParseContext (std::shared_ptr<OptionsImpl const> opts, std::vector<String> && args)
-		: impl(new ParseContextImpl(opts, std::move(args)))
+	ParseContext<Char>::ParseContext (std::shared_ptr<OptionsImpl const> opts, std::vector<String> && args, void * userData)
+		: impl(new ParseContextImpl(opts, std::move(args), userData))
 	{}
 
 
