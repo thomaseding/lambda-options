@@ -1320,6 +1320,12 @@ namespace lambda_options
 		struct Arg8 { typedef I type; };
 	};
 
+	template <typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G, typename H, typename I, typename J>
+	struct FuncTraits<R(A, B, C, D, E, F, G, H, I, J)> : FuncTraits<R(A, B, C, D, E, F, G, H, I)>{
+		enum { arity = 10 };
+		struct Arg9 { typedef J type; };
+	};
+
 	template <typename X, typename R>
 	struct FuncTraits<R(X::*)() const> {
 		enum { arity = 0 };
@@ -1378,6 +1384,12 @@ namespace lambda_options
 	struct FuncTraits<R(X::*)(A, B, C, D, E, F, G, H, I) const> : FuncTraits<R(X::*)(A, B, C, D, E, F, G, H) const>{
 		enum { arity = 9 };
 		struct Arg8 { typedef I type; };
+	};
+
+	template <typename X, typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G, typename H, typename I, typename J>
+	struct FuncTraits<R(X::*)(A, B, C, D, E, F, G, H, I, J) const> : FuncTraits<R(X::*)(A, B, C, D, E, F, G, H, I) const>{
+		enum { arity = 10 };
+		struct Arg9 { typedef J type; };
 	};
 
 
@@ -1559,6 +1571,25 @@ namespace lambda_options
 					typedef typename FuncTraits<Func>::Arg7::type H;
 					typedef typename FuncTraits<Func>::Arg8::type I;
 					opts.AddImpl<A, B, C, D, E, F, G, H, I>(keyword, f);
+				}
+			};
+
+
+			template <typename Func>
+			struct Adder<Func, 10> {
+				static void Add(OptionsImpl & opts, Keyword const & keyword, Func const & f)
+				{
+					typedef typename FuncTraits<Func>::Arg0::type A;
+					typedef typename FuncTraits<Func>::Arg1::type B;
+					typedef typename FuncTraits<Func>::Arg2::type C;
+					typedef typename FuncTraits<Func>::Arg3::type D;
+					typedef typename FuncTraits<Func>::Arg4::type E;
+					typedef typename FuncTraits<Func>::Arg5::type F;
+					typedef typename FuncTraits<Func>::Arg6::type G;
+					typedef typename FuncTraits<Func>::Arg7::type H;
+					typedef typename FuncTraits<Func>::Arg8::type I;
+					typedef typename FuncTraits<Func>::Arg9::type J;
+					opts.AddImpl<A, B, C, D, E, F, G, H, I, J>(keyword, f);
 				}
 			};
 
@@ -1890,6 +1921,46 @@ namespace lambda_options
 				PushTypeId<H2>(typeKinds);
 				PushTypeId<I2>(typeKinds);
 				NewInfo(keyword, typeKinds, wrapper, 9);
+			}
+
+			template <typename A, typename B, typename C, typename D, typename E, typename F, typename G, typename H, typename I, typename J>
+			void AddImpl(Keyword const & keyword, std::function<void(A, B, C, D, E, F, G, H, I, J)> const & func)
+			{
+				typedef typename SimplifyType<A>::type A2;
+				typedef typename SimplifyType<B>::type B2;
+				typedef typename SimplifyType<C>::type C2;
+				typedef typename SimplifyType<D>::type D2;
+				typedef typename SimplifyType<E>::type E2;
+				typedef typename SimplifyType<F>::type F2;
+				typedef typename SimplifyType<G>::type G2;
+				typedef typename SimplifyType<H>::type H2;
+				typedef typename SimplifyType<I>::type I2;
+				typedef typename SimplifyType<J>::type J2;
+				auto wrapper = [=](OpaqueValues & vals) {
+					A2 && a = ReifyOpaque<A2>(vals[0]);
+					B2 && b = ReifyOpaque<B2>(vals[1]);
+					C2 && c = ReifyOpaque<C2>(vals[2]);
+					D2 && d = ReifyOpaque<D2>(vals[3]);
+					E2 && e = ReifyOpaque<E2>(vals[4]);
+					F2 && f = ReifyOpaque<F2>(vals[5]);
+					G2 && g = ReifyOpaque<G2>(vals[6]);
+					H2 && h = ReifyOpaque<H2>(vals[7]);
+					I2 && i = ReifyOpaque<I2>(vals[8]);
+					J2 && j = ReifyOpaque<J2>(vals[9]);
+					func(std::forward<A>(a), std::forward<B>(b), std::forward<C>(c), std::forward<D>(d), std::forward<E>(e), std::forward<F>(f), std::forward<G>(g), std::forward<H>(h), std::forward<I>(i), std::forward<J>(j));
+				};
+				std::vector<TypeId> typeKinds;
+				PushTypeId<A2>(typeKinds);
+				PushTypeId<B2>(typeKinds);
+				PushTypeId<C2>(typeKinds);
+				PushTypeId<D2>(typeKinds);
+				PushTypeId<E2>(typeKinds);
+				PushTypeId<F2>(typeKinds);
+				PushTypeId<G2>(typeKinds);
+				PushTypeId<H2>(typeKinds);
+				PushTypeId<I2>(typeKinds);
+				PushTypeId<J2>(typeKinds);
+				NewInfo(keyword, typeKinds, wrapper, 10);
 			}
 
 
