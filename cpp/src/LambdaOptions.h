@@ -2066,7 +2066,7 @@ namespace lambda_options
 					}
 					parsedArgs.emplace_back(std::move(parsedArg));
 				}
-				return std::move(parsedArgs);
+				return parsedArgs;
 			}
 
 			bool MatchKeyword (Keyword<Char> const & keyword)
