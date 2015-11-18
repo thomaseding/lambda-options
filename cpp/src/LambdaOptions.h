@@ -62,7 +62,12 @@
 //////////////////////////////////////////////////////////////////////////
 
 
-namespace lambda_options
+#ifndef LAMBDA_OPTIONS_NAMESPACE
+#	define LAMBDA_OPTIONS_NAMESPACE lambda_options
+#endif
+
+
+namespace LAMBDA_OPTIONS_NAMESPACE
 {
 	class Exception : public std::exception {
 	public:
@@ -699,6 +704,7 @@ namespace lambda_options
 	};
 
 
+#ifndef LAMBDA_OPTIONS_DISABLE_BASIC_RAW_PARSERS
 	template <typename Char>
 	struct RawParser<Char, bool> {
 		bool operator() (ParseState<Char> & parseState, void * rawMemory)
@@ -873,6 +879,7 @@ namespace lambda_options
 			return true;
 		}
 	};
+#endif
 
 
 	template <typename Char>
@@ -1413,7 +1420,7 @@ namespace lambda_options
 		class OptionsImpl {
 		public:
 			typedef std::basic_string<Char> String;
-			typedef lambda_options::Keyword<Char> Keyword;
+			typedef LAMBDA_OPTIONS_NAMESPACE::Keyword<Char> Keyword;
 
 
 			OptionsImpl (OptionsConfig const & config)
@@ -2003,7 +2010,7 @@ namespace lambda_options
 		class ParseContextImpl {
 			friend class ArgsIter<Char>;
 
-			typedef lambda_options::_private::OptionsImpl<Char> OptionsImpl;
+			typedef LAMBDA_OPTIONS_NAMESPACE::_private::OptionsImpl<Char> OptionsImpl;
 			typedef std::basic_string<Char> String;
 			typedef typename String::const_iterator StringIter;
 
@@ -2229,7 +2236,7 @@ namespace lambda_options
 	template <typename Char = char>
 	class Options {
 	private:
-		typedef lambda_options::_private::OptionsImpl<Char> OptionsImpl;
+		typedef LAMBDA_OPTIONS_NAMESPACE::_private::OptionsImpl<Char> OptionsImpl;
 		friend class ArgsIter<Char>;
 		typedef std::basic_string<Char> String;
 
@@ -2604,28 +2611,28 @@ namespace lambda_options
 
 	namespace with_char
 	{
-		typedef lambda_options::Options<char> Options;
-		typedef lambda_options::OptionsConfig OptionsConfig;
-		typedef lambda_options::ParseContext<char> ParseContext;
-		typedef lambda_options::Keyword<char> Keyword;
-		typedef lambda_options::FormattingConfig<char> FormattingConfig;
+		typedef LAMBDA_OPTIONS_NAMESPACE::Options<char> Options;
+		typedef LAMBDA_OPTIONS_NAMESPACE::OptionsConfig OptionsConfig;
+		typedef LAMBDA_OPTIONS_NAMESPACE::ParseContext<char> ParseContext;
+		typedef LAMBDA_OPTIONS_NAMESPACE::Keyword<char> Keyword;
+		typedef LAMBDA_OPTIONS_NAMESPACE::FormattingConfig<char> FormattingConfig;
 
-		typedef lambda_options::Exception Exception;
-		typedef lambda_options::IteratorException IteratorException;
-		typedef lambda_options::OptionException OptionsException;
-		typedef lambda_options::ParseFailedException<char> ParseFailedException;
-		typedef lambda_options::RejectArgumentException<char> RejectArgumentException;
+		typedef LAMBDA_OPTIONS_NAMESPACE::Exception Exception;
+		typedef LAMBDA_OPTIONS_NAMESPACE::IteratorException IteratorException;
+		typedef LAMBDA_OPTIONS_NAMESPACE::OptionException OptionsException;
+		typedef LAMBDA_OPTIONS_NAMESPACE::ParseFailedException<char> ParseFailedException;
+		typedef LAMBDA_OPTIONS_NAMESPACE::RejectArgumentException<char> RejectArgumentException;
 
-		typedef lambda_options::Priority Priority;
-		typedef lambda_options::KeywordStyle KeywordStyle;
-		typedef lambda_options::MatchFlags MatchFlags;
+		typedef LAMBDA_OPTIONS_NAMESPACE::Priority Priority;
+		typedef LAMBDA_OPTIONS_NAMESPACE::KeywordStyle KeywordStyle;
+		typedef LAMBDA_OPTIONS_NAMESPACE::MatchFlags MatchFlags;
 
-		typedef lambda_options::ArgsIter<char> ArgsIter;
-		typedef lambda_options::ParseState<char> ParseState;
+		typedef LAMBDA_OPTIONS_NAMESPACE::ArgsIter<char> ArgsIter;
+		typedef LAMBDA_OPTIONS_NAMESPACE::ParseState<char> ParseState;
 
 		inline void ConsumeRest (ParseState & parseState)
 		{
-			lambda_options::ConsumeRest<char>(parseState);
+			LAMBDA_OPTIONS_NAMESPACE::ConsumeRest<char>(parseState);
 		}
 	}
 }
