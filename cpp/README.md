@@ -50,4 +50,19 @@ int main (int argc, char ** argv)
 }
 ```
 
-
+```
+$ example.exe --user HaskellCurry 81 --user GraceHopper
+Name:HaskellCurry Age:81
+Name:GraceHopper
+$ example.exe -h
+Usage:
+ -h, --help                  Display this help text.
+     --user NAME             Prints name.
+     --user NAME AGE         Prints name and age.
+$ example.exe --user Pythagoras LXXV
+Unknown option at index 2: `LXXV'
+Usage:
+ -h, --help                  Display this help text.
+     --user NAME             Prints name.
+     --user NAME AGE         Prints name and age.
+```
