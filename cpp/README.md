@@ -25,25 +25,48 @@ int main (int argc, char ** argv)
 {
 	using namespace lambda_options::with_char;
 
+	bool doHelp = false;
+
 	Options opts;
 
-	opts.AddOption(Keyword("help", "h"), [] () {
-		std::cout << "--user NAME [AGE]" << std::endl;
+	opts.AddOption(Keyword("help", "h")	
+		.Text("Display this help text."),
+	[&] () {
+		doHelp = true;
 	});
-	opts.AddOption("user", [] (std::string name) {
+	opts.AddOption(Keyword("user")
+		.ArgText("USER")
+		.Text("Prints name."),
+	[] (std::string name) {
 		std::cout << "Name:" << name << std::endl;
 	});
-	opts.AddOption("user", [] (std::string name, unsigned int age) {
+	opts.AddOption(Keyword("user")
+		.ArgText("USER AGE")
+		.Text("Prints name and age."),
+	[] (std::string name, unsigned int age) {
 		std::cout << "Name:" << name << " Age:" << age << std::endl;
 	});
 
-	auto parseContext = opts.CreateParseContext(argv + 1, argv + argc);
+	auto help = [&] {
+		std::cout << "Usage: example.exe [OPTIONS...]" << std::endl;
+		std::cout << options.HelpDescription() << std::endl;
+	};
+	auto badArgs = [&](std::string const & message) {
+		std::cout << message.c_str() << std::endl;
+		help();
+		return 1;
+	};
 
+	auto parseContext = options.CreateParseContext(argv + 1, argv + argc);
 	try {
 		parseContext.Run();
 	}
-	catch (ParseFailedException const &) {
-		return 1;
+	catch (ParseFailedException const & e) {
+		return badArgs(e.message);
+	}
+
+	if (helpRequested) {
+		help();
 	}
 
 	return 0;
