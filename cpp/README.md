@@ -65,7 +65,7 @@ int main (int argc, char ** argv)
 		return badArgs(e.message);
 	}
 
-	if (helpRequested) {
+	if (doHelp) {
 		help();
 	}
 
