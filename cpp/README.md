@@ -52,7 +52,7 @@ int main (int argc, char ** argv)
 		std::cout << options.HelpDescription() << std::endl;
 	};
 	auto badArgs = [&](std::string const & message) {
-		std::cout << message.c_str() << std::endl;
+		std::cout << message << std::endl;
 		help();
 		return 1;
 	};
