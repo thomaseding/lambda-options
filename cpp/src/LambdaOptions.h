@@ -1304,31 +1304,31 @@ namespace LAMBDA_OPTIONS_NAMESPACE
 	};
 
 	template <typename R, typename A, typename B, typename C, typename D, typename E, typename F>
-	struct FuncTraits<R(A, B, C, D, E, F)> : FuncTraits<R(A, B, C, D, E)>{
+	struct FuncTraits<R(A, B, C, D, E, F)> : FuncTraits<R(A, B, C, D, E)> {
 		enum { arity = 6 };
 		struct Arg5 { typedef F type; };
 	};
 
 	template <typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G>
-	struct FuncTraits<R(A, B, C, D, E, F, G)> : FuncTraits<R(A, B, C, D, E, F)>{
+	struct FuncTraits<R(A, B, C, D, E, F, G)> : FuncTraits<R(A, B, C, D, E, F)> {
 		enum { arity = 7 };
 		struct Arg6 { typedef G type; };
 	};
 
 	template <typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G, typename H>
-	struct FuncTraits<R(A, B, C, D, E, F, G, H)> : FuncTraits<R(A, B, C, D, E, F, G)>{
+	struct FuncTraits<R(A, B, C, D, E, F, G, H)> : FuncTraits<R(A, B, C, D, E, F, G)> {
 		enum { arity = 8 };
 		struct Arg7 { typedef H type; };
 	};
 
 	template <typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G, typename H, typename I>
-	struct FuncTraits<R(A, B, C, D, E, F, G, H, I)> : FuncTraits<R(A, B, C, D, E, F, G, H)>{
+	struct FuncTraits<R(A, B, C, D, E, F, G, H, I)> : FuncTraits<R(A, B, C, D, E, F, G, H)> {
 		enum { arity = 9 };
 		struct Arg8 { typedef I type; };
 	};
 
 	template <typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G, typename H, typename I, typename J>
-	struct FuncTraits<R(A, B, C, D, E, F, G, H, I, J)> : FuncTraits<R(A, B, C, D, E, F, G, H, I)>{
+	struct FuncTraits<R(A, B, C, D, E, F, G, H, I, J)> : FuncTraits<R(A, B, C, D, E, F, G, H, I)> {
 		enum { arity = 10 };
 		struct Arg9 { typedef J type; };
 	};
@@ -1370,31 +1370,31 @@ namespace LAMBDA_OPTIONS_NAMESPACE
 	};
 
 	template <typename X, typename R, typename A, typename B, typename C, typename D, typename E, typename F>
-	struct FuncTraits<R(X::*)(A, B, C, D, E, F) const> : FuncTraits<R(X::*)(A, B, C, D, E) const>{
+	struct FuncTraits<R(X::*)(A, B, C, D, E, F) const> : FuncTraits<R(X::*)(A, B, C, D, E) const> {
 		enum { arity = 6 };
 		struct Arg5 { typedef F type; };
 	};
 
 	template <typename X, typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G>
-	struct FuncTraits<R(X::*)(A, B, C, D, E, F, G) const> : FuncTraits<R(X::*)(A, B, C, D, E, F) const>{
+	struct FuncTraits<R(X::*)(A, B, C, D, E, F, G) const> : FuncTraits<R(X::*)(A, B, C, D, E, F) const> {
 		enum { arity = 7 };
 		struct Arg6 { typedef G type; };
 	};
 
 	template <typename X, typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G, typename H>
-	struct FuncTraits<R(X::*)(A, B, C, D, E, F, G, H) const> : FuncTraits<R(X::*)(A, B, C, D, E, F, G) const>{
+	struct FuncTraits<R(X::*)(A, B, C, D, E, F, G, H) const> : FuncTraits<R(X::*)(A, B, C, D, E, F, G) const> {
 		enum { arity = 8 };
 		struct Arg7 { typedef H type; };
 	};
 
 	template <typename X, typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G, typename H, typename I>
-	struct FuncTraits<R(X::*)(A, B, C, D, E, F, G, H, I) const> : FuncTraits<R(X::*)(A, B, C, D, E, F, G, H) const>{
+	struct FuncTraits<R(X::*)(A, B, C, D, E, F, G, H, I) const> : FuncTraits<R(X::*)(A, B, C, D, E, F, G, H) const> {
 		enum { arity = 9 };
 		struct Arg8 { typedef I type; };
 	};
 
 	template <typename X, typename R, typename A, typename B, typename C, typename D, typename E, typename F, typename G, typename H, typename I, typename J>
-	struct FuncTraits<R(X::*)(A, B, C, D, E, F, G, H, I, J) const> : FuncTraits<R(X::*)(A, B, C, D, E, F, G, H, I) const>{
+	struct FuncTraits<R(X::*)(A, B, C, D, E, F, G, H, I, J) const> : FuncTraits<R(X::*)(A, B, C, D, E, F, G, H, I) const> {
 		enum { arity = 10 };
 		struct Arg9 { typedef J type; };
 	};
