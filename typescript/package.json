@@ -1,6 +1,6 @@
 {
   "name": "lambda-options",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Typesafe declarative argument parser using pattern matching.",
   "main": "dist/index.js",
   "types": "dist/index.d.js",
@@ -19,6 +19,22 @@
     "url": "https://github.com/thomaseding/lambda-options/issues"
   },
   "homepage": "https://github.com/thomaseding/lambda-options#readme",
+  "keywords": [
+      "cli",
+      "commandline",
+      "command-line",
+      "command line",
+      "command",
+      "args",
+      "arguments",
+      "parser",
+      "parsing",
+      "option",
+      "options",
+      "lambdaoptions",
+      "lambda-options",
+      "typescript"
+  ],
   "dependencies": {
     "@types/query-string": "^5.1.0",
     "nat-ts": "^2.0.1",
