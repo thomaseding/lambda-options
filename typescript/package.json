@@ -1,14 +1,28 @@
 {
   "name": "lambda-options",
-  "version": "0.0.0",
-  "description": "Declarative command line parser.",
-  "main": "dist/lambda-options.js",
-  "types": "dist/lambda-options.d.js",
+  "version": "0.0.2",
+  "description": "Typesafe declarative argument parser using pattern matching.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.js",
   "scripts": {
     "prepare": "npm run build",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thomaseding/lambda-options"
+  },
   "author": "Thomas Eding",
-  "license": "BSD-2-Clause"
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/thomaseding/lambda-options/issues"
+  },
+  "homepage": "https://github.com/thomaseding/lambda-options#readme",
+  "dependencies": {
+    "@types/query-string": "^5.1.0",
+    "nat-ts": "^2.0.1",
+    "query-string": "^5.1.0",
+    "stable": "^0.1.6"
+  }
 }

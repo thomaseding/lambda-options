@@ -9,3 +9,4 @@ A modern command-line parser for C++ and for Haskell.
 See subdirectory READMEs for more information in the language of interest:
 * [C++](cpp/README.md)
 * [Haskell](haskell/README.md)
+* [Typescript](typescript/README.md)
