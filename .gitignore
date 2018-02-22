@@ -15,3 +15,5 @@
 *.unsuccessfulbuild
 
 haskell/dist/
+typescript/dist/
+typescript/node_modules/
