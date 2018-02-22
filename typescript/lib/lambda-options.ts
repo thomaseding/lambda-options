@@ -439,7 +439,7 @@ export function simpleParse<T>(
 }
 
 
-function parseString(
+export function parseString(
     arg: string)
     : string | NoParse
 {
@@ -447,7 +447,7 @@ function parseString(
 }
 
 
-function parseBoolean(
+export function parseBoolean(
     arg: string)
     : boolean | NoParse
 {
@@ -461,7 +461,7 @@ function parseBoolean(
 }
 
 
-function parseNumber(
+export function parseNumber(
     arg: string)
     : number | NoParse
 {
@@ -476,7 +476,7 @@ function parseNumber(
 const isIntegerRegex = /^-?\d+$/;
 
 
-function parseInteger(
+export function parseInteger(
     arg: string)
     : number | NoParse
 {
@@ -487,7 +487,7 @@ function parseInteger(
 }
 
 
-function parseUnsigned(
+export function parseUnsigned(
     arg: string)
     : number | NoParse
 {
@@ -532,16 +532,16 @@ function createParseUint(
 }
 
 
-const parseInt8 = createParseInt(8);
-const parseInt16 = createParseInt(16);
-const parseInt32 = createParseInt(32);
+export const parseInt8 = createParseInt(8);
+export const parseInt16 = createParseInt(16);
+export const parseInt32 = createParseInt(32);
 
-const parseUint8 = createParseUint(8);
-const parseUint16 = createParseUint(16);
-const parseUint32 = createParseUint(32);
+export const parseUint8 = createParseUint(8);
+export const parseUint16 = createParseUint(16);
+export const parseUint32 = createParseUint(32);
 
 
-function createOptionalParser<T>(
+export function createOptionalParser<T>(
     parser: Parser<T>)
     : Parser<T | undefined>
 {
@@ -653,13 +653,13 @@ function createParsePackedArray<PackedArray>(
 }
 
 
-const parseInt8Array = createParsePackedArray<Int8Array>(Int8Array, parseInt8);
-const parseInt16Array = createParsePackedArray<Int16Array>(Int16Array, parseInt16);
-const parseInt32Array = createParsePackedArray<Int32Array>(Int32Array, parseInt32);
+export const parseInt8Array = createParsePackedArray<Int8Array>(Int8Array, parseInt8);
+export const parseInt16Array = createParsePackedArray<Int16Array>(Int16Array, parseInt16);
+export const parseInt32Array = createParsePackedArray<Int32Array>(Int32Array, parseInt32);
 
-const parseUint8Array = createParsePackedArray<Uint8Array>(Uint8Array, parseUint8);
-const parseUint16Array = createParsePackedArray<Uint16Array>(Uint16Array, parseUint16);
-const parseUint32Array = createParsePackedArray<Uint32Array>(Uint32Array, parseUint32);
+export const parseUint8Array = createParsePackedArray<Uint8Array>(Uint8Array, parseUint8);
+export const parseUint16Array = createParsePackedArray<Uint16Array>(Uint16Array, parseUint16);
+export const parseUint32Array = createParsePackedArray<Uint32Array>(Uint32Array, parseUint32);
 
 //const parseFloat32Array = createParsePackedArray<Float32Array>(Float32Array, parseNumber);
 //const parseFloat64Array = createParsePackedArray<Float64Array>(Float64Array, parseNumber);

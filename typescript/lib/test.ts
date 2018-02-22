@@ -1,7 +1,7 @@
-declare const process: { argv: string[] };
 import { Options, Exception } from "./lambda-options";
 
 const options = Options.createDefault();
+options.setHelpGroupPriority("help", -1);
 
 options.addOption(
     [["--help"], "help"],
@@ -29,7 +29,9 @@ options.addOption(
     }
 );
 
+declare const process: { argv: string[] };
 const args = process.argv.slice(2);
+
 const parseContext = options.createParseContext(args);
 
 try {
