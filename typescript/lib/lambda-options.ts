@@ -741,7 +741,7 @@ class OptionsImpl<TypeMap, N extends Nat> {
         : OptionsImpl<TypeMap & { [P in TypeName]: Type; }, S<N>>
     {
         if (this._parserMap.has(typeName)) {
-            throw new Error();
+            throw new RegistrationException(typeName);
         }
         this._parserMap.set(typeName, parser);
         return this as OptionsImpl<any, any>;
@@ -915,44 +915,128 @@ class OptionsImpl<TypeMap, N extends Nat> {
 
 export class Exception extends Error {
 
-    public static create(
-        beginIndex: number,
-        endIndex: number,
-        args: string[])
-        : Exception
-    {
-        const begin = args[beginIndex];
-        let message: string;
-
-        if (endIndex === beginIndex) {
-            message = `Unknown option at index ${beginIndex}: \`${begin}'`;
-        }
-        else if (endIndex === args.length) {
-            message = `Bad input for \`${begin}' at index ${endIndex}: End of input.`;
-        }
-        else {
-            const end = args[endIndex];
-            message = `Bad input for \`${begin}' at index ${endIndex}: \`${end}'`;
-        }
-
-        return new Exception(beginIndex, endIndex, message);
-    }
-
-    private constructor(
-        beginIndex: number,
-        endIndex: number,
+    protected constructor(
         message: string)
     {
         super(message);
         Object.setPrototypeOf(this, Exception.prototype);
-
-        this.beginArgsIndex = beginIndex;
-        this.endArgsIndex = endIndex;
     }
 
+}
 
-    public readonly beginArgsIndex: number;
-    public readonly endArgsIndex: number;
+
+export class RegistrationException extends Exception {
+
+    public constructor(
+        conflictingTypeName: string)
+    {
+        super(`Cannot register \`${conflictingTypeName}': already exists.`);
+        Object.setPrototypeOf(this, RegistrationException.prototype);
+
+        this.conflictingTypeName = conflictingTypeName;
+    }
+
+    public readonly conflictingTypeName: string;
+
+}
+
+
+export class OptionsStateException extends Exception {
+
+    public constructor(
+        message: string)
+    {
+        super(message);
+        Object.setPrototypeOf(this, OptionsStateException.prototype);
+    }
+
+}
+
+
+export class ParseException extends Exception {
+
+    public static create(
+        beginArgsIndex: number,
+        endArgsIndex: number,
+        args: string[])
+        : ParseException
+    {
+        if (endArgsIndex === beginArgsIndex) {
+            return new UnknownOptionException(beginArgsIndex, args);
+        }
+        else if (endArgsIndex === args.length) {
+            return new EndOfInputException(beginArgsIndex, args);
+        }
+        else {
+            return new BadInputException(beginArgsIndex, endArgsIndex, args);
+        }
+    }
+
+    protected constructor(
+        args: string[],
+        message: string)
+    {
+        super(message);
+        Object.setPrototypeOf(this, ParseException.prototype);
+
+        this.args = args.slice();
+    }
+
+    public readonly args: string[];
+
+}
+
+
+export class BadInputException extends ParseException {
+
+    public constructor(
+        keywordArgsIndex: number,
+        badArgsIndex: number,
+        args: string[])
+    {
+        super(args, `Bad input for \`${args[keywordArgsIndex]}' at index ${badArgsIndex}: \`${args[badArgsIndex]}'.`);
+        Object.setPrototypeOf(this, BadInputException.prototype);
+
+        this.keywordArgsIndex = keywordArgsIndex;
+        this.badArgsIndex = badArgsIndex;
+    }
+
+    public readonly keywordArgsIndex: number;
+    public readonly badArgsIndex: number;
+
+}
+
+
+export class UnknownOptionException extends ParseException {
+
+    public constructor(
+        keywordArgsIndex: number,
+        args: string[])
+    {
+        super(args, `Unknown option at index ${keywordArgsIndex}: \`${args[keywordArgsIndex]}'.`);
+        Object.setPrototypeOf(this, UnknownOptionException.prototype);
+
+        this.keywordArgsIndex = keywordArgsIndex;
+    }
+
+    public readonly keywordArgsIndex: number;
+
+}
+
+
+export class EndOfInputException extends ParseException {
+
+    public constructor(
+        keywordArgsIndex: number,
+        args: string[])
+    {
+        super(args, `Bad input for \`${args[keywordArgsIndex]}' at index ${args[args.length]}: End of input.`);
+        Object.setPrototypeOf(this, EndOfInputException.prototype);
+
+        this.keywordArgsIndex = keywordArgsIndex;
+    }
+
+    public readonly keywordArgsIndex: number;
 
 }
 
@@ -1034,7 +1118,7 @@ export class ParseContext {
             });
 
             if (!parsedAnOption) {
-                return Exception.create(argsIndex, highArgsIndex, this._args);
+                return ParseException.create(argsIndex, highArgsIndex, this._args);
             }
         }
 
@@ -1136,6 +1220,20 @@ export class Options<TypeMap, N extends Nat> {
             ;
     }
 
+    private static _cannotCallException(
+        caller: keyof Options<any, any>,
+        invalidatingCall: keyof Options<any, any>)
+        : OptionsStateException
+    {
+        return new OptionsStateException(`Cannot call \`${caller}' after \`${invalidatingCall}' is called.`);
+    }
+
+    private static _nullImplException(
+        caller: keyof Options<any, any>)
+        : OptionsStateException
+    {
+        return this._cannotCallException(caller, "registerParser");
+    }
 
     // XXX:
     // Is it possible to restrict [[TypeName]] to exactly one string type?
@@ -1152,7 +1250,7 @@ export class Options<TypeMap, N extends Nat> {
         : Options<TypeMap & { [P in TypeName]: Type; }, S<N>>
     {
         if (this._impl === null) {
-            throw new Error();
+            throw Options._nullImplException("registerParser");
         }
         const oldImpl = this._impl;
         this._impl = null;
@@ -1167,7 +1265,7 @@ export class Options<TypeMap, N extends Nat> {
         : void
     {
         if (this._impl === null) {
-            throw new Error();
+            throw Options._nullImplException("setHelpGroupPriority");
         }
         this._impl.setHelpGroupPriority(helpGroup, priority);
     }
@@ -1355,10 +1453,10 @@ export class Options<TypeMap, N extends Nat> {
         : void
     {
         if (this._impl === null) {
-            throw new Error();
+            throw Options._nullImplException("addOption");
         }
         if (this._spawnedParseContexts) {
-            throw new Error();
+            throw Options._cannotCallException("addOption", "createParseContext");
         }
         this._impl.addOption(keyword, ...args);
     }
@@ -1393,7 +1491,7 @@ export class Options<TypeMap, N extends Nat> {
         : ParseContext
     {
         if (this._impl === null) {
-            throw new Error();
+            throw Options._nullImplException("createParseContext");
         }
         this._spawnedParseContexts = true;
         return new ParseContext(this._impl, args);
@@ -1405,7 +1503,7 @@ export class Options<TypeMap, N extends Nat> {
         : string
     {
         if (this._impl === null) {
-            throw new Error();
+            throw Options._nullImplException("getHelpDescription");
         }
         if (config === undefined) {
             config = {
