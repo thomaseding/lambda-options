@@ -415,7 +415,7 @@ export interface NoParse {
     readonly __NoParse: void;
 }
 
-export const NoParse: NoParse = {} as NoParse;
+export const NoParse: NoParse = Object.create(null) as NoParse;
 
 
 export type Parser<T> = (startIndex: number, args: string[]) => [T | NoParse, number];
@@ -474,6 +474,7 @@ export function parseNumber(
 
 
 const isIntegerRegex = /^-?\d+$/;
+const isUnsignedRegex = /^\d+$/;
 
 
 export function parseInteger(
@@ -491,11 +492,10 @@ export function parseUnsigned(
     arg: string)
     : number | NoParse
 {
-    const n = parseInteger(arg);
-    if (n === NoParse || n < 0) {
-        return NoParse;
+    if (isUnsignedRegex.test(arg)) {
+        return parseInt(arg, 10);
     }
-    return n;
+    return NoParse;
 }
 
 
@@ -603,13 +603,11 @@ export function createArrayParser<T>(
 
         while (currIndex < args.length) {
             const [parsedItem, consumedCount] = parser(currIndex, args);
-            currIndex += consumedCount;
-
             if (parsedItem === NoParse) {
-                totalConsumedCount = currIndex - startIndex;
-                return [NoParse, totalConsumedCount];
+                break;
             }
             parsedItems.push(parsedItem as T);
+            currIndex += consumedCount;
         }
 
         totalConsumedCount = currIndex - startIndex;

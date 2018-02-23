@@ -4,28 +4,28 @@ const options = Options.createDefault();
 options.setHelpGroupPriority("help", -1);
 
 options.addOption(
-    [["--help"], "help"],
+    ["--help", "-h"],
     "Display this help message.",
     () => {
         console.log(options.getHelpDescription());
     }
 );
 options.addOption(
-    "--add",
-    ["number", "X"],
-    ["number", "Y"],
-    "Adds X and Y.",
-    (x: number, y: number) => {
-        console.log(x + y);
+    "--take",
+    ["unsigned", "NUM"],
+    ["string", "STR"],
+    "Takes the first NUM characters of STR.",
+    (n: number, s: string) => {
+        console.log(s.substr(0, n));
     }
 );
 options.addOption(
-    "--take",
-    ["unsigned", "N"],
-    ["string", "STR"],
-    "Takes the first N characters of STR.",
-    (n: number, s: string) => {
-        console.log(s.substr(0, n));
+    "--sum",
+    ["number", "NUM"],
+    ["number[]", "NUMS"],
+    "Takes the sum of 1 or more numbers.",
+    (x: number, xs: number[]) => {
+        console.log(xs.reduce((y, z) => y + z, x));
     }
 );
 

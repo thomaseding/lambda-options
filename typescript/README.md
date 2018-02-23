@@ -42,7 +42,7 @@ options.addOption(
 );
 ```
 
-The options structure that the option is registered to understands the types involved and will pattern match accordingly. For example, the above snippet will not match `["--take" "-1", "helloworld"]`.
+The options structure that the option is registered to understands the types involved and will pattern match accordingly. For example, the above snippet will not match `["--take", "-1", "helloworld"]`.
 
 Also note that if the callback had a different type for `n: number`, you will get a compiler error. Likewise for the `s: string` type.
 
@@ -60,28 +60,28 @@ import { Options, Exception } from "lambda-options";
 const options = Options.createDefault();
 
 options.addOption(
-    "--help",
+    ["--help", "-h"],
     "Display this help message.",
     () => {
         console.log(options.getHelpDescription());
     }
 );
 options.addOption(
-    "--add",
-    ["number", "X"],
-    ["number", "Y"],
-    "Adds X and Y.",
-    (x: number, y: number) => {
-        console.log(x + y);
+    "--take",
+    ["unsigned", "NUM"],
+    ["string", "STR"],
+    "Takes the first NUM characters of STR.",
+    (n: number, s: string) => {
+        console.log(s.substr(0, n));
     }
 );
 options.addOption(
-    "--take",
-    ["unsigned", "N"],
-    ["string", "STR"],
-    "Takes the first N characters of STR.",
-    (n: number, s: string) => {
-        console.log(s.substr(0, n));
+    "--sum",
+    ["number", "NUM"],
+    ["number[]", "NUMS"],
+    "Takes the sum of 1 or more numbers.",
+    (x: number, y: number) => {
+        console.log();
     }
 );
 
@@ -129,7 +129,7 @@ function pointParser(
 
     const [result2, consumed2] = parseNumber(startIndex, args);
     if (result2 === NoParse) {
-        return [NoParse, consumed2];
+        return [NoParse, consumed1 + cosumed2];
     }
 
     const point = { x: result1, y: result2 };
@@ -246,6 +246,4 @@ const options = Options.createDefault()
 * `"Uint8Array"` → `Uint8Array`
 * `"Uint16Array"` → `Uint16Array`
 * `"Uint32Array"` → `Uint32Array`
-
-
 
