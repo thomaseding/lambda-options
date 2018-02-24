@@ -1,6 +1,6 @@
 {
   "name": "lambda-options",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Typesafe declarative argument parser using pattern matching.",
   "main": "dist/index.js",
   "types": "dist/index.d.js",

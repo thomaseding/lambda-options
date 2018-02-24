@@ -80,8 +80,8 @@ options.addOption(
     ["number", "NUM"],
     ["number[]", "NUMS"],
     "Takes the sum of 1 or more numbers.",
-    (x: number, y: number) => {
-        console.log();
+    (x: number, xs: number[]) => {
+        console.log(xs.reduce((y, z) => y + z, x));
     }
 );
 

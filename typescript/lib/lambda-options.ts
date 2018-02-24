@@ -1063,21 +1063,27 @@ export class ParseContext {
     }
 
 
+    private _matchOptionKeyword(
+        option: Option,
+        argsIndex: number)
+        : 0 | 1 | null
+    {
+        if (option.names.length === 0) {
+            return 0;
+        }
+        const arg = this._args[argsIndex];
+        for (const name of option.names) {
+            if (name === arg) {
+                return 1;
+            }
+        }
+        return null;
+    }
+
+
     private _tryParse()
         : Exception | null
     {
-        const matchOptionKeyword = (option: Option, arg: string) => {
-            if (option.names.length === 0) {
-                return 0;
-            }
-            for (const name of option.names) {
-                if (name === arg) {
-                    return 1;
-                }
-            }
-            return null;
-        };
-
         let argsIndex = 0;
         let highArgsIndex = argsIndex;
 
@@ -1086,7 +1092,7 @@ export class ParseContext {
 
         while (argsIndex < this._args.length) {
             const parsedAnOption = this._impl.forEachOption((option: Option) => {
-                const keywordConsumedCount = matchOptionKeyword(option, this._args[argsIndex]);
+                const keywordConsumedCount = this._matchOptionKeyword(option, argsIndex);
                 if (keywordConsumedCount === null) {
                     return false;
                 }
