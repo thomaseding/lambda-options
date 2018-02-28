@@ -12,6 +12,7 @@ export namespace HelpConfig {
 export interface HelpConfig {
     maxWidth: number;
     helpGroupFilter?: string[];
+    enableDollarReplacement?: boolean;
 }
 
 
@@ -21,7 +22,7 @@ function isShortName(
     if (name.length <= 1) {
         return true;
     }
-    if (name.length != 2) {
+    if (name.length !== 2) {
         return false;
     }
     const c = name[0];
@@ -128,7 +129,17 @@ class Formatter {
         if (option.text.length > 0) {
             this._changeIndentation(this._width + 1);
             this._changeIndentation(HelpConfig.minMaxWidth - 1);
-            this._emitString(option.text);
+            let text = option.text;
+            if (this._config.enableDollarReplacement === true) {
+                const argInfos = option.argInfos;
+                for (let i = 0; i < argInfos.length; ++i) {
+                    const argInfo = argInfos[i];
+                    const argText = argInfo.argText;
+                    const pattern = new RegExp(`\\$${i + 1}`, "g");
+                    text = text.replace(pattern, argText);
+                }
+            }
+            this._emitString(text);
         }
     }
 

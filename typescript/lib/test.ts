@@ -7,14 +7,14 @@ options.addOption(
     ["--help", "-h"],
     "Display this help message.",
     () => {
-        console.log(options.getHelpDescription());
+        console.log(options.getHelpDescription({ maxWidth:80, enableDollarReplacement: true }));
     }
 );
 options.addOption(
     "--take",
     ["unsigned", "NUM"],
     ["string", "STR"],
-    "Takes the first NUM characters of STR.",
+    "Takes the first $1 characters of $2.",
     (n: number, s: string) => {
         console.log(s.substr(0, n));
     }
