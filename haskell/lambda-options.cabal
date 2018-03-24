@@ -10,13 +10,13 @@ name:                lambda-options
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.9.0.1
+version:             0.9.1.0
 
 -- A short (one-line) description of the package.
-synopsis:            A modern command-line parser for Haskell.
+synopsis:            Declarative command line parser using type-driven pattern matching.
 
 -- A longer description of the package.
-description:         A modern command-line parser for Haskell.
+description:         Declarative command line parser using type-driven pattern matching.
 
 -- URL for the project homepage or repository.
 homepage:            https://github.com/thomaseding/lambda-options

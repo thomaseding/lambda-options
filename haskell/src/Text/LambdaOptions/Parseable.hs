@@ -9,7 +9,6 @@ module Text.LambdaOptions.Parseable (
 ) where
 
 
-import Data.Word
 import Text.Read
 import Text.Read.Bounded
 

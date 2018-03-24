@@ -17,7 +17,6 @@ module Text.LambdaOptions.Core (
 ) where
 
 
-import Control.Applicative
 import Control.Monad.State
 import Data.Function
 import Data.List
@@ -31,7 +30,7 @@ import Text.LambdaOptions.Internal.Opaque
 import Text.LambdaOptions.Internal.OpaqueParser
 import Text.LambdaOptions.Internal.Wrap
 import Text.LambdaOptions.Keyword
-import Text.LambdaOptions.Parseable
+import Text.LambdaOptions.Parseable ()
 
 
 --------------------------------------------------------------------------------
@@ -100,18 +99,22 @@ data OptionsState m a = OptionsState {
 
 
 -- | Contains information about what went wrong during an unsuccessful options parse.
-data OptionsError
-    -- | Contains @(error-message)@ @(begin-args-index)@ @(end-args-index)@
-    = ParseFailed String Int Int
-    deriving (Show)
+data OptionsError = ParseFailed {
+    parseFailedMessage :: String,
+    parseFailedBeginArgsIndex :: Int,
+    parseFailedEndArgsIndex :: Int
+} deriving (Show)
 
 
 mkParseFailed :: Int -> Int -> [String] -> OptionsError
-mkParseFailed beginIndex endIndex args = ParseFailed (mkParseFailed' beginIndex endIndex args) beginIndex endIndex
+mkParseFailed beginIndex endIndex args = ParseFailed {
+    parseFailedMessage = mkParseFailedMessage beginIndex endIndex args,
+    parseFailedBeginArgsIndex = beginIndex,
+    parseFailedEndArgsIndex = endIndex }
 
 
-mkParseFailed' :: Int -> Int -> [String] -> String
-mkParseFailed' beginIndex endIndex args
+mkParseFailedMessage :: Int -> Int -> [String] -> String
+mkParseFailedMessage beginIndex endIndex args
     | endIndex == beginIndex + 1 = "Unknown option at index " ++ beginIndexStr ++ ": `" ++ begin ++ "'"
     | endIndex == length args + 1 = "Bad input for `" ++ begin ++ "' at index " ++ beginIndexStr ++ ": End of input."
     | otherwise = "Bad input for `" ++ begin ++ "' at index " ++ beginIndexStr ++ ": `" ++ end ++ "'"
@@ -146,8 +149,8 @@ mkParseFailed' beginIndex endIndex args
 -- > main = do
 -- >     args <- getArgs
 -- >     case runOptions options args of
--- >         Left (ParseFailed msg _ _) -> do
--- >             putStrLn msg
+-- >         Left (e @ ParseFailed{})  -> do
+-- >             putStrLn $ parseFailedMessage e
 -- >             putStrLn $ getHelpDescription options
 -- >         Right actions -> sequence_ actions
 --
