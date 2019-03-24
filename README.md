@@ -1,6 +1,6 @@
 # lambda-options
 
-A modern command-line parser for C++ and for Haskell.
+A family of declarative command-line parsers for C++, Haskell, and Typescript.
 
 * Easy to use. The API is expressive.
 * Easy to learn. The API is tiny and simple.
