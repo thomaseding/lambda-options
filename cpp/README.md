@@ -5,7 +5,6 @@ A modern command-line parser for C++.
 * Easy to use. The API is expressive.
 * Easy to learn. The API is tiny and simple.
 * Easy to integrate. Contained in a single [header file](src/LambdaOptions.h?ts=4).
-* BSD 1-Clause License
 
 This library is designed to be an intuitive alternative to other C++ command-line libraries such as: Boost.Program_Options, GNU Getopt, TCLAP, and others.
 

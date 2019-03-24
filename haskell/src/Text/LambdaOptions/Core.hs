@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-
+-- | Contains the core functionality for LambdaOptions.
 module Text.LambdaOptions.Core (
     runOptions,
     Options,
@@ -47,7 +47,7 @@ getProxy _ = Proxy
 --
 -- The function (or value) 'f' can have any arity and ultimately returns a value with type @Monad m => m a@
 --
--- Each of the callback's arguments must have a type 't' which implements 'Parseable' and 'Data.Typeable.Typeable'.
+-- Each of the callback's arguments must have a type 't' which implements 'Text.LambdaOptions.Parseable.Parseable' and 'Data.Typeable.Typeable'.
 --
 -- Think of this as the following constraint synonym:
 --

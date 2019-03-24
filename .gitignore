@@ -13,7 +13,11 @@
 *.vcxproj.filters
 *.vcxproj.user
 *.unsuccessfulbuild
+cabal.project.local
+*~
+.ghc.environment.*
 
 haskell/dist/
+haskell/dist-newstyle/
 typescript/dist/
 typescript/node_modules/

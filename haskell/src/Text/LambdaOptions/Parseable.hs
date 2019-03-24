@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
+-- | Class used for parsing command-line options.
 module Text.LambdaOptions.Parseable (
     Parseable(..),
     simpleParse,

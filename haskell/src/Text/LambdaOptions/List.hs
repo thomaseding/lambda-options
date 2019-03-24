@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
+-- | List newtype wrapper that can be pattern matched against for parsing.
 module Text.LambdaOptions.List (
     List(..),
 ) where

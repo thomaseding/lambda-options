@@ -1,3 +1,4 @@
+-- | Declarative command-line parser using type-driven pattern matching.
 module Text.LambdaOptions (
     module Text.LambdaOptions.Core,
     module Text.LambdaOptions.Formatter,

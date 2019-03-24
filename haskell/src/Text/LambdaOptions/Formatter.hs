@@ -1,5 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
+-- | Provides a configurable way to format help options for textual presentation.
 module Text.LambdaOptions.Formatter (
     FormatConfig(..),
     defaultFormatConfig,

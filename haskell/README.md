@@ -4,7 +4,10 @@ Declarative command line parser using type-driven pattern matching.
 
 * Easy to use. The API is expressive.
 * Easy to learn. The API is tiny and simple.
-* BSD 1-Clause License
+
+Homepage: [https://github.com/thomaseding/lambda-options](https://github.com/thomaseding/lambda-options)
+
+Hackage: [https://hackage.haskell.org/package/lambda-options](https://hackage.haskell.org/package/lambda-options)
 
 --------------
 

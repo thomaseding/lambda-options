@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleInstances #-}
 
+-- | Data definition for option keywords.
 module Text.LambdaOptions.Keyword (
     Keyword(..),
     ToKeyword(..),
