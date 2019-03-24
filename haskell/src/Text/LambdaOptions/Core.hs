@@ -149,7 +149,7 @@ mkParseFailedMessage beginIndex endIndex args
 -- > main = do
 -- >     args <- getArgs
 -- >     case runOptions options args of
--- >         Left (e @ ParseFailed{})  -> do
+-- >         Left e -> do
 -- >             putStrLn $ parseFailedMessage e
 -- >             putStrLn $ getHelpDescription options
 -- >         Right actions -> sequence_ actions

@@ -1,3 +1,6 @@
+module Example.Example_1_BasicUsage where
+
+
 import System.Environment
 import Text.LambdaOptions
 
@@ -17,8 +20,8 @@ main :: IO ()
 main = do
     args <- getArgs
     case runOptions options args of
-        Left (ParseFailed msg _ _) -> do
-            putStrLn msg
+        Left e -> do
+            putStrLn $ parseFailedMessage e
             putStrLn $ getHelpDescription options
         Right actions -> sequence_ actions
 
