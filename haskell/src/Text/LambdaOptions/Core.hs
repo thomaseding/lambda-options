@@ -31,7 +31,6 @@ import Data.Typeable hiding (typeRep)
 import Text.LambdaOptions.Formatter
 import Text.LambdaOptions.Internal.Opaque
 import Text.LambdaOptions.Internal.OpaqueParser
-import Text.LambdaOptions.Internal.Return
 import Text.LambdaOptions.Internal.Wrap
 import Text.LambdaOptions.Keyword
 import Text.LambdaOptions.Parseable ()
@@ -48,7 +47,7 @@ import Text.LambdaOptions.Parseable ()
 --
 -- Think of this as the following constraint synonym:
 --
--- > type OptionCallback f = (f ~ (Parseable t*, Typeable t*) => t0 -> t1 -> ... -> tN -> r)
+-- > type OptionCallback r f = (f ~ (Parseable t*, Typeable t*) => t0 -> t1 -> ... -> tN -> r)
 --
 -- Example callbacks:
 --
@@ -58,7 +57,7 @@ import Text.LambdaOptions.Parseable ()
 -- > f3 name year ratio = lift (print (name, year, ratio)) :: (MonadTrans m) => String -> Int -> Float -> m IO ()
 -- > f4 = 7 :: Int
 -- > f5 = (:) :: Double -> [Double] -> [Double]
-type OptionCallback f = (GetOpaqueParsers f, Wrap f)
+type OptionCallback r f = (GetOpaqueParsers r f, Wrap r f)
 
 
 internalizeKeyword :: Keyword -> Keyword
@@ -204,9 +203,9 @@ addByArity x xss = \case
 --
 -- If the keyword is matched and the types of the callback's parameters can successfully be parsed, the
 -- callback is called with the parsed arguments.
-addOption :: forall f. (OptionCallback f) => Keyword -> f -> Options (ReturnOf f) ()
+addOption :: forall r f. (OptionCallback r f) => Keyword -> f -> Options r ()
 addOption inKwd f = do
-    let (typeReps, opaqueParsers) = unzip $ getOpaqueParsers (Proxy :: Proxy f)
+    let (typeReps, opaqueParsers) = unzip $ getOpaqueParsers (Proxy :: Proxy r) (Proxy :: Proxy f)
         arity = length typeReps
         f' = wrap f
         kwd = internalizeKeyword inKwd

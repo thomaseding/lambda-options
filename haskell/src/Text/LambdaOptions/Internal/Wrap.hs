@@ -14,7 +14,7 @@ module Text.LambdaOptions.Internal.Wrap (
 
 import Data.Typeable
 import Text.LambdaOptions.Internal.Opaque
-import Text.LambdaOptions.Internal.Return
+import Type.Funspection
 
 
 --------------------------------------------------------------------------------
@@ -51,10 +51,10 @@ instance Wrap' r (Return r) r where
 --------------------------------------------------------------------------------
 
 
-type Wrap f = Wrap' (ReturnOf f) (TaggedReturn f) f
+type Wrap r f = Wrap' r (TaggedReturn r f) f
 
 
-wrap :: forall f. (Wrap f) => f -> OpaqueCallback (ReturnOf f)
-wrap = wrap' (Proxy :: Proxy (TaggedReturn f)) 
+wrap :: forall r f. (Wrap r f) => f -> OpaqueCallback r
+wrap = wrap' (Proxy :: Proxy (TaggedReturn r f)) 
 
 
