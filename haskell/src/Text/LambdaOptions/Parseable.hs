@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 -- | Class used for parsing command-line options.
@@ -32,11 +33,11 @@ class Parseable a where
 --
 -- __Note:__ The string is /not/ tokenized in any way before being passed into the input parser.
 simpleParse :: (String -> Maybe a) -> ([String] -> (Maybe a, Int))
-simpleParse parser args = case args of
-        [] -> (Nothing, 0)
-        s : _ -> case parser s of
-            Nothing -> (Nothing, 0)
-            Just x -> (Just x, 1)
+simpleParse parser = \case
+    [] -> (Nothing, 0)
+    s : _ -> case parser s of
+        Nothing -> (Nothing, 0)
+        Just x -> (Just x, 1)
 
 
 -- | Repeatedly applies `parse` the given number of times, accumulating the results.
@@ -100,7 +101,7 @@ instance Parseable Char where
 
 
 -- | Identity parser.
--- Ex: @parse "abc" == (Just "abc", 1)
+-- Ex: @parse "abc" == (Just "abc", 1)@
 instance Parseable String where
     parse = simpleParse Just
 
@@ -156,6 +157,5 @@ parse3Tuple ss = case parse2Tuple ss of
             sc = drop nc st
             mTup = fmap (\c -> (a, b, c)) mc
             in (mTup, nt + nc, sc)
-
 
 

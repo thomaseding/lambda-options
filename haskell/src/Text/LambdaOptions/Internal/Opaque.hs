@@ -19,6 +19,3 @@ data Opaque where
 type OpaqueCallback r = [Opaque] -> r
 
 
-
-
-

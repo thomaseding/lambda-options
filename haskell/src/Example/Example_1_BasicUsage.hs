@@ -5,7 +5,7 @@ import System.Environment
 import Text.LambdaOptions
 
 
-options :: Options IO () ()
+options :: Options (IO ()) ()
 options = do
     addOption (kw ["--help", "-h"] `text` "Display this help text.") $ do
         putStrLn "Usage:"

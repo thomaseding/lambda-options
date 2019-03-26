@@ -1,25 +1,20 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Text.LambdaOptions.Internal.OpaqueParser (
     OpaqueParser,
-    GetOpaqueParsers(..),
+    GetOpaqueParsers,
+    getOpaqueParsers,
 ) where
 
 
 import Data.Proxy
-import Data.Typeable hiding (typeRep)
+import Data.Typeable
 import Text.LambdaOptions.Internal.Opaque
+import Text.LambdaOptions.Internal.Return
 import Text.LambdaOptions.Parseable
-
-
---------------------------------------------------------------------------------
-
-
-decomposeFuncProxy :: Proxy (a -> b) -> (Proxy a, Proxy b)
-decomposeFuncProxy _ = (Proxy, Proxy)
 
 
 --------------------------------------------------------------------------------
@@ -28,30 +23,39 @@ decomposeFuncProxy _ = (Proxy, Proxy)
 type OpaqueParser = [String] -> (Maybe Opaque, Int)
 
 
-parseOpaque :: (Parseable a, Typeable a) => Proxy a -> OpaqueParser
-parseOpaque proxy str = case parse str of
+parseOpaque :: forall a. (Parseable a, Typeable a) => Proxy a -> OpaqueParser
+parseOpaque ~Proxy str = case parse str of
     (Nothing, n) -> (Nothing, n)
-    (Just x, n) -> (Just $ Opaque $ x `asProxyTypeOf` proxy, n)
+    (Just (x::a), n) -> (Just $ Opaque x, n)
 
 
 --------------------------------------------------------------------------------
 
 
-class GetOpaqueParsers r f | f -> r where
-    getOpaqueParsers :: Proxy f -> [(TypeRep, OpaqueParser)]
+class GetOpaqueParsers' f where
+    getOpaqueParsers' :: Proxy f -> [(TypeRep, OpaqueParser)]
 
 
-instance (Parseable a, Typeable a, GetOpaqueParsers r b) => GetOpaqueParsers r (a -> b) where
-    getOpaqueParsers funcProxy = let
-        (proxyA, proxyB) = decomposeFuncProxy funcProxy
-        typeRep = typeOf proxyA
+instance (Parseable a, Typeable a, GetOpaqueParsers' b) => GetOpaqueParsers' (a -> b) where
+    getOpaqueParsers' ~Proxy = let
+        proxyA = Proxy :: Proxy a
+        proxyB = Proxy :: Proxy b
+        rep = typeRep proxyA
         parser = parseOpaque proxyA
-        in (typeRep, parser) : getOpaqueParsers proxyB
+        in (rep, parser) : getOpaqueParsers' proxyB
 
 
-instance (Monad m) => GetOpaqueParsers r (m r) where
-    getOpaqueParsers ~Proxy = []
+instance GetOpaqueParsers' (Return r) where
+    getOpaqueParsers' ~Proxy = []
 
 
+--------------------------------------------------------------------------------
+
+
+type GetOpaqueParsers f = GetOpaqueParsers' (TaggedReturn f)
+
+
+getOpaqueParsers :: forall f. (GetOpaqueParsers f) => Proxy f -> [(TypeRep, OpaqueParser)]
+getOpaqueParsers ~Proxy = getOpaqueParsers' (Proxy :: Proxy (TaggedReturn f))
 
 
