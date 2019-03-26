@@ -54,6 +54,11 @@ instance ToKeyword [String] where
         kwText = "" }
 
 
+-- | Used to create an empty 'Keyword' with no aliases.
+instance ToKeyword () where
+    toKeyword () = toKeyword ([] :: [String])
+
+
 -- | Shorthand for 'toKeyword'.
 kw :: (ToKeyword a) => a -> Keyword
 kw = toKeyword
