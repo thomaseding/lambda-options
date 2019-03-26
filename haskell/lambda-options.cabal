@@ -72,9 +72,9 @@ library
         FlexibleInstances,
         FunctionalDependencies,
         GADTs,
-        GeneralizedNewtypeDeriving,
         LambdaCase,
         MultiParamTypeClasses,
+        Safe,
         ScopedTypeVariables,
         TypeFamilies,
         TypeSynonymInstances

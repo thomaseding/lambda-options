@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE Safe #-}
 
 -- | List newtype wrapper that can be pattern matched against for parsing.
 module Text.LambdaOptions.List (

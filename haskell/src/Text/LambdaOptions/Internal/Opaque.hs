@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE Safe #-}
 
 module Text.LambdaOptions.Internal.Opaque (
     Opaque(..),

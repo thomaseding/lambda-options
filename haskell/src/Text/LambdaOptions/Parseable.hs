@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE Safe #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 -- | Class used for parsing command-line options.

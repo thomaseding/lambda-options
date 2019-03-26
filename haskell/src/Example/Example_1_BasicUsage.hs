@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 module Example.Example_1_BasicUsage where
 
 

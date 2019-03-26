@@ -1,8 +1,9 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE Safe #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- | Contains the core functionality for LambdaOptions.
@@ -81,7 +82,27 @@ data OptionInfo r = OptionInfo {
 -- | A monad for parsing options.
 newtype Options r a = Options {
     unOptions :: State (OptionsState r) a
-} deriving (Applicative, Functor, Monad, MonadState (OptionsState r))
+} deriving ()
+
+
+instance Functor (Options r) where
+    fmap f = Options . fmap f . unOptions
+
+
+instance Applicative (Options r) where
+    pure = Options . pure
+    Options f <*> Options x = Options (f <*> x)
+
+
+instance Monad (Options r) where
+    return = Options . return
+    Options x >>= f = Options (x >>= unOptions . f)
+
+
+instance MonadState (OptionsState r) (Options r) where
+    get = Options get
+    put = Options . put
+    state = Options . state
 
 
 data OptionsState r = OptionsState {
