@@ -1,8 +1,13 @@
+{-# LANGUAGE Safe #-}
+
+module Example.Example_1_BasicUsage where
+
+
 import System.Environment
 import Text.LambdaOptions
 
 
-options :: Options IO () ()
+options :: Options (IO ()) ()
 options = do
     addOption (kw ["--help", "-h"] `text` "Display this help text.") $ do
         putStrLn "Usage:"
@@ -17,8 +22,8 @@ main :: IO ()
 main = do
     args <- getArgs
     case runOptions options args of
-        Left (ParseFailed msg _ _) -> do
-            putStrLn msg
+        Left e -> do
+            putStrLn $ parseFailedMessage e
             putStrLn $ getHelpDescription options
         Right actions -> sequence_ actions
 

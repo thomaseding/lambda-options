@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE Safe #-}
 
 module Text.LambdaOptions.Internal.Opaque (
     Opaque(..),
@@ -17,8 +18,5 @@ data Opaque where
 
 
 type OpaqueCallback r = [Opaque] -> r
-
-
-
 
 

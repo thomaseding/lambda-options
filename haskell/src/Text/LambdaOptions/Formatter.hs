@@ -1,4 +1,5 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE Safe #-}
 
 -- | Provides a configurable way to format help options for textual presentation.
 module Text.LambdaOptions.Formatter (
@@ -187,7 +188,7 @@ newLine doFlushWord = do
 
 
 emitSpace :: Formatter ()
-emitSpace = flushWord >>= \result -> case result of
+emitSpace = flushWord >>= \case
     False -> return ()
     True -> do
         st <- get
@@ -201,18 +202,16 @@ emitSpace = flushWord >>= \result -> case result of
 
 
 emitChar :: Char -> Formatter ()
-emitChar c = case c of
+emitChar = \case
     ' ' -> emitSpace
     '\n' -> do
         _ <- flushWord
         newLine False
-    _ -> modify $ \st -> st {
+    c -> modify $ \st -> st {
         fmtWord = c : fmtWord st }
 
 
 emitString :: String -> Formatter ()
 emitString = mapM_ emitChar
-
-
 
 

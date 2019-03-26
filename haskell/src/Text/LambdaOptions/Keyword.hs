@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE Safe #-}
 
 -- | Data definition for option keywords.
 module Text.LambdaOptions.Keyword (
@@ -53,6 +54,11 @@ instance ToKeyword [String] where
         kwText = "" }
 
 
+-- | Used to create an empty 'Keyword' with no aliases.
+instance ToKeyword () where
+    toKeyword () = toKeyword ([] :: [String])
+
+
 -- | Shorthand for 'toKeyword'.
 kw :: (ToKeyword a) => a -> Keyword
 kw = toKeyword
@@ -70,7 +76,5 @@ argText k s = k { kwArgText = s }
 -- > kw "--quiet" `text` "Suppress message display."
 text :: Keyword -> String -> Keyword
 text k s = k { kwText = s }
-
-
 
 

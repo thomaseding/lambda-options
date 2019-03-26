@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE Safe #-}
 
 -- | List newtype wrapper that can be pattern matched against for parsing.
 module Text.LambdaOptions.List (
@@ -37,6 +38,5 @@ instance (Parseable a) => Parseable (List a) where
                     (Nothing, _) -> internalError
             Nothing -> (Just $ List [], n)
         (Nothing, _) -> internalError
-
 
 

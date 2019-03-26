@@ -1,16 +1,21 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE Safe #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Text.LambdaOptions.Internal.Wrap (
-    Wrap(..),
+    Wrap,
+    wrap
 ) where
 
 
 import Data.Typeable
 import Text.LambdaOptions.Internal.Opaque
+import Type.Funspection
 
 
 --------------------------------------------------------------------------------
@@ -23,28 +28,34 @@ internalError = error "InternalError: Text.LambdaOptions.Internal.Wrap"
 --------------------------------------------------------------------------------
 
 
-class Wrap r f | f -> r where
-    wrap :: f -> OpaqueCallback r
+class Wrap' r f' f where
+    wrap' :: Proxy f' -> f -> OpaqueCallback r
 
 
-instance (Monad m) => Wrap (m b) (m b) where
-    wrap action opaques = case opaques of
-        [] -> action
-        _ -> internalError
-
-
-instance (Monad m, Typeable a, Wrap (m b) f) => Wrap (m b) (a -> f) where
-    wrap f opaques = case opaques of
+instance (Typeable a, Wrap' r b' b) => Wrap' r (a -> b') (a -> b) where
+    wrap' ~Proxy f = \case
         Opaque o : os -> case cast o of
             Just x -> let
-                g = f x
-                g' = wrap g
-                in g' os
+                p = Proxy :: Proxy b'
+                g = wrap' p $ f x
+                in g os
             Nothing -> internalError
         [] -> internalError
 
 
+instance Wrap' r (Return r) r where
+    wrap' ~Proxy r = \case
+        [] -> r
+        _ -> internalError
 
 
+--------------------------------------------------------------------------------
+
+
+type Wrap r f = Wrap' r (TaggedReturn r f) f
+
+
+wrap :: forall r f. (Wrap r f) => f -> OpaqueCallback r
+wrap = wrap' (Proxy :: Proxy (TaggedReturn r f)) 
 
 
