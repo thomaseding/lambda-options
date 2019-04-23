@@ -220,7 +220,7 @@ addByArity x xss = \case
         xs : rest -> xs : addByArity x rest (n - 1)
 
 
--- | Adds the supplied option to the @Options m a ()@ context.
+-- | Adds the supplied option to the @Options r ()@ context.
 --
 -- If the keyword is matched and the types of the callback's parameters can successfully be parsed, the
 -- callback is called with the parsed arguments.
