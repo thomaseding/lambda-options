@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 -- | Class used for parsing command-line options.
@@ -12,6 +13,8 @@ module Text.LambdaOptions.Parseable (
 ) where
 
 
+import Data.Proxy
+import GHC.TypeLits
 import Text.Read
 import Text.Read.Bounded
 
@@ -117,6 +120,39 @@ instance (Parseable a) => Parseable (Maybe a) where
     parse args = case parse args of
         (Nothing, n) -> (Just Nothing, n)
         (Just x, n) -> (Just $ Just x, n)
+
+
+instance (KnownNat n) => Parseable (Proxy n) where
+  parse = \case
+    [] -> (Nothing, 0)
+    str : _ -> case show (natVal nat) == str of
+      True  -> (Just nat, 1)
+      False -> (Nothing, 0)
+    where
+      nat = Proxy :: Proxy n
+
+
+instance (KnownSymbol s) => Parseable (Proxy s) where
+  parse = \case
+    [] -> (Nothing, 0)
+    str : _ -> case symbolVal sym == str of
+      True  -> (Just sym, 1)
+      False -> (Nothing, 0)
+    where
+      sym = Proxy :: Proxy s
+
+
+instance Parseable SomeSymbol where
+  parse = \case
+    [] -> (Nothing, 0)
+    str : _ -> (Just $ someSymbolVal str, 1)
+
+
+instance Parseable SomeNat where
+  parse = \case
+    [] -> (Nothing, 0)
+    str : _ -> case readMaybe str of
+      Just n -> (someNatVal n, 1)
 
 
 -- | Always succeeds and never consumes any input.
