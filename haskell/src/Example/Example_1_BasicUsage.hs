@@ -23,7 +23,7 @@ main = do
     args <- getArgs
     case runOptions options args of
         Left e -> do
-            putStrLn $ parseFailedMessage e
+            putStrLn $ prettyOptionsError e
             putStrLn $ getHelpDescription options
         Right actions -> sequence_ actions
 

@@ -10,7 +10,9 @@
 module Text.LambdaOptions.Core (
     runOptions,
     Options,
+
     OptionsError(..),
+    prettyOptionsError,
 
     OptionCallback,
     addOption,
@@ -115,18 +117,30 @@ data OptionsState r = OptionsState {
     stateFormatConfig :: FormatConfig
 } deriving ()
 
+{-# DEPRECATED parseFailedMessage "Use 'prettyOptionsError' instead." #-}
 
 -- | Contains information about what went wrong during an unsuccessful options parse.
 data OptionsError = ParseFailed {
     parseFailedMessage :: String,
+    parseFailedArgs :: [String],
     parseFailedBeginArgsIndex :: Int,
     parseFailedEndArgsIndex :: Int
 } deriving (Show)
 
 
+prettyOptionsError :: OptionsError -> String
+prettyOptionsError = \case
+  ParseFailed
+    { parseFailedArgs = args
+    , parseFailedBeginArgsIndex = beginIndex
+    , parseFailedEndArgsIndex = endIndex
+    } -> mkParseFailedMessage beginIndex endIndex args
+
+
 mkParseFailed :: Int -> Int -> [String] -> OptionsError
 mkParseFailed beginIndex endIndex args = ParseFailed {
     parseFailedMessage = mkParseFailedMessage beginIndex endIndex args,
+    parseFailedArgs = args,
     parseFailedBeginArgsIndex = beginIndex,
     parseFailedEndArgsIndex = endIndex }
 

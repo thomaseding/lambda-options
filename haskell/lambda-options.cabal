@@ -13,7 +13,7 @@ name:                lambda-options
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.0.0.0
+version:             1.0.1.0
 
 -- A short (one-line) description of the package.
 synopsis:            Declarative command-line parser using type-driven pattern matching.
@@ -83,7 +83,7 @@ library
   build-depends:
         base ^>=4.12.0.0,
         containers ^>=0.6.0.1,
-        funspection ^>=0.1.0.0,
+        funspection ^>=1.0.0.0,
         mtl ^>=2.2.2,
         read-bounded ^>=0.1.1.2
 
