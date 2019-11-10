@@ -35,9 +35,16 @@ formatKeywords config = runFormatter config . mapM_ formatKeyword
 --------------------------------------------------------------------------------
 
 
+data KeywordStyle
+  = ShortLong
+  | --Collapsing
+  | CustomKeywordNames ([String] -> String)
+
+
 -- | User configuration for formatting.
 data FormatConfig = FormatConfig {
-    fmtMaxWidth :: Int
+    fmtMaxWidth :: Int,
+    fmtKeywordStyle :: KeywordStyle
 } deriving (Show, Read, Eq, Ord)
 
 
@@ -93,29 +100,72 @@ isShort name
         c = head name
 
 
+data AbbreviationFold a = AbbreviationFold
+  { abbrFront :: [a]
+  , abbrFold :: [a]
+  , abbrEnd :: [a] }
+
+
+discoverAbbreviationFold2 :: (Eq a) => [a] -> [a] -> Maybe (AbbreviationFold a)
+discoverAbbreviationFold2 full abbr =
+  case length full > length abbr of
+    False -> Nothing
+    True -> let
+      abbrs = inits abbr
+      fulls = take (length abbrs) $ inits fulls
+      mFolds = zipWith stripPrefix abbrs fulls
+      mFold = join $ find isJust mFolds 
+      in mFold
+
+
+discoverAbbreviationFoldN :: (Ord a) => [[a]] -> Maybe (AbbreviationFold a)
+discoverAbbreviationFoldN = \case
+  [] -> Nothing
+  [_] -> Nothing
+  xs@(x:_:_) -> let
+    xs' = sort xs
+    mFolds = map (discoverAbbreviationFold2 x) xs'
+    folds = catMaybes mFolds
+    in case length folds == length mFolds of
+      False -> False
+      True -> case reverse folds of
+        [] -> assert False Nothing
+        revFolds@(fold : _) -> case {-#drop 1#-} inits fold == revFolds of
+          False -> Nothing
+          True -> Just fold
+
+
+formatKeywordNames' :: Keyword -> KeywordStyle -> Formatter ()
+formatKeywordNames' kwd = \case
+    ShortLong -> do
+        let names = sortBy cmp $ kwNames kwd
+            (mShortName, otherNames) = case names of
+                name : rest -> case isShort name of
+                    True -> (Just name, rest)
+                    False -> (Nothing, names)
+                [] -> (Nothing, [])
+            otherIdxs = [maybe 0 (const 1) mShortName ..] :: [Int]
+        case mShortName of
+            Nothing -> return ()
+            Just shortName -> do
+                changeIndentation 1
+                emitString shortName
+        forM_ (zip otherIdxs otherNames) $ \(idx, name) -> do
+            when (idx > 0) $ emitChar ','
+            changeIndentation 5
+            emitString name
+        where
+            cmp n1 n2 = case (compare `on` length) n1 n2 of
+                LT -> LT
+                GT -> GT
+                EQ -> compare n1 n2
+    Collapsing -> case discoverAbbreviationFoldN kwds of
+        Just fold
+        let names = sort $ kwNames kwd
+
+
 formatKeywordNames :: Keyword -> Formatter ()
-formatKeywordNames kwd = do
-    let names = sortBy cmp $ kwNames kwd
-        (mShortName, otherNames) = case names of
-            name : rest -> case isShort name of
-                True -> (Just name, rest)
-                False -> (Nothing, names)
-            [] -> (Nothing, [])
-        otherIdxs = [maybe 0 (const 1) mShortName ..] :: [Int]
-    case mShortName of
-        Nothing -> return ()
-        Just shortName -> do
-            changeIndentation 1
-            emitString shortName
-    forM_ (zip otherIdxs otherNames) $ \(idx, name) -> do
-        when (idx > 0) $ emitChar ','
-        changeIndentation 5
-        emitString name
-    where
-        cmp n1 n2 = case (compare `on` length) n1 n2 of
-            LT -> LT
-            GT -> GT
-            EQ -> compare n1 n2
+formatKeywordNames kwd = gets fmtKeywordStyle >>= formatKeywordNames' kwd
 
 
 formatKeywordArgText :: Keyword -> Formatter ()
