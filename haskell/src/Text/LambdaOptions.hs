@@ -10,6 +10,7 @@ module Text.LambdaOptions (
 ) where
 
 
+import Text.LambdaOptions.Bool
 import Text.LambdaOptions.Core
 import Text.LambdaOptions.Formatter
 import Text.LambdaOptions.Keyword
