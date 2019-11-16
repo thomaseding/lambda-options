@@ -13,7 +13,7 @@ name:                lambda-options
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.0.0.0
+version:             1.0.1.0
 
 -- A short (one-line) description of the package.
 synopsis:            Declarative command-line parser using type-driven pattern matching.
@@ -52,6 +52,7 @@ library
   -- Modules exported by the library.
   exposed-modules:
         Text.LambdaOptions,
+        Text.LambdaOptions.Bool,
         Text.LambdaOptions.Core,
         Text.LambdaOptions.Formatter,
         Text.LambdaOptions.Keyword,
@@ -60,22 +61,30 @@ library
 
   -- Modules included in this library but not exported.
   other-modules:
+        Example.Example_1_BasicUsage,
+        Example.Example_2_CountWords,
+        Example.Example_3_Booly,
+        Example.Example_4_Repl,
         Text.LambdaOptions.Internal.Opaque,
         Text.LambdaOptions.Internal.OpaqueParser,
         Text.LambdaOptions.Internal.Wrap
 
   -- LANGUAGE extensions used by modules in this package.
   other-extensions:
+        AllowAmbiguousTypes,
         ConstraintKinds,
+        DataKinds,
         DeriveDataTypeable,
         FlexibleContexts,
         FlexibleInstances,
-        FunctionalDependencies,
         GADTs,
+        InstanceSigs,
+        KindSignatures,
         LambdaCase,
         MultiParamTypeClasses,
         Safe,
         ScopedTypeVariables,
+        TypeApplications,
         TypeFamilies,
         TypeSynonymInstances
 
@@ -83,7 +92,7 @@ library
   build-depends:
         base ^>=4.12.0.0,
         containers ^>=0.6.0.1,
-        funspection ^>=0.1.0.0,
+        funspection ^>=1.0.0.0,
         mtl ^>=2.2.2,
         read-bounded ^>=0.1.1.2
 
