@@ -52,6 +52,7 @@ library
   -- Modules exported by the library.
   exposed-modules:
         Text.LambdaOptions,
+        Text.LambdaOptions.Bool,
         Text.LambdaOptions.Core,
         Text.LambdaOptions.Formatter,
         Text.LambdaOptions.Keyword,
@@ -60,22 +61,30 @@ library
 
   -- Modules included in this library but not exported.
   other-modules:
+        Example.Example_1_BasicUsage,
+        Example.Example_2_CountWords,
+        Example.Example_3_Booly,
+        Example.Example_4_Repl,
         Text.LambdaOptions.Internal.Opaque,
         Text.LambdaOptions.Internal.OpaqueParser,
         Text.LambdaOptions.Internal.Wrap
 
   -- LANGUAGE extensions used by modules in this package.
   other-extensions:
+        AllowAmbiguousTypes,
         ConstraintKinds,
+        DataKinds,
         DeriveDataTypeable,
         FlexibleContexts,
         FlexibleInstances,
-        FunctionalDependencies,
         GADTs,
+        InstanceSigs,
+        KindSignatures,
         LambdaCase,
         MultiParamTypeClasses,
         Safe,
         ScopedTypeVariables,
+        TypeApplications,
         TypeFamilies,
         TypeSynonymInstances
 

@@ -1,22 +1,20 @@
 {-# LANGUAGE Safe #-}
 
-module Example.Example_2_CountWords where
+module Example.Example_2_CountWords (
+  main,
+) where
 
+import qualified System.Environment as IO
+import qualified Text.LambdaOptions as L
 
-import System.Environment
-import Text.LambdaOptions
-
-
-options :: Options (Int -> Int) ()
+options :: L.Options () ()
 options = do
-    addOption (kw ()) (+ (1 :: Int))
-
+  L.addOption (L.kw ()) ()
 
 main :: IO ()
 main = do
-    args <- getArgs
-    case runOptions options args of
-        Left {} -> error "Internal logic error."
-        Right fs -> print $ foldr (.) id fs 0
-
+  args <- IO.getArgs
+  case L.runOptions options args of
+    Left {}  -> error "Internal logic error."
+    Right xs -> print $ length xs
 

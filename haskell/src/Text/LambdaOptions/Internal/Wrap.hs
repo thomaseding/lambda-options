@@ -8,54 +8,48 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Text.LambdaOptions.Internal.Wrap (
-    Wrap,
-    wrap
+  Wrap,
+  wrap,
 ) where
 
-
-import Data.Typeable
-import Text.LambdaOptions.Internal.Opaque
-import Type.Funspection
-
+import           Data.Proxy
+                  ( Proxy(Proxy) )
+import           Data.Typeable
+                  ( Typeable, cast )
+import           Text.LambdaOptions.Internal.Opaque
+                  ( Opaque(Opaque), OpaqueCallback )
+import           Type.Funspection
+                  ( TaggedReturn, Return )
 
 --------------------------------------------------------------------------------
-
 
 internalError :: a
 internalError = error "InternalError: Text.LambdaOptions.Internal.Wrap"
 
-
 --------------------------------------------------------------------------------
-
 
 class Wrap' r f' f where
-    wrap' :: Proxy f' -> f -> OpaqueCallback r
-
+  wrap' :: Proxy f' -> f -> OpaqueCallback r
 
 instance (Typeable a, Wrap' r b' b) => Wrap' r (a -> b') (a -> b) where
-    wrap' ~Proxy f = \case
-        Opaque o : os -> case cast o of
-            Just x -> let
-                p = Proxy :: Proxy b'
-                g = wrap' p $ f x
-                in g os
-            Nothing -> internalError
-        [] -> internalError
-
+  wrap' ~Proxy f = \case
+    Opaque o : os -> case cast o of
+      Just x -> let
+        p = Proxy :: Proxy b'
+        g = wrap' p $ f x
+        in g os
+      Nothing -> internalError
+    [] -> internalError
 
 instance Wrap' r (Return r) r where
-    wrap' ~Proxy r = \case
-        [] -> r
-        _ -> internalError
-
+  wrap' ~Proxy r = \case
+    [] -> r
+    _ -> internalError
 
 --------------------------------------------------------------------------------
-
 
 type Wrap r f = Wrap' r (TaggedReturn r f) f
 
-
 wrap :: forall r f. (Wrap r f) => f -> OpaqueCallback r
-wrap = wrap' (Proxy :: Proxy (TaggedReturn r f)) 
-
+wrap = wrap' (Proxy :: Proxy (TaggedReturn r f))
 

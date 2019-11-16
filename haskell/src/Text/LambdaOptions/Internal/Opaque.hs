@@ -2,21 +2,17 @@
 {-# LANGUAGE Safe #-}
 
 module Text.LambdaOptions.Internal.Opaque (
-    Opaque(..),
-    OpaqueCallback,
+  Opaque(..),
+  OpaqueCallback,
 ) where
 
-
-import Data.Typeable
-
+import           Data.Typeable
+                  ( Typeable )
 
 --------------------------------------------------------------------------------
 
-
 data Opaque where
-    Opaque :: (Typeable a) => a -> Opaque
-
+  Opaque :: (Typeable a) => a -> Opaque
 
 type OpaqueCallback r = [Opaque] -> r
-
 
