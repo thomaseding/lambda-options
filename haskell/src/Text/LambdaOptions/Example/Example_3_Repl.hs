@@ -1,6 +1,6 @@
 {-# LANGUAGE Safe #-}
 
-module Example.Example_4_Repl (
+module Text.LambdaOptions.Example.Example_3_Repl (
   main,
 ) where
 

@@ -16,6 +16,10 @@ module Text.LambdaOptions.Bool (
   BoolLetter(..),
   BoolNumber(..),
   BoolCasing(..),
+  ReadBoolWord(..),
+  ReadBoolLetter(..),
+  ReadBoolNumber(..),
+  BoolCasingVal(..),
   readBooly,
 ) where
 
@@ -34,16 +38,16 @@ import           Text.Read
 
 -- | Controls word representation for 'Booly'.
 data BoolWord
-  -- | Disallow "true" and "false" word representations.
+  -- | Disallow @"true"@ and @"false"@ word representations.
   = DisallowWord
-  -- | Allow "true" and "false" word representations.
+  -- | Allow @"true"@ and @"false"@ word representations.
   | AllowWord
 
 -- | Controls letter representation for 'Booly'.
 data BoolLetter
-  -- | Disallow "t" and "f" letter representations.
+  -- | Disallow @"t"@ and @"f"@ letter representations.
   = DisallowLetter
-  -- | Allow "t" and "f" letter representations.
+  -- | Allow @"t"@ and @"f"@ letter representations.
   | AllowLetter
 
 -- | Controls number representation for 'Booly'.
@@ -55,7 +59,7 @@ data BoolNumber
   -- | Allow @N >= 0@ integer representations.
   -- @0@ maps to 'False'. @N > 0@ maps to 'True'.
   | AllowNatural
-  -- | Allow any @N0@ integer representation.
+  -- | Allow any @N@ integer representation.
   -- @0@ maps to 'False'. @N /= 0@ maps to 'True'.
   | AllowInteger
 
@@ -75,15 +79,14 @@ data BoolCasing
 -- | Data type used for parsing 'Bool' values with various schemes.
 --
 -- It can be useful to alias for this type:
--- @
---  type B = Booly 'AllowWord 'DisallowLetter 'DisallowNumber 'LowerAll
 --
---  pattern B :: Bool -> B
---  pattern B x = Booly x
---
---  b :: B -> Bool
---  b = unBooly
--- @
+-- > type B = Booly 'AllowWord 'DisallowLetter 'DisallowNumber 'LowerAll
+-- >
+-- > pattern B :: Bool -> B
+-- > pattern B x = Booly x
+-- >
+-- > b :: B -> Bool
+-- > b = unBooly
 data Booly
     (w :: BoolWord)
     (l :: BoolLetter)
@@ -93,36 +96,30 @@ data Booly
   deriving (Typeable, Data, Show, Read, Eq, Ord)
 
 -- | Turns a type-level 'BoolCasing' into a value-level one.
-class BoolCasingVals (c :: BoolCasing) where
-  boolCasingVals :: [BoolCasing]
-
-instance BoolCasingVals 'IgnoreCase where
-  boolCasingVals = [IgnoreCase]
+class BoolCasingVal (c :: BoolCasing) where
+  boolCasingVal :: BoolCasing
 
 instance
-  ( BoolCasingVals a
-  , BoolCasingVals b)
-  => BoolCasingVals ('OrCasing a b) where
-  boolCasingVals = boolCasingVals @a ++ boolCasingVals @b
+  ( BoolCasingVal a
+  , BoolCasingVal b)
+  => BoolCasingVal ('OrCasing a b) where
+  boolCasingVal = OrCasing (boolCasingVal @a) (boolCasingVal @b)
 
-instance BoolCasingVals 'LowerAll where
-  boolCasingVals = [LowerAll]
+instance BoolCasingVal 'IgnoreCase where
+  boolCasingVal = IgnoreCase
 
-instance BoolCasingVals 'UpperAll where
-  boolCasingVals = [UpperAll]
+instance BoolCasingVal 'LowerAll where
+  boolCasingVal = LowerAll
 
-instance BoolCasingVals 'UpperHead where
-  boolCasingVals = [UpperHead]
+instance BoolCasingVal 'UpperAll where
+  boolCasingVal = UpperAll
 
-withBoolCasingVals
-  :: forall c a. BoolCasingVals c
-  => (BoolCasing -> Maybe a)
-  -> Maybe a
-withBoolCasingVals f = getAlt $ mconcat $ map (Alt . f) $ boolCasingVals @c
+instance BoolCasingVal 'UpperHead where
+  boolCasingVal = UpperHead
 
 -- | Parsers for the various 'BoolWord' type constructors.
 class ReadBoolWord (w :: BoolWord) where
-  readBoolWord :: BoolCasingVals c => String -> Maybe (Booly w l n c)
+  readBoolWord :: BoolCasingVal c => String -> Maybe (Booly w l n c)
 
 instance ReadBoolWord 'DisallowWord where
   readBoolWord _ = Nothing
@@ -130,31 +127,36 @@ instance ReadBoolWord 'DisallowWord where
 instance ReadBoolWord 'AllowWord where
   readBoolWord
     :: forall l n c
-    .  BoolCasingVals c
+    .  BoolCasingVal c
     => String
     -> Maybe (Booly 'AllowWord l n c)
-  readBoolWord str = fmap Booly $ withBoolCasingVals @c $ \case
-    IgnoreCase -> case map toLower str of
-      "true"  -> Just True
-      "false" -> Just False
-      _ -> Nothing
-    LowerAll -> case str of
-      "true"  -> Just True
-      "false" -> Just False
-      _ -> Nothing
-    UpperAll -> case str of
-      "TRUE"  -> Just True
-      "FALSE" -> Just False
-      _ -> Nothing
-    UpperHead -> case str of
-      "True"  -> Just True
-      "False" -> Just False
-      _ -> Nothing
-    OrCasing {} -> Nothing
+  readBoolWord = fmap Booly . readBoolWord' (boolCasingVal @c)
+
+readBoolWord' :: BoolCasing -> String -> Maybe Bool
+readBoolWord' casing str = case casing of
+  IgnoreCase -> case map toLower str of
+    "true"  -> Just True
+    "false" -> Just False
+    _ -> Nothing
+  LowerAll -> case str of
+    "true"  -> Just True
+    "false" -> Just False
+    _ -> Nothing
+  UpperAll -> case str of
+    "TRUE"  -> Just True
+    "FALSE" -> Just False
+    _ -> Nothing
+  UpperHead -> case str of
+    "True"  -> Just True
+    "False" -> Just False
+    _ -> Nothing
+  OrCasing x y -> case readBoolWord' x str of
+    Just b  -> Just b
+    Nothing -> readBoolWord' y str
 
 -- | Parsers for the various 'BoolLetter' type constructors.
 class ReadBoolLetter (l :: BoolLetter) where
-  readBoolLetter :: BoolCasingVals c => String -> Maybe (Booly w l n c)
+  readBoolLetter :: BoolCasingVal c => String -> Maybe (Booly w l n c)
 
 instance ReadBoolLetter 'DisallowLetter where
   readBoolLetter _ = Nothing
@@ -162,27 +164,32 @@ instance ReadBoolLetter 'DisallowLetter where
 instance ReadBoolLetter 'AllowLetter where
   readBoolLetter
     :: forall w n c
-    .  BoolCasingVals c
+    .  BoolCasingVal c
     => String
     -> Maybe (Booly w 'AllowLetter n c)
-  readBoolLetter str = fmap Booly $ withBoolCasingVals @c $ \case
-    IgnoreCase -> case map toLower str of
-      "t" -> Just True
-      "f" -> Just False
-      _ -> Nothing
-    LowerAll -> case str of
-      "t" -> Just True
-      "f" -> Just False
-      _ -> Nothing
-    UpperAll -> case str of
-      "T" -> Just True
-      "F" -> Just False
-      _ -> Nothing
-    UpperHead -> case str of
-      "T" -> Just True
-      "F" -> Just False
-      _ -> Nothing
-    OrCasing {} -> Nothing
+  readBoolLetter = fmap Booly . readBoolLetter' (boolCasingVal @c)
+
+readBoolLetter' :: BoolCasing -> String -> Maybe Bool
+readBoolLetter' casing str = case casing of
+  IgnoreCase -> case map toLower str of
+    "t" -> Just True
+    "f" -> Just False
+    _ -> Nothing
+  LowerAll -> case str of
+    "t" -> Just True
+    "f" -> Just False
+    _ -> Nothing
+  UpperAll -> case str of
+    "T" -> Just True
+    "F" -> Just False
+    _ -> Nothing
+  UpperHead -> case str of
+    "T" -> Just True
+    "F" -> Just False
+    _ -> Nothing
+  OrCasing x y -> case readBoolLetter' x str of
+    Just b  -> Just b
+    Nothing -> readBoolLetter' y str
 
 -- | Parsers for the various 'BoolNumber' type constructors.
 class ReadBoolNumber (n :: BoolNumber) where
@@ -215,7 +222,7 @@ instance ReadBoolNumber 'AllowInteger where
 
 -- | Reads a 'Booly' from a 'String'.
 readBooly
-  :: (ReadBoolWord w, ReadBoolLetter l, ReadBoolNumber n, BoolCasingVals c)
+  :: (ReadBoolWord w, ReadBoolLetter l, ReadBoolNumber n, BoolCasingVal c)
   => String
   -> Maybe (Booly w l n c)
 readBooly s = getAlt $ mconcat
@@ -223,11 +230,12 @@ readBooly s = getAlt $ mconcat
   | r <- [readBoolWord, readBoolLetter, readBoolNumber]
   ]
 
+-- | Parses a 'Booly' using 'readBooly'.
 instance
   ( ReadBoolWord w
   , ReadBoolLetter l
   , ReadBoolNumber n
-  , BoolCasingVals c)
+  , BoolCasingVal c)
   => Parseable (Booly w l n c) where
   parse = maybeParse readBooly
 

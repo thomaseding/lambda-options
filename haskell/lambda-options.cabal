@@ -13,7 +13,7 @@ name:                lambda-options
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.0.1.0
+version:             1.0.2.0
 
 -- A short (one-line) description of the package.
 synopsis:            Declarative command-line parser using type-driven pattern matching.
@@ -54,6 +54,9 @@ library
         Text.LambdaOptions,
         Text.LambdaOptions.Bool,
         Text.LambdaOptions.Core,
+        Text.LambdaOptions.Example.Example_1_BasicUsage,
+        Text.LambdaOptions.Example.Example_2_Booly,
+        Text.LambdaOptions.Example.Example_3_Repl,
         Text.LambdaOptions.Formatter,
         Text.LambdaOptions.Keyword,
         Text.LambdaOptions.List,
@@ -61,10 +64,6 @@ library
 
   -- Modules included in this library but not exported.
   other-modules:
-        Example.Example_1_BasicUsage,
-        Example.Example_2_CountWords,
-        Example.Example_3_Booly,
-        Example.Example_4_Repl,
         Text.LambdaOptions.Internal.Opaque,
         Text.LambdaOptions.Internal.OpaqueParser,
         Text.LambdaOptions.Internal.Wrap
