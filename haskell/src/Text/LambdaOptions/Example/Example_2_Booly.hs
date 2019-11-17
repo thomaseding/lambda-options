@@ -2,7 +2,7 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE Safe #-}
 
-module Example.Example_3_Booly (
+module Example.Example_2_Booly (
   main,
 ) where
 

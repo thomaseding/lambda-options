@@ -1,6 +1,6 @@
 {-# LANGUAGE Safe #-}
 
-module Example.Example_4_Repl (
+module Example.Example_3_Repl (
   main,
 ) where
 
