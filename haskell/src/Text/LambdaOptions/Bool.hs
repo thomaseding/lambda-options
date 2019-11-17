@@ -16,6 +16,9 @@ module Text.LambdaOptions.Bool (
   BoolLetter(..),
   BoolNumber(..),
   BoolCasing(..),
+  ReadBoolWord,
+  ReadBoolLetter,
+  ReadBoolNumber,
   readBooly,
 ) where
 
