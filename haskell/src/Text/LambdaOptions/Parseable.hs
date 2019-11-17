@@ -64,7 +64,7 @@ simpleParse = maybeParse
 -- | Turns a parser of a single string into a parser suitable for a `Parseable` instance.
 --
 -- Useful for implementing a `Parseable` for a type with a `Text.Read.Bounded.ReadBounded` instance by
--- supplying `readMaybe` to this function.
+-- supplying `Text.Read.Bounded.readBounded` to this function.
 --
 -- __Note:__
 -- The string is /not/ tokenized in any way before being passed into the input parser.
@@ -80,14 +80,12 @@ boundedParse parser = maybeParse $ \s -> case parser s of
 --
 -- Example:
 --
--- @
---  data Point = Point Float Float Float
---
---  instance Parseable Point where
---    parse args = case repeatedParse 3 args of
---      (Just [x,y,z], n) -> (Just (Point x y z), n)`
---      (Nothing, n) -> (Nothing, n)
--- @
+-- > data Point = Point Float Float Float
+-- >
+-- > instance Parseable Point where
+-- >   parse args = case repeatedParse 3 args of
+-- >     (Just [x,y,z], n) -> (Just (Point x y z), n)`
+-- >     (Nothing, n) -> (Nothing, n)
 repeatedParse :: (Parseable a) => Int -> [String] -> (Maybe [a], Int)
 repeatedParse n = toPair . repeatedParse' n
 
@@ -123,11 +121,9 @@ instance Parseable Char where
 
 -- | Identity parser.
 --
--- @
---  parse [""] == (Just "", 1)
---  parse ["foo"] == (Just "foo", 1)
---  parse [] == (Nothing, 0)
--- @
+-- > parse [""] == (Just "", 1)
+-- > parse ["foo"] == (Just "foo", 1)
+-- > parse [] == (Nothing, 0)
 instance Parseable String where
   parse = maybeParse Just
 
@@ -148,12 +144,10 @@ instance (Parseable a) => Parseable (Maybe a) where
 -- | Parses a 'KnownNat' by matching its corresponding shown 'natVal'.
 --
 -- Ex:
--- @
---  parse ["0"] == (Just (Proxy :: Proxy 0), 1)
---  parse ["13"] == (Just (Proxy :: Proxy 13), 1)
---  parse ["00"] == Nothing
---  parse ["0xFF"] == Nothing
--- @
+-- > parse ["0"] == (Just (Proxy :: Proxy 0), 1)
+-- > parse ["13"] == (Just (Proxy :: Proxy 13), 1)
+-- > parse ["00"] == Nothing
+-- > parse ["0xFF"] == Nothing
 instance (KnownNat n) => Parseable (Proxy n) where
   parse = \case
     [] -> (Nothing, 0)
@@ -166,12 +160,10 @@ instance (KnownNat n) => Parseable (Proxy n) where
 -- | Parses the exact string given by 'symbolVal'.
 --
 -- Ex:
--- @
---  parse [""] == (Just (Proxy :: Proxy ""), 1)
---  parse ["foo"] == (Just (Proxy :: Proxy "foo"), 1)
---  parse ["foo"] == (Nothing :: Maybe (Proxy :: "bar"), 0)
---  parse [] == (Nothing, 0)
--- @
+-- > parse [""] == (Just (Proxy :: Proxy ""), 1)
+-- > parse ["foo"] == (Just (Proxy :: Proxy "foo"), 1)
+-- > parse ["foo"] == (Nothing :: Maybe (Proxy :: "bar"), 0)
+-- > parse [] == (Nothing, 0)
 instance (KnownSymbol s) => Parseable (Proxy s) where
   parse = \case
     [] -> (Nothing, 0)
@@ -184,11 +176,9 @@ instance (KnownSymbol s) => Parseable (Proxy s) where
 -- | Opaque identity parser for 'GHC.TypeLits.SymbolVal'.
 --
 -- Ex:
--- @
---  parse [""] == (Just (SomeSymbol (Proxy :: Proxy "")), 1)
---  parse ["foo"] == (Just (SomeSymbol (Proxy :: Proxy "foo")), 1)
---  parse [] == (Nothing, 0)
--- @
+-- > parse [""] == (Just (SomeSymbol (Proxy :: Proxy "")), 1)
+-- > parse ["foo"] == (Just (SomeSymbol (Proxy :: Proxy "foo")), 1)
+-- > parse [] == (Nothing, 0)
 instance Parseable SomeSymbol where
   parse = \case
     [] -> (Nothing, 0)
@@ -197,12 +187,10 @@ instance Parseable SomeSymbol where
 -- | Parses a 'SomeNat' by matching its corresponding shown 'natVal'.
 --
 -- Ex:
--- @
---  parse ["0"] == (Just (Proxy :: SomeNat (Proxy 0)), 1)
---  parse ["13"] == (Just (Proxy :: SomeNat (Proxy 13)), 1)
---  parse ["00"] == Nothing
---  parse ["0xFF"] == Nothing
--- @
+-- > parse ["0"] == (Just (Proxy :: SomeNat (Proxy 0)), 1)
+-- > parse ["13"] == (Just (Proxy :: SomeNat (Proxy 13)), 1)
+-- > parse ["00"] == Nothing
+-- > parse ["0xFF"] == Nothing
 instance Parseable SomeNat where
   parse = \case
     [] -> (Nothing, 0)

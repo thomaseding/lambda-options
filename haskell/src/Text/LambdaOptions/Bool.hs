@@ -34,16 +34,16 @@ import           Text.Read
 
 -- | Controls word representation for 'Booly'.
 data BoolWord
-  -- | Disallow "true" and "false" word representations.
+  -- | Disallow @"true"@ and @"false"@ word representations.
   = DisallowWord
-  -- | Allow "true" and "false" word representations.
+  -- | Allow @"true"@ and @"false"@ word representations.
   | AllowWord
 
 -- | Controls letter representation for 'Booly'.
 data BoolLetter
-  -- | Disallow "t" and "f" letter representations.
+  -- | Disallow @"t"@ and @"f"@ letter representations.
   = DisallowLetter
-  -- | Allow "t" and "f" letter representations.
+  -- | Allow @"t"@ and @"f"@ letter representations.
   | AllowLetter
 
 -- | Controls number representation for 'Booly'.
@@ -55,7 +55,7 @@ data BoolNumber
   -- | Allow @N >= 0@ integer representations.
   -- @0@ maps to 'False'. @N > 0@ maps to 'True'.
   | AllowNatural
-  -- | Allow any @N0@ integer representation.
+  -- | Allow any @N@ integer representation.
   -- @0@ maps to 'False'. @N /= 0@ maps to 'True'.
   | AllowInteger
 
@@ -75,15 +75,14 @@ data BoolCasing
 -- | Data type used for parsing 'Bool' values with various schemes.
 --
 -- It can be useful to alias for this type:
--- @
---  type B = Booly 'AllowWord 'DisallowLetter 'DisallowNumber 'LowerAll
 --
---  pattern B :: Bool -> B
---  pattern B x = Booly x
---
---  b :: B -> Bool
---  b = unBooly
--- @
+-- > type B = Booly 'AllowWord 'DisallowLetter 'DisallowNumber 'LowerAll
+-- >
+-- > pattern B :: Bool -> B
+-- > pattern B x = Booly x
+-- >
+-- > b :: B -> Bool
+-- > b = unBooly
 data Booly
     (w :: BoolWord)
     (l :: BoolLetter)
@@ -223,6 +222,7 @@ readBooly s = getAlt $ mconcat
   | r <- [readBoolWord, readBoolLetter, readBoolNumber]
   ]
 
+-- | Parses a 'Booly' using 'readBooly'.
 instance
   ( ReadBoolWord w
   , ReadBoolLetter l
