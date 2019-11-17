@@ -54,6 +54,10 @@ library
         Text.LambdaOptions,
         Text.LambdaOptions.Bool,
         Text.LambdaOptions.Core,
+        Text.LambdaOptions.Example.Example_1_BasicUsage,
+        Text.LambdaOptions.Example.Example_2_CountWords,
+        Text.LambdaOptions.Example.Example_3_Booly,
+        Text.LambdaOptions.Example.Example_4_Repl,
         Text.LambdaOptions.Formatter,
         Text.LambdaOptions.Keyword,
         Text.LambdaOptions.List,
@@ -61,10 +65,6 @@ library
 
   -- Modules included in this library but not exported.
   other-modules:
-        Example.Example_1_BasicUsage,
-        Example.Example_2_CountWords,
-        Example.Example_3_Booly,
-        Example.Example_4_Repl,
         Text.LambdaOptions.Internal.Opaque,
         Text.LambdaOptions.Internal.OpaqueParser,
         Text.LambdaOptions.Internal.Wrap
