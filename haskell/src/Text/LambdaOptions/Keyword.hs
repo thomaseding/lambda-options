@@ -23,6 +23,7 @@ data Keyword
   = Keyword
     { kwNames :: [String]
     -- ^ All the aliases for this keyword.
+    -- If no names are supplied, this keyword is alway matched.
     , kwArgText :: String
     -- ^ Text to describe the arguments to the option given by this keyword.
     , kwText :: String

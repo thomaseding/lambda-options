@@ -2,7 +2,7 @@
 {-# LANGUAGE Safe #-}
 
 -- | List newtype wrapper that can be pattern matched against for parsing.
-module Text.LambdaOptions.List (
+module Text.LambdaOptions.Parseable.List (
     List(..),
 ) where
 
@@ -20,11 +20,9 @@ internalError = error "InternalError: Text.LambdaOptions.List"
 
 -- | A simple wrapper over @[a]@.
 -- Used to avoid overlapping instances for @Parseable [a]@ and @Parseable String@.
-newtype List a
-  = List
-    { unList :: [a]
-    }
-  deriving (Typeable, Data, Show, Read, Eq, Ord)
+newtype List a = List
+  { unList :: [a]
+  } deriving (Typeable, Data, Show, Read, Eq, Ord)
 
 -- | Greedily parses arguments item-wise. Never fails.
 --
