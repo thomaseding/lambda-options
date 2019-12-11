@@ -1,6 +1,7 @@
 {-# LANGUAGE Safe #-}
 
-module Text.LambdaOptions.Example.Example_3_Repl (
+-- | View my source code to see example.
+module Text.LambdaOptions.Example.Example_5_Repl (
   main,
 ) where
 
@@ -8,12 +9,12 @@ import qualified System.IO as IO
 import qualified Text.LambdaOptions as L
 
 data Command
-  = DisplayHelp
-  | Quit
+  = Quit
+  | DisplayHelp
   | ComputeSum [Double]
   | ComputeProduct [Double]
 
-options :: L.Options Command ()
+options :: L.Options Command
 options = do
 
   L.addOption
@@ -38,23 +39,9 @@ options = do
     `L.text` "Multiplies NUMS and prints the result.")
     $ ComputeProduct . L.unList
 
-main :: IO ()
-main = do
-  IO.hSetBuffering IO.stdin IO.LineBuffering
-  readEvalPrintLoop
-
-readEvalPrintLoop :: IO ()
-readEvalPrintLoop = do
-  c <- getCommand
-  quit <- execCommand c
-  putStrLn ""
-  case quit of
-    True  -> pure ()
-    False -> readEvalPrintLoop
-
 getCommand :: IO Command
 getCommand = do
-  putStr "> "
+  putStr ">> "
   input <- getLine
   let args = words input
   case L.runOptions options args of
@@ -70,13 +57,15 @@ getCommand = do
         putStrLn $ L.getHelpDescription options
         getCommand
 
-execCommand :: Command -> IO Bool
+type Quit = Bool
+
+execCommand :: Command -> IO Quit
 execCommand c = case c of
+  Quit -> pure True
+
   DisplayHelp -> do
     putStrLn $ L.getHelpDescription options
     pure False
-
-  Quit -> pure True
 
   ComputeSum xs -> do
     print $ sum xs
@@ -85,4 +74,25 @@ execCommand c = case c of
   ComputeProduct xs -> do
     print $ product xs
     pure False
+
+readEvalPrintLoop :: IO ()
+readEvalPrintLoop = do
+  c <- getCommand
+  quit <- execCommand c
+  putStrLn ""
+  case quit of
+    True  -> pure ()
+    False -> readEvalPrintLoop
+
+-- | Try with these succeeding examples:
+--
+-- > :main
+-- > >> help
+-- > >> product 11 5 7.12
+-- > >> sum -1.23 1.23
+-- > >> quit
+main :: IO ()
+main = do
+  IO.hSetBuffering IO.stdin IO.LineBuffering
+  readEvalPrintLoop
 
