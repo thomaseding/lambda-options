@@ -10,6 +10,7 @@
 module Text.LambdaOptions.Core (
   runOptions,
   Options,
+  OptionsM,
 
   OptionsError(..),
   prettyOptionsError,
@@ -94,23 +95,26 @@ data OptionInfo r
 --------------------------------------------------------------------------------
 
 -- | A monad for parsing options.
-newtype Options r a
+newtype OptionsM r a
   = Options
     { unOptions :: State (OptionsState r) a
     }
 
-instance Functor (Options r) where
+-- | A context for parsing options.
+type Options r = OptionsM r ()
+
+instance Functor (OptionsM r) where
   fmap f = Options . fmap f . unOptions
 
-instance Applicative (Options r) where
+instance Applicative (OptionsM r) where
   pure = Options . pure
   Options f <*> Options x = Options (f <*> x)
 
-instance Monad (Options r) where
+instance Monad (OptionsM r) where
   return = Options . return
   Options x >>= f = Options (x >>= unOptions . f)
 
-instance MonadState (OptionsState r) (Options r) where
+instance MonadState (OptionsState r) (OptionsM r) where
   get = Options State.get
   put = Options . State.put
   state = Options . State.state
@@ -141,7 +145,7 @@ data OptionsError
 -- | Pretty prints an 'OptionsError'.
 prettyOptionsError :: OptionsError -> String
 prettyOptionsError = \case
-  ParseFailed
+  e@ParseFailed
     { parseFailedArgs = args
     , parseFailedBeginArgsIndex = beginIndex
     , parseFailedEndArgsIndex = endIndex
@@ -177,7 +181,7 @@ mkParseFailedMessage beginIndex endIndex args
 -- > import qualified System.Environment as IO
 -- > import qualified Text.LambdaOptions as L
 -- >
--- > options :: L.Options (IO ()) ()
+-- > options :: L.Options (IO ())
 -- > options = do
 -- >
 -- >   L.addOption
@@ -224,13 +228,13 @@ mkParseFailedMessage beginIndex endIndex args
 -- -h, --help                  Display this help text.
 --     --user NAME             Prints name.
 --     --user NAME AGE         Prints name and age.
-runOptions :: Options r () -> [String] -> Either OptionsError [r]
+runOptions :: Options r -> [String] -> Either OptionsError [r]
 runOptions action args = runOptions' args $ do
   runOptionsInternal defaultFormatConfig args $ do
     action
     tryParseAll
 
-runOptionsInternal :: FormatConfig -> [String] -> Options r a -> (a, OptionsState r)
+runOptionsInternal :: FormatConfig -> [String] -> OptionsM r a -> (a, OptionsState r)
 runOptionsInternal config args action = State.runState (unOptions action) OptionsState
   { stateOpaqueParsers = Map.empty
   , stateOptionsByArity = []
@@ -249,7 +253,11 @@ runOptions' args = \case
     highMark = stateHighMark st
     in mkParseFailed currMark (highMark + 1) args
 
-addByArity :: a -> [[a]] -> Int -> [[a]]
+addByArity
+  :: a -- Function
+  -> [[a]] -- Functions grouped by arity
+  -> Int -- Arity of input function
+  -> [[a]]
 addByArity x xss = \case
   0 -> case xss of
     [] -> [[x]]
@@ -258,11 +266,11 @@ addByArity x xss = \case
     [] -> [] : addByArity x [] (n - 1)
     xs : rest -> xs : addByArity x rest (n - 1)
 
--- | Adds the supplied option to the @Options r ()@ context.
+-- | Adds the supplied option to the @Options r@ context.
 --
 -- If the keyword is matched and the types of the callback's parameters can
 -- successfully be parsed, the callback is called with the parsed arguments.
-addOption :: forall r f. (OptionCallback r f) => Keyword -> f -> Options r ()
+addOption :: forall r f. (OptionCallback r f) => Keyword -> f -> Options r
 addOption inKwd f = do
   let (reps, opaqueParsers) = unzip $ getOpaqueParsers (Proxy :: Proxy r) (Proxy :: Proxy f)
       arity = length reps
@@ -295,25 +303,34 @@ whileM m = m >>= \case
   True  -> whileM m
   False -> pure ()
 
-tryParseAll :: Options r Bool
+tryParseAll :: OptionsM r Bool
 tryParseAll = do
   whileM tryParse
   State.gets (null . stateArgs)
 
-tryParse :: Options r Bool
+tryParse :: OptionsM r Bool
 tryParse = State.gets (null . stateArgs) >>= \case
   True  -> pure False
   False -> tryParseByArity
 
-tryParseByArity :: Options r Bool
+hasEmptyKeyword :: OptionInfo r -> Bool
+hasEmptyKeyword = null . kwNames . optionKeyword
+
+tryParseByArity :: OptionsM r Bool
 tryParseByArity = do
   optionsByArity <- State.gets $ reverse . stateOptionsByArity
-  firstM $ map tryParseByOptions optionsByArity
+  let filterEmpty f = map (filter $ f . hasEmptyKeyword) optionsByArity
+      nonEmpties = filterEmpty not
+      empties    = filterEmpty id
+      goParse    = firstM . map tryParseByOptions
+  goParse nonEmpties >>= \case
+    True  -> pure True
+    False -> goParse empties
 
-tryParseByOptions :: [OptionInfo r] -> Options r Bool
+tryParseByOptions :: [OptionInfo r] -> OptionsM r Bool
 tryParseByOptions = firstM . map tryParseByOption
 
-tryParseByOption :: OptionInfo r -> Options r Bool
+tryParseByOption :: OptionInfo r -> OptionsM r Bool
 tryParseByOption option = do
   restorePoint <- State.get
   matchKeyword (optionKeyword option) >>= \case
@@ -343,24 +360,26 @@ tryParseByOption option = do
         in st { stateHighMark = newHighMark }
       pure result
 
-matchKeyword :: Keyword -> Options r Bool
-matchKeyword kwd = State.gets stateArgs >>= \case
-  [] -> pure False
-  (arg : rest) -> case matchKeyword' arg kwd of
-    Nothing -> pure False
-    Just n -> do
-      State.modify $ \st -> let
-        newCurrMark = stateCurrMark st + n
-        in st
-          { stateCurrMark = newCurrMark
-          , stateHighMark = max newCurrMark $ stateHighMark st
-          , stateArgs = rest
-          }
-      pure True
+matchKeyword :: Keyword -> OptionsM r Bool
+matchKeyword kwd = State.gets stateArgs >>= \args ->
+  case kwNames kwd of
+    [] -> pure True
+    _  -> case args of
+      [] -> pure False
+      (arg : rest) -> case matchKeyword' arg kwd of
+        Nothing -> pure False
+        Just n -> do
+          State.modify $ \st -> let
+            newCurrMark = stateCurrMark st + n
+            in st
+              { stateCurrMark = newCurrMark
+              , stateHighMark = max newCurrMark $ stateHighMark st
+              , stateArgs = rest
+              }
+          pure True
 
 matchKeyword' :: String -> Keyword -> Maybe Int
 matchKeyword' arg kwd = case kwNames kwd of
-  [] -> Just 0
   names -> case any (arg ==) names of
     False -> Nothing
     True  -> Just 1
@@ -376,7 +395,7 @@ sequenceParsers args = \case
         (Nothing, n') -> (Nothing, n + n')
         (Just os, n') -> (Just $ o : os, n + n')
 
-collectKeywords :: Options r [Keyword]
+collectKeywords :: OptionsM r [Keyword]
 collectKeywords = State.gets $ sortBy cmp . map optionKeyword . concat . stateOptionsByArity
   where
     cmp = namesCmp `on` kwNames
@@ -387,14 +406,14 @@ collectKeywords = State.gets $ sortBy cmp . map optionKeyword . concat . stateOp
 
 --------------------------------------------------------------------------------
 
-createHelpDescription :: Options r String
+createHelpDescription :: OptionsM r String
 createHelpDescription = do
   config <- State.gets stateFormatConfig
   kwds <- collectKeywords
   pure $ formatKeywords config kwds
 
 -- | Produces the help description given by the input options.
-getHelpDescription :: Options r () -> String
+getHelpDescription :: Options r -> String
 getHelpDescription options = fst $ runOptionsInternal defaultFormatConfig [] $ do
   options
   createHelpDescription
@@ -402,7 +421,7 @@ getHelpDescription options = fst $ runOptionsInternal defaultFormatConfig [] $ d
 --------------------------------------------------------------------------------
 
 -- | Produces the `Keyword`s inserted into the input options.
-getKeywords :: Options r () -> [Keyword]
+getKeywords :: Options r -> [Keyword]
 getKeywords options = fst $ runOptionsInternal defaultFormatConfig [] $ do
   options
   collectKeywords

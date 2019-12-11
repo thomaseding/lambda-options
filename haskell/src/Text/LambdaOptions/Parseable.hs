@@ -141,6 +141,15 @@ instance (Parseable a) => Parseable (Maybe a) where
     (Nothing, n) -> (Just Nothing, n)
     (Just x, n) -> (Just $ Just x, n)
 
+-- | Parses an 'Either a b'. This attempts to parse @Left a@ before
+-- attempting to parse @Right b@
+instance (Parseable a, Parseable b) => Parseable (Either a b) where
+  parse args = case parse args of
+    (Just a, m) -> (Just $ Left a, m)
+    (Nothing, m) -> case parse args of
+      (Just b, n) -> (Just $ b, n)
+      (Nothing, n) -> (Nothing, max m n)
+
 -- | Parses a 'KnownNat' by matching its corresponding shown 'natVal'.
 --
 -- Ex:

@@ -10,7 +10,7 @@
 {-# LANGUAGE TypeApplications #-}
 
 -- | 'Booly' data type used for fine control of 'Bool' parsers.
-module Text.LambdaOptions.Booly (
+module Text.LambdaOptions.Parseable.Booly (
   Booly(..),
   BoolWord(..),
   BoolLetter(..),
