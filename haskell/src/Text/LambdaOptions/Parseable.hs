@@ -144,6 +144,7 @@ instance (Parseable a) => Parseable (Maybe a) where
 -- | Parses a 'KnownNat' by matching its corresponding shown 'natVal'.
 --
 -- Ex:
+--
 -- > parse ["0"] == (Just (Proxy :: Proxy 0), 1)
 -- > parse ["13"] == (Just (Proxy :: Proxy 13), 1)
 -- > parse ["00"] == Nothing
@@ -160,6 +161,7 @@ instance (KnownNat n) => Parseable (Proxy n) where
 -- | Parses the exact string given by 'symbolVal'.
 --
 -- Ex:
+--
 -- > parse [""] == (Just (Proxy :: Proxy ""), 1)
 -- > parse ["foo"] == (Just (Proxy :: Proxy "foo"), 1)
 -- > parse ["foo"] == (Nothing :: Maybe (Proxy :: "bar"), 0)
@@ -176,6 +178,7 @@ instance (KnownSymbol s) => Parseable (Proxy s) where
 -- | Opaque identity parser for 'GHC.TypeLits.SymbolVal'.
 --
 -- Ex:
+--
 -- > parse [""] == (Just (SomeSymbol (Proxy :: Proxy "")), 1)
 -- > parse ["foo"] == (Just (SomeSymbol (Proxy :: Proxy "foo")), 1)
 -- > parse [] == (Nothing, 0)
@@ -187,6 +190,7 @@ instance Parseable SomeSymbol where
 -- | Parses a 'SomeNat' by matching its corresponding shown 'natVal'.
 --
 -- Ex:
+--
 -- > parse ["0"] == (Just (Proxy :: SomeNat (Proxy 0)), 1)
 -- > parse ["13"] == (Just (Proxy :: SomeNat (Proxy 13)), 1)
 -- > parse ["00"] == Nothing

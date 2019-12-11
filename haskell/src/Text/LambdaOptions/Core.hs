@@ -57,13 +57,15 @@ import           Text.LambdaOptions.Parseable
 
 -- | Describes the callback @f@ to be called for a successfully parsed option.
 --
--- The function (or value) @f@ can have any arity and ultimately returns a value with type @r@
+-- The function (or value) @f@ can have any arity and ultimately returns
+-- a value with type @r@
 --
--- Each of the callback's arguments must have a type @t@ which implements 'Text.LambdaOptions.Parseable.Parseable' and 'Data.Typeable.Typeable'.
+-- Each of the callback's arguments must have a type @t@ which implements
+-- 'Text.LambdaOptions.Parseable.Parseable' and 'Data.Typeable.Typeable'.
 --
 -- Think of this as the following constraint synonym:
 --
--- > type OptionCallback r f = (f ~ (Parseable t*, Typeable t*) => t0 -> t1 -> ... -> tN -> r)
+-- > type OptionCallback r f = (f ~ ((Parseable t*, Typeable t*) => t0 -> t1 -> ... -> tN -> r))
 --
 -- Example callbacks:
 --
@@ -167,8 +169,8 @@ mkParseFailedMessage beginIndex endIndex args
     beginIndexStr = show beginIndex
 
 -- | Tries to parse the supplied options against input arguments.
--- If successful, parsed option callback results are returned in 'Right'. Otherwise
--- an 'OptionsError' is returned in 'Left'.
+-- If successful, parsed option callback results are returned in 'Right'.
+-- Otherwise 'OptionsError' is returned in 'Left'.
 --
 -- Example program:
 --
@@ -258,8 +260,8 @@ addByArity x xss = \case
 
 -- | Adds the supplied option to the @Options r ()@ context.
 --
--- If the keyword is matched and the types of the callback's parameters can successfully be parsed, the
--- callback is called with the parsed arguments.
+-- If the keyword is matched and the types of the callback's parameters can
+-- successfully be parsed, the callback is called with the parsed arguments.
 addOption :: forall r f. (OptionCallback r f) => Keyword -> f -> Options r ()
 addOption inKwd f = do
   let (reps, opaqueParsers) = unzip $ getOpaqueParsers (Proxy :: Proxy r) (Proxy :: Proxy f)
