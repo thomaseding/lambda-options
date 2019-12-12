@@ -141,9 +141,19 @@ instance (Parseable a) => Parseable (Maybe a) where
     (Nothing, n) -> (Just Nothing, n)
     (Just x, n) -> (Just $ Just x, n)
 
+-- | Parses an 'Either a b'. This attempts to parse @Left a@ before
+-- attempting to parse @Right b@
+instance (Parseable a, Parseable b) => Parseable (Either a b) where
+  parse args = case parse args of
+    (Just a, m) -> (Just $ Left a, m)
+    (Nothing, m) -> case parse args of
+      (Just b, n) -> (Just $ b, n)
+      (Nothing, n) -> (Nothing, max m n)
+
 -- | Parses a 'KnownNat' by matching its corresponding shown 'natVal'.
 --
 -- Ex:
+--
 -- > parse ["0"] == (Just (Proxy :: Proxy 0), 1)
 -- > parse ["13"] == (Just (Proxy :: Proxy 13), 1)
 -- > parse ["00"] == Nothing
@@ -160,6 +170,7 @@ instance (KnownNat n) => Parseable (Proxy n) where
 -- | Parses the exact string given by 'symbolVal'.
 --
 -- Ex:
+--
 -- > parse [""] == (Just (Proxy :: Proxy ""), 1)
 -- > parse ["foo"] == (Just (Proxy :: Proxy "foo"), 1)
 -- > parse ["foo"] == (Nothing :: Maybe (Proxy :: "bar"), 0)
@@ -176,6 +187,7 @@ instance (KnownSymbol s) => Parseable (Proxy s) where
 -- | Opaque identity parser for 'GHC.TypeLits.SymbolVal'.
 --
 -- Ex:
+--
 -- > parse [""] == (Just (SomeSymbol (Proxy :: Proxy "")), 1)
 -- > parse ["foo"] == (Just (SomeSymbol (Proxy :: Proxy "foo")), 1)
 -- > parse [] == (Nothing, 0)
@@ -187,6 +199,7 @@ instance Parseable SomeSymbol where
 -- | Parses a 'SomeNat' by matching its corresponding shown 'natVal'.
 --
 -- Ex:
+--
 -- > parse ["0"] == (Just (Proxy :: SomeNat (Proxy 0)), 1)
 -- > parse ["13"] == (Just (Proxy :: SomeNat (Proxy 13)), 1)
 -- > parse ["00"] == Nothing

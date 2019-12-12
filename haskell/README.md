@@ -13,10 +13,10 @@ Hackage: [https://hackage.haskell.org/package/lambda-options](https://hackage.ha
 
 Basic example:
 ```haskell
-import qualified System.Environment as IO
+import qualified System.Environment as Env
 import qualified Text.LambdaOptions as L
 
-options :: L.Options (IO ()) ()
+options :: L.Options (IO ())
 options = do
 
   L.addOption
@@ -27,42 +27,32 @@ options = do
       putStrLn $ L.getHelpDescription options
 
   L.addOption
-    (L.kw "--user"
-    `L.argText` "NAME"
-    `L.text` "Prints name.")
-    $ \name -> do
-      putStrLn $ "Name:" ++ name
-
-  L.addOption
-    (L.kw "--user"
-    `L.argText` "NAME AGE"
-    `L.text` "Prints name and age.")
-    $ \name age -> do
-      putStrLn $ "Name:" ++ name ++ " Age:" ++ show (age :: Int)
+    (L.kw "--add"
+    `L.argText` "X Y"
+    `L.text` "Adds two Doubles and prints their sum.")
+    $ \x y -> do
+      print $ x + (y :: Double)
 
 main :: IO ()
 main = do
-  args <- IO.getArgs
+  args <- Env.getArgs
   case L.runOptions options args of
     Left e -> do
       putStrLn $ L.prettyOptionsError e
       putStrLn $ L.getHelpDescription options
-    Right actions -> sequence_ actions
+    Right results -> do
+      sequence_ results
 ```
 
 ```
-$ example.exe --user HaskellCurry 81 --user GraceHopper
-Name:HaskellCurry Age:81
-Name:GraceHopper
-$ example.exe -h
+>>> :main --add 3 0.14
+3.14
+>>> :main -h
 Usage:
+     --add X Y               Adds two Doubles and prints their sum.
  -h, --help                  Display this help text.
-     --user NAME             Prints name.
-     --user NAME AGE         Prints name and age.
-$ example.exe --user Pythagoras LXXV
-Unknown option at index 2: `LXXV'
-Usage:
+>>> :main --add 0 1 --add 2 four
+Bad input for `--add' at index 3: `four'
+     --add X Y               Adds two Doubles and prints their sum.
  -h, --help                  Display this help text.
-     --user NAME             Prints name.
-     --user NAME AGE         Prints name and age.
 ```

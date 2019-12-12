@@ -2,11 +2,12 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE Safe #-}
 
-module Text.LambdaOptions.Example.Example_2_Booly (
+-- | View my source code to see example.
+module Text.LambdaOptions.Example.Example_4_Booly (
   main,
 ) where
 
-import qualified System.Environment as IO
+import qualified System.Environment as Env
 import qualified Text.LambdaOptions as L
 
 type B = L.Booly
@@ -18,7 +19,7 @@ type B = L.Booly
 pattern B :: Bool -> B
 pattern B x = L.Booly x
 
-options :: L.Options Bool ()
+options :: L.Options Bool
 options = do
 
   L.addOption
@@ -33,9 +34,22 @@ options = do
     `L.text` "Logical Or.")
     $ \(B x) (B y) -> x || y
 
+-- | Try with these succeeding examples:
+--
+-- > :main --and true false
+-- > :main --and TRUE FALSE
+-- > :main --and 1 0
+-- > :main --and true 0 --or 1 TRUE
+--
+-- Also try with these failing examples:
+--
+-- > :main --and true
+-- > :main --and t f
+-- > :main --and 0 2
+-- > :main --and True False
 main :: IO ()
 main = do
-  args <- IO.getArgs
+  args <- Env.getArgs
   case L.runOptions options args of
     Left e -> do
       putStrLn $ L.prettyOptionsError e
