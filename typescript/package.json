@@ -38,7 +38,7 @@
   "dependencies": {
     "@types/query-string": "^5.1.0",
     "nat-ts": "^2.0.1",
-    "query-string": "^5.1.0",
+    "query-string": "^9.5.0",
     "stable": "^0.1.6"
   }
 }
